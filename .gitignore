@@ -1,0 +1,8 @@
+data/raw/
+data/*.db
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.vscode/
