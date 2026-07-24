@@ -61,4 +61,5 @@ CPCB monitoring data has real-world gaps (missing dates, occasional
 partial months) — these are preserved as-is rather than artificially
 smoothed, since that's the honest state of the underlying government data.
 
-Data source: CPCB via [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india). Real government data — missing dates and gaps left as-is, not smoothed over.
+## Data source
+CPCB via [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india). Real government data — missing dates and gaps left as-is, not smoothed over.
