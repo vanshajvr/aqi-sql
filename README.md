@@ -1,10 +1,10 @@
 # aqi-sql
 
-Does Delhi's air actually get 7x worse in winter and can SQL alone prove it?
-
-Real CPCB station data, 2015–2020. No pandas magic, no black-box charts,
-just window functions, CTEs, and date logic doing the analytical heavy
-lifting, with an interactive dashboard on top.
+Delhi's winters aren't just "bad" — they're roughly 7x worse than the rest
+of the year, and CPCB has been measuring exactly how bad since 2015. This
+project pulls that story out of the raw data using nothing but SQL: window
+functions, CTEs, and date logic, no pandas doing the real analytical work.
+Real government readings, an interactive dashboard, and receipts.
 
 ## Data
 
