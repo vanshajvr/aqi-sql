@@ -9,8 +9,7 @@ lifting, with an interactive dashboard on top.
 ## Data
 
 Real CPCB station-level air quality data for Delhi, 2015–2020, sourced via
-the public Kaggle dataset
-[`rohanrao/air-quality-data-in-india`](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
+the public [`Kaggle dataset`](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
 
 - **37 Delhi monitoring stations** (DPCC, CPCB, and IMD operated)
 - **~36,000 daily readings** across PM2.5, PM10, NO2, SO2, CO, and AQI
