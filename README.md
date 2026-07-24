@@ -1,15 +1,15 @@
 # aqi.sql
 
-Does Delhi's air actually get 7x worse in winter — and can SQL alone prove it?
+Does Delhi's air actually get 7x worse in winter and can SQL alone prove it?
 
-Real CPCB station data, 2015–2020. No pandas magic, no black-box charts —
+Real CPCB station data, 2015–2020. No pandas magic, no black-box charts,
 just window functions, CTEs, and date logic doing the analytical heavy
 lifting, with an interactive dashboard on top.
 
 ## Data
 
 37 Delhi monitoring stations · ~36,000 daily readings · 2015–2020
-Source: [CPCB via Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india) — real government data, not synthetic.
+Source: [CPCB via Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india) (real government data, not synthetic).
 
 ## Setup
 
@@ -42,11 +42,11 @@ Open `dashboard.html` in your browser.
 ## Dashboard
 
 Tabbed, interactive, built with Plotly:
-- **Overview** — KPI cards + worst-stations ranking
-- **Trends** — city-wide AQI over time, winter vs. rest-of-year severity
-- **Station Explorer** — rolling averages + severity breakdown, per station
-- **Compare Stations** — overlay any two stations head-to-head
-- **Full Data** — sortable, searchable table, all 37 stations
+- **Overview**: KPI cards + worst-stations ranking
+- **Trends**: city-wide AQI over time, winter vs. rest-of-year severity
+- **Station Explorer**: rolling averages + severity breakdown, per station
+- **Compare Stations**: overlay any two stations head-to-head
+- **Full Data**: sortable, searchable table, all 37 stations
 
 ## Structure
 ```
