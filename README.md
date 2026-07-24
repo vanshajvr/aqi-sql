@@ -1,4 +1,4 @@
-# aqi.sql
+# aqi-sql
 
 Does Delhi's air actually get 7x worse in winter and can SQL alone prove it?
 
