@@ -1,6 +1,6 @@
 # aqi-sql
 
-Delhi's winters aren't just "bad" — they're roughly 7x worse than the rest
+Delhi's winters aren't just "bad", they're roughly 7x worse than the rest
 of the year, and CPCB has been measuring exactly how bad since 2015. This
 project pulls that story out of the raw data using nothing but SQL: window
 functions, CTEs, and date logic, no pandas doing the real analytical work.
