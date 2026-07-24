@@ -41,12 +41,13 @@ Open `dashboard.html` in your browser.
 
 ## Dashboard
 
-Tabbed, interactive, built with Plotly:
-- **Overview**: KPI cards + worst-stations ranking
-- **Trends**: city-wide AQI over time, winter vs. rest-of-year severity
-- **Station Explorer**: rolling averages + severity breakdown, per station
-- **Compare Stations**: overlay any two stations head-to-head
-- **Full Data**: sortable, searchable table, all 37 stations
+An interactive, tabbed dashboard built with Plotly:
+
+- **Overview** — KPI cards (worst/best station, peak severity period, sharpest YoY drop) + worst-stations chart with a Top 10/15/20/All toggle
+- **Trends** — city-wide AQI over time with a range slider, and the winter-vs-rest-of-year severity comparison
+- **Station Explorer** — rolling 7-day/30-day average per station (dropdown-selectable) + severity category breakdown, worst/best toggle
+- **Compare Stations** — pick any two stations and overlay their rolling averages, with side-by-side stats
+- **Full Data** — sortable, searchable table of all 37 stations
 
 ## Structure
 ```
