@@ -13,13 +13,22 @@ Source: [CPCB via Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-d
 
 ## Setup
 
+1. Download the dataset from Kaggle (`rohanrao/air-quality-data-in-india`)
+   and unzip it into `data/raw/` — you'll need `stations.csv` and
+   `station_day.csv`.
+2. Install dependencies:
 ```bash
-# 1. Download the dataset, unzip into data/raw/ (need stations.csv + station_day.csv)
-pip install -r requirements.txt
-python3 fetch_data.py        # builds data/aqi.db
-python3 build_dashboard.py   # builds dashboard.html
+   pip install -r requirements.txt
 ```
-Open `dashboard.html` in your browser.
+3. Build the SQLite database:
+```bash
+   python3 fetch_data.py
+```
+4. Build the dashboard:
+```bash
+   python3 build_dashboard.py
+```
+5. Open `dashboard.html` in your browser.
 
 ## The six queries
 
