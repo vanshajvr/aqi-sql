@@ -23,14 +23,14 @@ Open `dashboard.html` in your browser.
 
 ## The six queries
 
-| # | Query | Technique | Answers |
+| # | File | SQL techniques | Question answered |
 |---|---|---|---|
-| 1 | `01_rolling_average.sql` | Window functions | 7-day / 30-day AQI trend per station |
-| 2 | `02_station_ranking.sql` | CTEs, `RANK()` | Worst station each month |
-| 3 | `03_yoy_comparison.sql` | `LAG()`, date functions | Better or worse than last year? |
-| 4 | `04_event_clustering.sql` | `CASE`, CTEs | Does pollution cluster around Diwali/stubble season? |
-| 5 | `05_severity_breakdown.sql` | `CASE`, window functions | % of days per station in each AQI category |
-| 6 | `06_pipeline_summary.sql` | Layered CTEs, joins | Worst station × worst month × yearly trend |
+| 1 | `01_rolling_average.sql` | Window functions (`AVG() OVER ... ROWS BETWEEN`) | What's the 7-day/30-day AQI trend per station? |
+| 2 | `02_station_ranking.sql` | CTEs, `RANK()`/`DENSE_RANK()` | Which stations are worst each month? |
+| 3 | `03_yoy_comparison.sql` | Date functions, `LAG()` window function | Is the same month better or worse year over year? |
+| 4 | `04_event_clustering.sql` | `CASE` bucketing, CTEs | Do severe-AQI days cluster around Diwali/stubble season? |
+| 5 | `05_severity_breakdown.sql` | `CASE` bucketing, window functions | What % of days per station fall into each CPCB AQI category? |
+| 6 | `06_pipeline_summary.sql` | Layered CTEs, joins, `ROW_NUMBER()` | Combined view: worst stations, worst month, year-over-year trend |
 
 ## What the data actually says
 
@@ -43,11 +43,11 @@ Open `dashboard.html` in your browser.
 
 An interactive, tabbed dashboard built with Plotly:
 
-- **Overview** — KPI cards (worst/best station, peak severity period, sharpest YoY drop) + worst-stations chart with a Top 10/15/20/All toggle
-- **Trends** — city-wide AQI over time with a range slider, and the winter-vs-rest-of-year severity comparison
-- **Station Explorer** — rolling 7-day/30-day average per station (dropdown-selectable) + severity category breakdown, worst/best toggle
-- **Compare Stations** — pick any two stations and overlay their rolling averages, with side-by-side stats
-- **Full Data** — sortable, searchable table of all 37 stations
+- **Overview**: KPI cards (worst/best station, peak severity period, sharpest YoY drop) + worst-stations chart with a Top 10/15/20/All toggle
+- **Trends**: city-wide AQI over time with a range slider, and the winter-vs-rest-of-year severity comparison
+- **Station Explorer**: rolling 7-day/30-day average per station (dropdown-selectable) + severity category breakdown, worst/best toggle
+- **Compare Stations**: pick any two stations and overlay their rolling averages, with side-by-side stats
+- **Full Data**: sortable, searchable table of all 37 stations
 
 ## Structure
 ```
