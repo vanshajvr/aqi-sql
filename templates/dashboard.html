@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Delhi AQI Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Delhi Air Quality &mdash; SQL Analysis Dashboard</h1>
+      <p class="subtitle">Real CPCB monitoring data, 2015&ndash;2020, analyzed entirely in SQL (window functions, CTEs, date functions). Part of the <strong>aqi.sql</strong> project.</p>
+      <div class="badges">
+        <span class="badge">37 Delhi stations</span>
+        <span class="badge">5.5 years of daily data</span>
+        <span class="badge">6 SQL queries</span>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overview">Overview</button>
+      <button class="tab-btn" data-tab="trends">Trends</button>
+      <button class="tab-btn" data-tab="explorer">Station Explorer</button>
+      <button class="tab-btn" data-tab="compare">Compare Stations</button>
+      <button class="tab-btn" data-tab="data">Full Data</button>
+    </div>
+
+    <div id="tab-overview" class="tab-content active">
+      <div class="kpi-grid">{kpi_cards}</div>
+      <div class="card">
+        <h3>Worst Delhi Stations by Overall Average AQI</h3>
+        <p class="hint">Toggle station count with the buttons in the chart</p>
+        {worst_stations}
+      </div>
+    </div>
+
+    <div id="tab-trends" class="tab-content">
+      <div class="grid-2">
+        <div class="card">
+          <h3>Delhi Monthly Average AQI Over Time</h3>
+          <p class="hint">2015&ndash;2020 &middot; drag the slider below the chart or use 1y/3y/All</p>
+          {yoy}
+        </div>
+        <div class="card">
+          <h3>Severe-Day Frequency: Winter vs Rest of Year</h3>
+          <p class="hint">% of days per period with AQI &ge; 300</p>
+          {event}
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-explorer" class="tab-content">
+      <div class="card">
+        <h3>Rolling AQI Average by Station</h3>
+        <p class="hint">Select a station from the dropdown in the chart</p>
+        {rolling}
+      </div>
+      <div class="card">
+        <h3>AQI Severity Breakdown &mdash; Worst &amp; Best Stations</h3>
+        <p class="hint">Toggle between the 15 worst and 15 best stations</p>
+        {severity}
+      </div>
+    </div>
+
+    <div id="tab-compare" class="tab-content">
+      <div class="card">
+        <h3>Compare Two Stations</h3>
+        <p class="hint">Pick two stations to compare their 30-day rolling AQI average side by side</p>
+        <div class="compare-controls">
+          <select id="compare-a" class="compare-select">{station_options_a}</select>
+          <span class="vs-label">vs</span>
+          <select id="compare-b" class="compare-select">{station_options_b}</select>
+        </div>
+        <div id="compare-chart" style="height:480px;"></div>
+        <div class="compare-stats" id="compare-stats"></div>
+      </div>
+    </div>
+
+    <div id="tab-data" class="tab-content">
+      <div class="card">
+        <h3>All Stations &mdash; Full Ranking</h3>
+        <p class="hint">Click any column header to sort, or search by station name</p>
+        {table}
+      </div>
+    </div>
+
+    <footer>Data source: Central Pollution Control Board (CPCB), via public Kaggle dataset. Generated with build_dashboard.py.</footer>
+  </div>
+
+  <script>window.COMPARE_DATA = {compare_data_json};</script>
+  <script src="static/dashboard.js"></script>
+  <script src="static/tabs.js"></script>
+  <script src="static/compare.js"></script>
+</body>
+</html>
