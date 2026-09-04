@@ -22,6 +22,12 @@ PERIOD_COLORS = {
     "stubble_season(Oct-Nov)": "#db6d28",
     "early_winter(Dec)": "#8b1a1a",
 }
+PERIOD_LABELS = {
+    "early_winter(Dec)": "Early Winter (Dec)",
+    "stubble_season(Oct-Nov)": "Stubble Season (Oct-Nov)",
+    "late_winter(Jan-Feb)": "Late Winter (Jan-Feb)",
+    "rest of the year(Mar-Sep)": "Rest of Year (Mar-Sep)",
+}
  
  
 def base_layout(fig, height, top_margin=60):

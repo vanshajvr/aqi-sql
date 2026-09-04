@@ -11,6 +11,7 @@ from dashboard.charts import (
     rolling_average,
     severity_breakdown,
     comparison,
+    monthly_ranking
 )
 
 ROOT = Path(__file__).parent
@@ -22,7 +23,9 @@ OUTPUT_PATH = ROOT / "dashboard.html"
 
 def main():
     data = load_all(DB_PATH, QUERIES_DIR)
-    df01, df03, df04, df05, df06 = data["df01"], data["df03"], data["df04"], data["df05"], data["df06"]
+    df01, df02, df03, df04, df05, df06 = (
+        data["df01"], data["df02"], data["df03"], data["df04"], data["df05"], data["df06"]
+    )
     station_names = data["station_names"]
 
     compare_json, compare_ids = comparison.build_comparison_payload(df01, df05, df06, station_names)
@@ -37,6 +40,7 @@ def main():
         event=to_div(event_clustering.build(df04)),
         rolling=to_div(rolling_average.build(df01, df06, station_names)),
         severity=to_div(severity_breakdown.build(df05, df06, station_names)),
+        monthly_ranking=to_div(monthly_ranking.build(df02)),
         table=build_station_table(df06, df05, station_names),
         compare_data_json=compare_json,
         station_options_a=options_a,

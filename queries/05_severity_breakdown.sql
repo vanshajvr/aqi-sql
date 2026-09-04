@@ -17,7 +17,7 @@ SELECT
     station_id,
     computed_bucket,
     COUNT(*) AS n_days,
-    ROUND(COUNT(*)*100/SUM(COUNT(*)) OVER (PARTITION BY station_id),1) AS pct_of_station_days
+    ROUND(COUNT(*)*100.0/SUM(COUNT(*)) OVER (PARTITION BY station_id),1) AS pct_of_station_days
 FROM classified
 GROUP BY station_id, computed_bucket
 ORDER BY station_id,

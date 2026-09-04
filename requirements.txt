@@ -1,3 +1,2 @@
-vayuayan
 pandas>=2.0
 plotly>=5.20

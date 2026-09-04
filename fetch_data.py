@@ -11,7 +11,7 @@ READINGS_CSV=RAW_DIR / "station_day.csv"
 def main():
     if not STATIONS_CSV.exists() or not READINGS_CSV.exists():
         raise FileNotFoundError(
-            "Expected data/raw/stations.csv and dat/raw/station_daty.csv"
+            "Expected data/raw/stations.csv and data/raw/station_day.csv"
         )
     
     stations=pd.read_csv(STATIONS_CSV)
@@ -41,8 +41,13 @@ def main():
         "AQI": "aqi",
         "AQI_Bucket": "aqi_bucket"
     })
-    keep_cols=["station_id", "date", "pm25", "pm10", "no2", "so2", "co", "aqi", "aqi_bucket"]
-    delhi_readings=delhi_readings[[c for c in keep_cols if c in delhi_readings.columns]]
+    EXPECTED_READING_COLS = ["station_id", "date", "pm25", "pm10", "no2", "so2", "co", "aqi", "aqi_bucket"]
+
+    missing_cols = [c for c in EXPECTED_READING_COLS if c not in delhi_readings.columns]
+    if missing_cols:
+        print(f"WARNING: expected columns missing from station_day.csv, will be skipped: {missing_cols}")
+
+    delhi_readings = delhi_readings[[c for c in EXPECTED_READING_COLS if c in delhi_readings.columns]]
     delhi_readings=delhi_readings.dropna(subset=["aqi"])
 
    
@@ -75,7 +80,7 @@ def main():
     """)
 
     delhi_stations.to_sql("stations", conn, if_exists="append", index=False)
-    delhi_readings.to_sql("readings", conn, if_exists="replace", index=False)
+    delhi_readings.to_sql("readings", conn, if_exists="append", index=False)
     conn.commit()
 
     n_stations=conn.execute("SELECT COUNT(*) FROM stations").fetchone()[0]

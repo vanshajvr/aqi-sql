@@ -11,10 +11,15 @@ def run_query(conn, queries_dir, filename):
 
 
 def load_all(db_path, queries_dir):
+    if not db_path.exists():
+        raise FileNotFoundError(
+            f"{db_path} not found — run fetch_data.py first to build the database."
+        )
     conn = sqlite3.connect(db_path)
 
     data: dict={
         "df01": run_query(conn, queries_dir, "01_rolling_average.sql"),
+        "df02": run_query(conn, queries_dir, "02_station_ranking.sql"),
         "df03": run_query(conn, queries_dir, "03_yoy_comparison.sql"),
         "df04": run_query(conn, queries_dir, "04_event_clustering.sql"),
         "df05": run_query(conn, queries_dir, "05_severity_breakdown.sql"),
