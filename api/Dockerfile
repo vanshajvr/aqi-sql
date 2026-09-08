@@ -1,33 +1,41 @@
 # Build this from the repo root, not from api/:
 #   docker build -f api/Dockerfile -t aqi-sql .
 #
-# Requires, before building:
-#   1. data/aqi.db       -> run fetch_data.py
-#   2. dashboard.html     -> run build_dashboard.py (needs your local
-#                             templates/dashboard.html — see project notes)
-#   3. static/*           -> already in the repo
+# Unlike copying in a pre-built aqi.db/dashboard.html, this Dockerfile
+# GENERATES both during the build by actually running fetch_data.py and
+# build_dashboard.py inside the image. The only data committed to git is
+# data/seed/ — a small, deliberate copy of just the 3 CSVs fetch_data.py
+# needs (stations.csv, station_day.csv, station_coords.csv). data/raw/
+# stays gitignored for your local ad-hoc Kaggle downloads; data/seed/ is
+# kept separate so committing it can't accidentally drag in the rest of
+# the Kaggle dataset (city-level/hourly files etc. that ship in the same
+# zip but aren't used here).
 #
-# Everything is baked into the image at build time — this dataset is
-# historical (2015-2020) and never changes, so there's no persistent
-# volume or live database connection needed. Redeploy only if the
-# underlying data (or the dashboard/API code) changes.
+# aqi.db and dashboard.html themselves are NOT committed — they're build
+# artifacts, generated fresh on every image build, consistent with how
+# they're gitignored for local development too.
 #
-# This ONE service serves the static dashboard at "/", static assets at
-# "/static/*", and the live query/map API at "/api/*" — one deployment,
-# one URL.
+# Still no persistent volume or live database connection at runtime — the
+# dataset is historical (2015-2020) and never changes. A new deploy
+# (which re-triggers this build) is the only way the data changes.
 
 FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY api/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt ./requirements.txt
+COPY api/requirements.txt ./api-requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -r api-requirements.txt
 
-COPY api/main.py ./api/main.py
+COPY fetch_data.py build_dashboard.py ./
+COPY dashboard/ ./dashboard/
 COPY queries/ ./queries/
-COPY data/aqi.db ./data/aqi.db
-COPY dashboard.html ./dashboard.html
+COPY templates/ ./templates/
 COPY static/ ./static/
+COPY api/main.py ./api/main.py
+COPY data/seed/ ./data/raw/
+
+RUN python3 fetch_data.py && python3 build_dashboard.py
 
 EXPOSE 8000
 

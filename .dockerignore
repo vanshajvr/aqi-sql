@@ -1,6 +1,8 @@
 data/raw/
 data/*.db
+dashboard.html
 __pycache__/
 *.pyc
+.git/
 .venv/
 venv/

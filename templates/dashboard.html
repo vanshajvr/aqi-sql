@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <div class="container">
@@ -26,6 +28,7 @@
       <button class="tab-btn" data-tab="explorer">Station Explorer</button>
       <button class="tab-btn" data-tab="compare">Compare Stations</button>
       <button class="tab-btn" data-tab="data">Full Data</button>
+      <button class="tab-btn" data-tab="map">Station Map</button>
     </div>
 
     <div id="tab-overview" class="tab-content active">
@@ -87,6 +90,15 @@
       </div>
     </div>
 
+    <div id="tab-map" class="tab-content">
+      <div class="card">
+        <h3>Delhi Station Map</h3>
+        <p class="hint">Live from the deployed API — click a marker for station details</p>
+        <div id="station-map"></div>
+        <p class="map-status" id="map-status">Loading…</p>
+      </div>
+    </div>
+
     <footer>Data source: Central Pollution Control Board (CPCB), via public Kaggle dataset. Generated with build_dashboard.py.</footer>
   </div>
 
@@ -94,5 +106,6 @@
   <script src="static/dashboard.js"></script>
   <script src="static/tabs.js"></script>
   <script src="static/compare.js"></script>
+  <script src="static/map.js"></script>
 </body>
 </html>

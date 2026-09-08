@@ -75,3 +75,10 @@ tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
 .compare-stat-name { font-weight: 600; color: #f0f6fc; margin-bottom: 10px; font-size: 14px; }
 .compare-stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; color: #8b949e; }
 .compare-stat-row b { color: #c9d1d9; }
+
+#station-map { height: 520px; border-radius: 10px; overflow: hidden; }
+.map-status { font-size: 12px; color: #6e7681; margin: 10px 0 0; }
+.map-status.map-error { color: #f85149; }
+.leaflet-popup-content-wrapper { background: #161b22; color: #c9d1d9; border-radius: 8px; }
+.leaflet-popup-tip { background: #161b22; }
+.leaflet-popup-content { font-size: 13px; line-height: 1.6; }
