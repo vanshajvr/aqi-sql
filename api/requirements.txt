@@ -1,0 +1,4 @@
+pandas>=2.0
+plotly>=5.20
+fastapi>=0.100
+uvicorn>=0.23

@@ -7,6 +7,7 @@ DB_PATH=Path(__file__).parent / "data" / "aqi.db"
 
 STATIONS_CSV=RAW_DIR / "stations.csv"
 READINGS_CSV=RAW_DIR / "station_day.csv"
+COORDS_CSV = RAW_DIR / "station_coords.csv"
 
 def main():
     if not STATIONS_CSV.exists() or not READINGS_CSV.exists():
@@ -29,6 +30,19 @@ def main():
         "StationName": "station_name",
         "City": "city"
     })[["station_id", "station_name", "city"]]
+
+    if COORDS_CSV.exists():
+        coords = pd.read_csv(COORDS_CSV)[["station_id", "latitude", "longitude"]]
+        delhi_stations = delhi_stations.merge(coords, on="station_id", how="left")
+        n_missing_coords = delhi_stations["latitude"].isna().sum()
+        if n_missing_coords:
+            print(f"WARNING: {n_missing_coords} station(s) have no coordinates in station_coords.csv")
+
+    else:
+        print("WARNING: data/raw/station_coords.csv not found — run geocode_stations.py first "
+                "if you want station map markers. Loading stations without coordinates for now.")
+        delhi_stations["latitude"] = None
+        delhi_stations["longitude"] = None
 
     delhi_readings=delhi_readings.rename(columns={
         "StationId": "station_id",
@@ -60,7 +74,9 @@ def main():
         CREATE TABLE stations (
             station_id TEXT PRIMARY KEY,
             station_name TEXT,
-            city TEXT
+            city TEXT,
+            latitude REAL,
+            longitude REAL
         )
     """)
 

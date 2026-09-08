@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: aqi-sql
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    plan: free
+    region: singapore
+    autoDeploy: true
+    healthCheckPath: /api/health
