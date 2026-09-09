@@ -4,11 +4,12 @@
 # Unlike copying in a pre-built aqi.db/dashboard.html, this Dockerfile
 # GENERATES both during the build by actually running fetch_data.py and
 # build_dashboard.py inside the image. The only data committed to git is
-# data/seed/ — a small, deliberate copy of just the 3 CSVs fetch_data.py
-# needs (stations.csv, station_day.csv, station_coords.csv). data/raw/
-# stays gitignored for your local ad-hoc Kaggle downloads; data/seed/ is
-# kept separate so committing it can't accidentally drag in the rest of
-# the Kaggle dataset (city-level/hourly files etc. that ship in the same
+# data/seed/ — the 3 CSVs fetch_data.py needs (stations.csv,
+# station_day.csv, station_coords.csv), each already filtered down to the
+# 38 Delhi stations so the checked-in copy stays small. data/raw/ stays
+# gitignored for your local ad-hoc Kaggle downloads; data/seed/ is kept
+# separate so committing it can't accidentally drag in the rest of the
+# Kaggle dataset (other cities, hourly files etc. that ship in the same
 # zip but aren't used here).
 #
 # aqi.db and dashboard.html themselves are NOT committed — they're build
