@@ -14,9 +14,11 @@ receipts.
 Real CPCB station-level air quality data for Delhi, 2015–2020, sourced via
 the public [`Kaggle dataset`](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
 
-- **37 Delhi monitoring stations** (DPCC, CPCB, and IMD operated) with
-  reported AQI data — a 38th registered station (East Arjun Nagar) reported
-  zero readings in this dataset and is dropped by `fetch_data.py`
+- - **37 of 38 registered Delhi monitoring stations reported usable AQI data**
+  (DPCC, CPCB, and IMD operated) — the 38th, East Arjun Nagar, has 1,553
+  logged readings but every one has a null AQI value, so it's excluded from
+  every ranking/KPI/chart (though it still appears on the Station Map,
+  shown in gray since it has no AQI to color by)
 - **~36,000 daily readings** across PM2.5, PM10, NO2, SO2, CO, and AQI
 - Not synthetic, not scraped — official government monitoring data
 - All 37 stations geocoded to real coordinates (34 automatically via
