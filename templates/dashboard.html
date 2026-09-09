@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Delhi AQI Dashboard</title>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <div class="container">
@@ -32,11 +33,11 @@
     </div>
 
     <div id="tab-overview" class="tab-content active">
-      <div class="kpi-grid">{kpi_cards}</div>
+      <div class="kpi-grid">$kpi_cards</div>
       <div class="card">
         <h3>Worst Delhi Stations by Overall Average AQI</h3>
         <p class="hint">Toggle station count with the buttons in the chart</p>
-        {worst_stations}
+        $worst_stations
       </div>
     </div>
 
@@ -45,12 +46,12 @@
         <div class="card">
           <h3>Delhi Monthly Average AQI Over Time</h3>
           <p class="hint">2015&ndash;2020 &middot; drag the slider below the chart or use 1y/3y/All</p>
-          {yoy}
+          $yoy
         </div>
         <div class="card">
           <h3>Severe-Day Frequency: Winter vs Rest of Year</h3>
           <p class="hint">% of days per period with AQI &ge; 300</p>
-          {event}
+          $event
         </div>
       </div>
     </div>
@@ -59,12 +60,17 @@
       <div class="card">
         <h3>Rolling AQI Average by Station</h3>
         <p class="hint">Select a station from the dropdown in the chart</p>
-        {rolling}
+        $rolling
       </div>
       <div class="card">
         <h3>AQI Severity Breakdown &mdash; Worst &amp; Best Stations</h3>
         <p class="hint">Toggle between the 15 worst and 15 best stations</p>
-        {severity}
+        $severity
+      </div>
+      <div class="card">
+        <h3>Monthly Station Rankings &mdash; RANK() vs DENSE_RANK()</h3>
+        <p class="hint">Pick a month &middot; tied stations share a DENSE_RANK() but diverge under RANK()</p>
+        $monthly_ranking
       </div>
     </div>
 
@@ -73,9 +79,9 @@
         <h3>Compare Two Stations</h3>
         <p class="hint">Pick two stations to compare their 30-day rolling AQI average side by side</p>
         <div class="compare-controls">
-          <select id="compare-a" class="compare-select">{station_options_a}</select>
+          <select id="compare-a" class="compare-select">$station_options_a</select>
           <span class="vs-label">vs</span>
-          <select id="compare-b" class="compare-select">{station_options_b}</select>
+          <select id="compare-b" class="compare-select">$station_options_b</select>
         </div>
         <div id="compare-chart" style="height:480px;"></div>
         <div class="compare-stats" id="compare-stats"></div>
@@ -86,7 +92,7 @@
       <div class="card">
         <h3>All Stations &mdash; Full Ranking</h3>
         <p class="hint">Click any column header to sort, or search by station name</p>
-        {table}
+        $table
       </div>
     </div>
 
@@ -102,10 +108,11 @@
     <footer>Data source: Central Pollution Control Board (CPCB), via public Kaggle dataset. Generated with build_dashboard.py.</footer>
   </div>
 
-  <script>window.COMPARE_DATA = {compare_data_json};</script>
+  <script>window.COMPARE_DATA = $compare_data_json;</script>
   <script src="static/dashboard.js"></script>
   <script src="static/tabs.js"></script>
   <script src="static/compare.js"></script>
-  <script src="static/map.js"></script>
+  <!-- defer: keep this after the deferred Leaflet script so L is defined -->
+  <script defer src="static/map.js"></script>
 </body>
 </html>

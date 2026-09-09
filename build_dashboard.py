@@ -1,4 +1,5 @@
 from pathlib import Path
+from string import Template
 
 from dashboard.data import load_all
 from dashboard.kpi import build as build_kpi_cards
@@ -32,8 +33,12 @@ def main():
     options_a = comparison.build_station_options(compare_ids, station_names, compare_ids[0])
     options_b = comparison.build_station_options(compare_ids, station_names, compare_ids[1])
 
-    template = TEMPLATE_PATH.read_text()
-    html = template.format(
+    # string.Template (not str.format): the template is HTML/JS and will
+    # inevitably grow literal braces — inline styles, JS objects — that would
+    # crash .format(). $-placeholders sidestep that, and .substitute() still
+    # raises on an unknown/missing key so typos don't fail silently.
+    template = Template(TEMPLATE_PATH.read_text())
+    html = template.substitute(
         kpi_cards=build_kpi_cards(df06, df04, df03),
         worst_stations=to_div(worst_stations.build(df06)),
         yoy=to_div(yoy_trends.build(df03)),

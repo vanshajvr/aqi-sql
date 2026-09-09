@@ -18,7 +18,9 @@ def build_comparison_payload(df01, df05, df06, station_names, top_n=20):
             "severe_pct": round(float(severe.get(sid, 0)), 1),
             "worst_month": row["worst_month"],
         }
-    return json.dumps(payload), ids
+    # This string is embedded directly inside a <script> tag in the template;
+    # escape "</" so a station name can't terminate the script element early.
+    return json.dumps(payload).replace("</", "<\\/"), ids
  
  
 def build_station_options(ids, station_names, selected_id):
