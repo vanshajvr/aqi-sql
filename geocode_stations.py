@@ -2,7 +2,9 @@ import time
 from pathlib import Path
 
 import pandas as pd
-import requests
+import requests  # not in requirements.txt on purpose — this script is the
+                  # only thing that needs it, and it never runs inside the
+                  # Docker image. Install standalone: pip install requests
 
 RAW_DIR = Path(__file__).parent / "data" / "raw"
 STATIONS_CSV = RAW_DIR / "stations.csv"

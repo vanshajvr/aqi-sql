@@ -49,8 +49,12 @@ Two layers, deliberately kept separate:
 ```bash
    pip install -r requirements.txt
 ```
-3. (Optional, for the station map) Geocode station coordinates:
+3. (Optional, for the station map) Geocode station coordinates. This needs
+   `requests`, which is deliberately *not* in `requirements.txt` — it's
+   only used by this one-time script and never runs inside the deployed
+   image, so it's kept out of the runtime dependency list:
 ```bash
+   pip install requests
    python3 geocode_stations.py
    # review any misses it prints, patch them manually if needed
 ```
