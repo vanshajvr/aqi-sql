@@ -1,4 +1,4 @@
-from.theme import ACCENT, PERIOD_COLORS
+from .theme import ACCENT, POSITIVE, NEGATIVE, WARNING
 
 MONTH_LABELS = {"01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr", "05": "May", "06": "Jun",
                 "07": "Jul", "08": "Aug", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"}
@@ -18,10 +18,10 @@ def build(df06, df04, df03):
     biggest_drop = df03.dropna(subset=["yoy_change"]).sort_values("yoy_change").iloc[0]
  
     cards = [
-        ("Worst Station", worst["station_name"], f"Avg AQI {worst['overall_avg_aqi']:.1f}", "#f85149"),
-        ("Best Station", best["station_name"], f"Avg AQI {best['overall_avg_aqi']:.1f}", "#3fb950"),
+        ("Worst Station", worst["station_name"], f"Avg AQI {worst['overall_avg_aqi']:.1f}", NEGATIVE),
+        ("Best Station", best["station_name"], f"Avg AQI {best['overall_avg_aqi']:.1f}", POSITIVE),
         ("Peak Severity Period", PERIOD_LABELS.get(peak_period["period"], peak_period["period"]),
-         f"{peak_period['pct_severe']:.1f}% severe days", "#d29922"),
+         f"{peak_period['pct_severe']:.1f}% severe days", WARNING),
         ("Sharpest YoY Drop",
          f"{MONTH_LABELS.get(biggest_drop['month'], biggest_drop['month'])} {biggest_drop['year']}",
          f"{biggest_drop['yoy_change']:.1f} AQI points \u2014 likely COVID lockdown", ACCENT),

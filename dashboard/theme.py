@@ -6,6 +6,11 @@ TEXT = "#c9d1d9"
 ACCENT = "#58a6ff"
 ACCENT_2 = "#f0883e"
 HOVER_BG = "#1c2333"
+
+# Semantic status colors (KPI cards, callouts)
+POSITIVE = "#3fb950"  # best / improvement
+NEGATIVE = "#f85149"  # worst / regression
+WARNING = "#d29922"   # elevated / caution
  
 SEVERITY_ORDER = ["Good", "Satisfactory", "Moderate", "Poor", "Very Poor", "Severe"]
 SEVERITY_COLORS = {
