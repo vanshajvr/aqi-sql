@@ -15,10 +15,11 @@ def main():
             "Expected data/raw/stations.csv and data/raw/station_day.csv"
         )
     
-    stations=pd.read_csv(STATIONS_CSV)
+    # utf-8-sig: the Kaggle stations.csv ships with a BOM on the header row.
+    stations=pd.read_csv(STATIONS_CSV, encoding="utf-8-sig")
     readings=pd.read_csv(READINGS_CSV)
 
-    print("stations.csv columns", list(stations.columns))
+    print("stations.csv columns:", list(stations.columns))
     print("station_day.csv columns:", list(readings.columns))
 
     delhi_stations=stations[stations["City"]=="Delhi"]
@@ -77,54 +78,69 @@ def main():
         print(f"WARNING: dropping {len(no_data_stations)} station(s) with zero AQI readings: {names}")
     delhi_stations = delhi_stations[delhi_stations["station_id"].isin(stations_with_data)]
 
-    DB_PATH.parent.mkdir(exist_ok=True)
-    if DB_PATH.exists():
-        DB_PATH.unlink()
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    conn=sqlite3.connect(DB_PATH)
-    conn.execute("""
-        CREATE TABLE stations (
-            station_id TEXT PRIMARY KEY,
-            station_name TEXT,
-            city TEXT,
-            latitude REAL,
-            longitude REAL
+    # Build into a temp file and swap it in only on success, so a failure
+    # partway through never leaves a half-written aqi.db behind.
+    tmp_path = DB_PATH.with_name(DB_PATH.name + ".tmp")
+    tmp_path.unlink(missing_ok=True)
+
+    conn=sqlite3.connect(tmp_path)
+    try:
+        conn.execute("""
+            CREATE TABLE stations (
+                station_id TEXT PRIMARY KEY,
+                station_name TEXT,
+                city TEXT,
+                latitude REAL,
+                longitude REAL
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE readings(
+                reading_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                station_id TEXT NOT NULL REFERENCES stations(station_id),
+                date TEXT NOT NULL,
+                pm25 REAL,
+                pm10 REAL,
+                no2 REAL,
+                so2 REAL,
+                co REAL,
+                aqi REAL,
+                aqi_bucket TEXT
+            )
+        """)
+
+        delhi_stations.to_sql("stations", conn, if_exists="append", index=False)
+        delhi_readings.to_sql("readings", conn, if_exists="append", index=False)
+
+        # Every analytical query partitions/groups by station_id and orders by
+        # date — this composite index covers all of them.
+        conn.execute(
+            "CREATE INDEX idx_readings_station_date ON readings(station_id, date)"
         )
-    """)
+        conn.commit()
 
-    conn.execute("""
-        CREATE TABLE readings(
-            reading_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            station_id TEXT NOT NULL REFERENCES stations(station_id),
-            date TEXT NOT NULL,
-            pm25 REAL,
-            pm10 REAL,
-            no2 REAL,
-            so2 REAL,
-            co REAL,
-            aqi REAL,
-            aqi_bucket TEXT
-        )
-    """)
+        n_stations=conn.execute("SELECT COUNT(*) FROM stations").fetchone()[0]
+        n_readings=conn.execute("SELECT COUNT(*) FROM readings").fetchone()[0]
+        date_range=conn.execute("SELECT MIN(date), MAX(date) FROM readings").fetchone()
+    finally:
+        conn.close()
 
-    delhi_stations.to_sql("stations", conn, if_exists="append", index=False)
-    delhi_readings.to_sql("readings", conn, if_exists="append", index=False)
-    conn.commit()
+    DB_PATH.unlink(missing_ok=True)
+    tmp_path.rename(DB_PATH)
 
-    n_stations=conn.execute("SELECT COUNT(*) FROM stations").fetchone()[0]
-    n_readings=conn.execute("SELECT COUNT(*) FROM readings").fetchone()[0]
-    date_range=conn.execute("SELECT MIN(date), MAX(date) FROM readings").fetchone()
+    if not 30 <= n_stations <= 45:
+        print(f"WARNING: got {n_stations} Delhi stations, expected ~37 — did the source data change?")
 
     print(f"\nDelhi stations Loaded: {n_stations}")
     print(f"Readings Loaded: {n_readings}")
     print(f"Date range: {date_range[0]} to {date_range[1]}")
     print(f"Database written to: {DB_PATH}")
 
-    conn.close()
-
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
-          
 
 
 

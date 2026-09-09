@@ -14,7 +14,7 @@ station_rank AS(
 monthly AS(
     SELECT
         station_id,
-        strftime("%Y-%m", date) AS year_month,
+        strftime('%Y-%m', date) AS year_month,
         AVG(aqi) AS month_avg_aqi
     FROM readings
     WHERE aqi IS NOT NULL
