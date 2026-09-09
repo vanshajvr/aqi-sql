@@ -64,7 +64,19 @@ def main():
     delhi_readings = delhi_readings[[c for c in EXPECTED_READING_COLS if c in delhi_readings.columns]]
     delhi_readings=delhi_readings.dropna(subset=["aqi"])
 
-   
+    # Drop stations with zero valid AQI readings (e.g. registered but never
+    # reported data in this dataset) — keeping them around just produces a
+    # ghost row downstream with nulls everywhere (dead marker on the map,
+    # excluded from every SQL query anyway since those all originate from
+    # readings). Computed dynamically so it self-corrects if the dataset
+    # ever changes, rather than hardcoding a station id to exclude.
+    stations_with_data = set(delhi_readings["station_id"].unique())
+    no_data_stations = delhi_stations[~delhi_stations["station_id"].isin(stations_with_data)]
+    if len(no_data_stations):
+        names = ", ".join(no_data_stations["station_name"])
+        print(f"WARNING: dropping {len(no_data_stations)} station(s) with zero AQI readings: {names}")
+    delhi_stations = delhi_stations[delhi_stations["station_id"].isin(stations_with_data)]
+
     DB_PATH.parent.mkdir(exist_ok=True)
     if DB_PATH.exists():
         DB_PATH.unlink()

@@ -14,10 +14,12 @@ receipts.
 Real CPCB station-level air quality data for Delhi, 2015–2020, sourced via
 the public [`Kaggle dataset`](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
 
-- **38 Delhi monitoring stations** (DPCC, CPCB, and IMD operated)
+- **37 Delhi monitoring stations** (DPCC, CPCB, and IMD operated) with
+  reported AQI data — a 38th registered station (East Arjun Nagar) reported
+  zero readings in this dataset and is dropped by `fetch_data.py`
 - **~36,000 daily readings** across PM2.5, PM10, NO2, SO2, CO, and AQI
 - Not synthetic, not scraped — official government monitoring data
-- All 38 stations geocoded to real coordinates (35 automatically via
+- All 37 stations geocoded to real coordinates (34 automatically via
   OpenStreetMap Nominatim, 3 patched manually) for the live station map
 
 ## Architecture
@@ -93,8 +95,8 @@ An interactive, tabbed dashboard built with Plotly and Leaflet:
 - **Trends**: city-wide AQI over time with a range slider, and the winter-vs-rest-of-year severity comparison
 - **Station Explorer**: rolling 7-day/30-day average per station (dropdown-selectable) + severity category breakdown, worst/best toggle + monthly RANK() vs DENSE_RANK() station rankings (month-picker)
 - **Compare Stations**: pick any two stations and overlay their rolling averages, with side-by-side stats
-- **Full Data**: sortable, searchable table of all 38 stations
-- **Station Map**: live Leaflet map of all 38 stations, color-coded by AQI severity, fetched in real time from the deployed API — click a marker for station details
+- **Full Data**: sortable, searchable table of all 37 stations
+- **Station Map**: live Leaflet map of all 37 stations, color-coded by AQI severity, fetched in real time from the deployed API — click a marker for station details
 
 ## Structure
 ```
