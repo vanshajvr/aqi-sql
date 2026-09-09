@@ -1,4 +1,5 @@
 import sqlite3
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -22,6 +23,9 @@ QUERY_FILES = {
     "severity-breakdown": "05_severity_breakdown.sql",
     "pipeline-summary": "06_pipeline_summary.sql",
 }
+
+# Read the .sql files once at startup, not on every request.
+QUERY_SQL = {name: (QUERIES_DIR / fname).read_text() for name, fname in QUERY_FILES.items()}
 
 app = FastAPI(
     title="AQI-SQL API",
@@ -60,7 +64,7 @@ def serve_dashboard():
 def get_conn():
     if not DB_PATH.exists():
         raise HTTPException(
-            status_code=500,
+            status_code=503,
             detail=f"{DB_PATH} not found on the server — the image was built without a database.",
         )
     conn = sqlite3.connect(DB_PATH)
@@ -68,9 +72,28 @@ def get_conn():
     return conn
 
 
+@lru_cache(maxsize=None)
+def run_query_cached(name):
+    """
+    Run one of the canned queries and cache the result for the life of the
+    process. The dataset is historical and baked into the image, so every
+    call returns the same rows — no reason to hit SQLite more than once.
+    Returns a tuple so the cached value can't be mutated by a caller.
+    """
+    conn = get_conn()
+    try:
+        return tuple(dict(row) for row in conn.execute(QUERY_SQL[name]).fetchall())
+    finally:
+        conn.close()
+
+
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "db_present": DB_PATH.exists()}
+    # Render's healthCheckPath hits this — fail loudly if the image was built
+    # without a database rather than reporting a green "ok".
+    if not DB_PATH.exists():
+        raise HTTPException(status_code=503, detail="database not present")
+    return {"status": "ok", "db_present": True}
 
 
 @app.get("/api/stations")
@@ -84,11 +107,10 @@ def list_stations():
     the AQI stats, then merges in lat/lon separately, rather than
     re-deriving the same ranking logic inline here.
     """
+    summary_rows = {r["station_id"]: r for r in run_query_cached("pipeline-summary")}
+
     conn = get_conn()
     try:
-        summary_sql = (QUERIES_DIR / QUERY_FILES["pipeline-summary"]).read_text()
-        summary_rows = {r["station_id"]: dict(r) for r in conn.execute(summary_sql).fetchall()}
-
         coord_rows = conn.execute(
             "SELECT station_id, station_name, latitude, longitude FROM stations"
         ).fetchall()
@@ -110,7 +132,9 @@ def list_stations():
             "worst_month_avg_aqi": stats.get("worst_month_avg_aqi"),
         })
 
-    stations.sort(key=lambda s: (s["worst_overall_rank"] is None, s["worst_overall_rank"]))
+    # Stations with no summary row (no readings) sort last; `or 0` keeps the
+    # secondary key comparable when the rank is None.
+    stations.sort(key=lambda s: (s["worst_overall_rank"] is None, s["worst_overall_rank"] or 0))
     return stations
 
 
@@ -125,44 +149,27 @@ def station_detail(station_id: str):
         if station is None:
             raise HTTPException(status_code=404, detail=f"Unknown station_id: {station_id}")
 
-        severity = conn.execute("""
-            SELECT
-                CASE
-                    WHEN aqi<=50 THEN 'Good'
-                    WHEN aqi<=100 THEN 'Satisfactory'
-                    WHEN aqi<=200 THEN 'Moderate'
-                    WHEN aqi<=300 THEN 'Poor'
-                    WHEN aqi<=400 THEN 'Very Poor'
-                    ELSE 'Severe'
-                END AS bucket,
-                COUNT(*) AS n_days
-            FROM readings
-            WHERE station_id = ? AND aqi IS NOT NULL
-            GROUP BY bucket
-        """, (station_id,)).fetchall()
     finally:
         conn.close()
 
+    # Reuse the canonical bucket logic from 05_severity_breakdown.sql rather
+    # than re-inlining the CPCB breakpoints here, then filter to this station.
+    severity = [
+        r for r in run_query_cached("severity-breakdown") if r["station_id"] == station_id
+    ]
+
     return {
         "station": dict(station),
-        "severity_breakdown": [dict(row) for row in severity],
+        "severity_breakdown": severity,
     }
 
 
 @app.get("/api/queries/{name}")
 def run_named_query(name: str):
     """Generic passthrough for the six canned analytical queries."""
-    if name not in QUERY_FILES:
+    if name not in QUERY_SQL:
         raise HTTPException(
             status_code=404,
-            detail=f"Unknown query '{name}'. Available: {list(QUERY_FILES)}",
+            detail=f"Unknown query '{name}'. Available: {list(QUERY_SQL)}",
         )
-
-    sql = (QUERIES_DIR / QUERY_FILES[name]).read_text()
-    conn = get_conn()
-    try:
-        rows = conn.execute(sql).fetchall()
-    finally:
-        conn.close()
-
-    return [dict(row) for row in rows]
+    return run_query_cached(name)
