@@ -165,5 +165,16 @@ CPCB monitoring data has real-world gaps (missing dates, occasional
 partial months) — these are preserved as-is rather than artificially
 smoothed, since that's the honest state of the underlying government data.
 
+Two known, documented consequences of this (see comments in the relevant
+`.sql` files for details and verification):
+
+- **`01_rolling_average.sql`'s "7-day"/"30-day" windows are row-based, not
+  calendar-based.** Where a station has a data gap, the window can silently
+  span more calendar days than its name implies.
+- **`03_yoy_comparison.sql`'s `LAG()`-based year-over-year comparison can
+  span more than one year** if an entire year is missing for a given month
+  — it compares against the nearest prior year with data, not necessarily
+  the immediately preceding one.
+
 ## Data source
 CPCB via [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
