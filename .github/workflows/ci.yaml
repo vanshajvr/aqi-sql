@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r api/requirements.txt
+          pip install -r tests/requirements.txt
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      # This builds from the SAME Dockerfile Render uses, with the SAME
+      # build context. It genuinely would have caught two of the three
+      # real deploy failures hit while first setting this up: a missing
+      # data/seed/ directory and a missing root requirements.txt - both
+      # are COPY/RUN failures baked into this exact build, not something
+      # specific to Render's platform. It would NOT have caught the third
+      # (a Render dashboard Settings field not picking up render.yaml's
+      # dockerfilePath on first apply) - that one's a Render-side
+      # Blueprint quirk, not something a local/CI Docker build can see.
+      - name: Build Docker image
+        run: docker build -f api/Dockerfile -t aqi-sql-ci .
+
+      - name: Smoke-test the built image
+        run: |
+          docker run -d -p 8000:8000 --name aqi-sql-ci aqi-sql-ci
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:8000/api/health; then break; fi
+            sleep 2
+          done
+          curl -sf http://localhost:8000/api/health
+          curl -sf http://localhost:8000/ > /dev/null
+          docker logs aqi-sql-ci
+          docker stop aqi-sql-ci
