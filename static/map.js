@@ -39,6 +39,13 @@ async function initMap() {
   const mapEl = document.getElementById("station-map");
   if (!mapEl) return;
 
+  // Skeleton-pulse placeholder while /api/stations is in flight, instead
+  // of plain "Loading…" text.
+  if (statusEl) {
+    statusEl.textContent = "";
+    statusEl.classList.add("skeleton-text");
+  }
+
   mapInstance = L.map("station-map").setView([28.6139, 77.2090], 10); // Delhi center
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -71,22 +78,26 @@ async function initMap() {
       }).addTo(mapInstance);
 
       const rankText = s.worst_overall_rank ? `#${s.worst_overall_rank} worst overall` : "";
+      const avgAqiText = s.overall_avg_aqi != null ? s.overall_avg_aqi.toFixed(1) : "N/A";
+      const worstMonthAqiText = s.worst_month_avg_aqi != null ? s.worst_month_avg_aqi.toFixed(1) : "N/A";
       marker.bindPopup(`
         <b>${s.station_name}</b><br>
-        Avg AQI: ${s.overall_avg_aqi != null ? s.overall_avg_aqi.toFixed(1) : "N/A"} (${bucket || "N/A"})<br>
+        Avg AQI: <span class="popup-stat">${avgAqiText}</span> (${bucket || "N/A"})<br>
         ${rankText}<br>
-        Worst month: ${s.worst_month || "N/A"} (${s.worst_month_avg_aqi != null ? s.worst_month_avg_aqi.toFixed(1) : "N/A"})
+        Worst month: ${s.worst_month || "N/A"} (<span class="popup-stat">${worstMonthAqiText}</span>)
       `);
       plotted += 1;
     });
 
     if (statusEl) {
+      statusEl.classList.remove("skeleton-text");
       statusEl.textContent = missingCoords > 0
         ? `${plotted} stations plotted, ${missingCoords} missing coordinates`
         : `${plotted} stations plotted — live from the API`;
     }
   } catch (err) {
     if (statusEl) {
+      statusEl.classList.remove("skeleton-text");
       const where = API_BASE || "this origin";
       statusEl.textContent = `Could not reach the API at ${where} (${err.message}). ` +
         `Is the FastAPI service running? Set window.AQI_API_BASE before this script loads to point elsewhere.`;
