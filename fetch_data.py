@@ -17,7 +17,7 @@ def main():
     
     # utf-8-sig: the Kaggle stations.csv ships with a BOM on the header row.
     stations=pd.read_csv(STATIONS_CSV, encoding="utf-8-sig")
-    readings=pd.read_csv(READINGS_CSV)
+    readings=pd.read_csv(READINGS_CSV, encoding="utf-8-sig")
 
     print("stations.csv columns:", list(stations.columns))
     print("station_day.csv columns:", list(readings.columns))
@@ -141,6 +141,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

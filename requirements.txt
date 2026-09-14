@@ -1,3 +1,9 @@
 pandas>=2.0
-plotly>=5.20
+# plotly is pinned exactly (not >=) because the Python package's output
+# must match the plotly.js CDN version loaded in templates/dashboard.html.
+# plotly==7.0.0 bundles plotly.js 4.0.0 (confirmed via
+# plotly.offline._plotlyjs_version) - if you ever bump this, update the
+# CDN <script> tag in templates/dashboard.html to match, or charts may
+# render incorrectly/blank.
+plotly==7.0.0
 requests>=2.31

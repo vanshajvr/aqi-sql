@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Delhi AQI Dashboard</title>
-<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<!-- Must match the Python plotly version pinned in requirements.txt -
+     plotly==7.0.0 bundles plotly.js 4.0.0. If you bump plotly there,
+     update this version too or charts may render incorrectly/blank. -->
+<script src="https://cdn.plot.ly/plotly-4.0.0.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/style.css">
@@ -23,16 +26,16 @@
       </div>
     </header>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="overview">Overview</button>
-      <button class="tab-btn" data-tab="trends">Trends</button>
-      <button class="tab-btn" data-tab="explorer">Station Explorer</button>
-      <button class="tab-btn" data-tab="compare">Compare Stations</button>
-      <button class="tab-btn" data-tab="data">Full Data</button>
-      <button class="tab-btn" data-tab="map">Station Map</button>
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" id="tabbtn-overview" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="overview">Overview</button>
+      <button class="tab-btn" id="tabbtn-trends" role="tab" aria-selected="false" aria-controls="tab-trends" data-tab="trends">Trends</button>
+      <button class="tab-btn" id="tabbtn-explorer" role="tab" aria-selected="false" aria-controls="tab-explorer" data-tab="explorer">Station Explorer</button>
+      <button class="tab-btn" id="tabbtn-compare" role="tab" aria-selected="false" aria-controls="tab-compare" data-tab="compare">Compare Stations</button>
+      <button class="tab-btn" id="tabbtn-data" role="tab" aria-selected="false" aria-controls="tab-data" data-tab="data">Full Data</button>
+      <button class="tab-btn" id="tabbtn-map" role="tab" aria-selected="false" aria-controls="tab-map" data-tab="map">Station Map</button>
     </div>
 
-    <div id="tab-overview" class="tab-content active">
+    <div id="tab-overview" class="tab-content active" role="tabpanel" aria-labelledby="tabbtn-overview" tabindex="0">
       <div class="kpi-grid">$kpi_cards</div>
       <div class="card">
         <h3>Worst Delhi Stations by Overall Average AQI</h3>
@@ -41,7 +44,7 @@
       </div>
     </div>
 
-    <div id="tab-trends" class="tab-content">
+    <div id="tab-trends" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-trends" tabindex="0">
       <div class="grid-2">
         <div class="card">
           <h3>Delhi Monthly Average AQI Over Time</h3>
@@ -56,7 +59,7 @@
       </div>
     </div>
 
-    <div id="tab-explorer" class="tab-content">
+    <div id="tab-explorer" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-explorer" tabindex="0">
       <div class="card">
         <h3>Rolling AQI Average by Station</h3>
         <p class="hint">Select a station from the dropdown in the chart</p>
@@ -74,7 +77,7 @@
       </div>
     </div>
 
-    <div id="tab-compare" class="tab-content">
+    <div id="tab-compare" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-compare" tabindex="0">
       <div class="card">
         <h3>Compare Two Stations</h3>
         <p class="hint">Pick two stations to compare their 30-day rolling AQI average side by side</p>
@@ -88,7 +91,7 @@
       </div>
     </div>
 
-    <div id="tab-data" class="tab-content">
+    <div id="tab-data" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-data" tabindex="0">
       <div class="card">
         <h3>All Stations &mdash; Full Ranking</h3>
         <p class="hint">Click any column header to sort, or search by station name</p>
@@ -96,7 +99,7 @@
       </div>
     </div>
 
-    <div id="tab-map" class="tab-content">
+    <div id="tab-map" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-map" tabindex="0">
       <div class="card">
         <h3>Delhi Station Map</h3>
         <p class="hint">Live from the deployed API — click a marker for station details</p>
