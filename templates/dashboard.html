@@ -70,17 +70,30 @@
       </div>
 
       <div id="subtab-single" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-single">
-        <div class="card">
+        <div class="chart-filter">
+          <button type="button" id="chart-filter-btn" class="chart-filter-btn" aria-haspopup="true" aria-expanded="false" aria-controls="chart-filter-menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2" fill="#0d1117"/><circle cx="15" cy="12" r="2" fill="#0d1117"/><circle cx="9" cy="18" r="2" fill="#0d1117"/></svg>
+            Show charts
+          </button>
+          <div class="chart-filter-menu" id="chart-filter-menu" hidden>
+            <label><input type="checkbox" class="chart-toggle" value="rolling" checked> Rolling AQI Average</label>
+            <label><input type="checkbox" class="chart-toggle" value="severity" checked> Severity Breakdown</label>
+            <label><input type="checkbox" class="chart-toggle" value="ranking" checked> Monthly Rankings</label>
+          </div>
+        </div>
+
+        <p class="chart-empty-state" id="chart-empty-state" hidden>No charts selected. Pick at least one from "Show charts" above.</p>
+        <div class="card" data-chart="rolling">
           <h3>Rolling AQI Average by Station</h3>
           <p class="hint">Select a station from the dropdown in the chart</p>
           $rolling
         </div>
-        <div class="card">
+        <div class="card" data-chart="severity">
           <h3>AQI Severity Breakdown: Worst &amp; Best Stations</h3>
           <p class="hint">Toggle between the 15 worst and 15 best stations</p>
           $severity
         </div>
-        <div class="card">
+        <div class="card" data-chart="ranking">
           <h3>Monthly Station Rankings: RANK() vs DENSE_RANK()</h3>
           <p class="hint">Pick a month &middot; tied stations share a DENSE_RANK() but diverge under RANK()</p>
           $monthly_ranking
@@ -127,6 +140,7 @@
   <script>window.COMPARE_DATA = $compare_data_json;</script>
   <script src="static/dashboard.js"></script>
   <script src="static/subtabs.js"></script>
+  <script src="static/chart-filter.js"></script>
   <script src="static/tabs.js"></script>
   <script src="static/compare.js"></script>
   <script src="static/animate.js"></script>
