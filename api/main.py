@@ -2,10 +2,13 @@ import sqlite3
 from functools import lru_cache
 from pathlib import Path
 
+import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+from api.live import get_live_stations
 
 ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "aqi.db"
@@ -173,3 +176,25 @@ def run_named_query(name: str):
             detail=f"Unknown query '{name}'. Available: {list(QUERY_SQL)}",
         )
     return run_query_cached(name)
+
+
+@app.get("/api/live/stations")
+def list_live_stations():
+    """
+    Live station readings from CPCB's real-time API (data.gov.in) — NOT
+    the baked-in historical database everything else on this API uses.
+    Cached server-side for 30 minutes (see api/live.py) so we're not
+    hitting CPCB's API on every dashboard visit.
+
+    Unlike every other endpoint here, this one depends on an external
+    service outside this project's control — fails with a clear 503
+    (not a raw crash) if the API key isn't configured or CPCB's API is
+    unreachable, so a live-data outage doesn't look like this whole
+    service is broken.
+    """
+    try:
+        return get_live_stations()
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except requests.RequestException as e:
+        raise HTTPException(status_code=503, detail=f"Could not reach the CPCB live API: {e}")
