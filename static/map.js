@@ -42,7 +42,9 @@ async function initMap() {
   // Skeleton-pulse placeholder while /api/stations is in flight, instead
   // of plain "Loading…" text.
   if (statusEl) {
-    statusEl.textContent = "";
+    statusEl.innerHTML = missingCoords > 0
+        ? `<span class="live-dot"></span> ${plotted} stations plotted, ${missingCoords} missing coordinates`
+        : `<span class="live-dot"></span> ${plotted} stations plotted — live from the API`;
     statusEl.classList.add("skeleton-text");
   }
 
