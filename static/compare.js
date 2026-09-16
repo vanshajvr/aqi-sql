@@ -48,9 +48,9 @@ document.addEventListener("DOMContentLoaded", () => {
       paper_bgcolor: "#161b22",
       plot_bgcolor: "#161b22",
       font: { family: "Inter, Helvetica, Arial, sans-serif", color: "#c9d1d9", size: 13 },
-      margin: { l: 50, r: 30, t: 20, b: 50 },
-      xaxis: { gridcolor: "#21262d" },
-      yaxis: { title: "30-day Avg AQI", gridcolor: "#21262d" },
+      margin: { l: 56, r: 36, t: 20, b: 56 },
+      xaxis: { gridcolor: "#21262d", griddash: "dot", gridwidth: 1, zeroline: false },
+      yaxis: { title: "30-day Avg AQI", gridcolor: "#21262d", griddash: "dot", gridwidth: 1, zeroline: false },
       legend: { orientation: "h", y: 1.1 },
       hovermode: "closest",
       hoverlabel: { bgcolor: "#1c2333", bordercolor: "#58a6ff", font: { color: "#ffffff", size: 12 } },
@@ -58,6 +58,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     Plotly.react(chartDiv, traces, layout, { displaylogo: false, responsive: true });
     renderStats(idA, idB);
+  }
+
+  const swapBtn = document.getElementById("compare-swap");
+  if (swapBtn) {
+    swapBtn.addEventListener("click", () => {
+      const tmp = selectA.value;
+      selectA.value = selectB.value;
+      selectB.value = tmp;
+      swapBtn.classList.remove("spinning");
+      void swapBtn.offsetWidth; // restart the animation if clicked repeatedly
+      swapBtn.classList.add("spinning");
+      render();
+    });
   }
 
   selectA.addEventListener("change", render);

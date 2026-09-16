@@ -13,7 +13,7 @@ def run_query(conn, queries_dir, filename):
 def load_all(db_path, queries_dir):
     if not db_path.exists():
         raise FileNotFoundError(
-            f"{db_path} not found — run fetch_data.py first to build the database."
+            f"{db_path} not found. Run fetch_data.py first to build the database."
         )
     conn = sqlite3.connect(db_path)
 

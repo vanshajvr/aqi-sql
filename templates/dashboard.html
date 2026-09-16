@@ -9,7 +9,7 @@
      update this version too or charts may render incorrectly/blank. -->
 <script src="https://cdn.plot.ly/plotly-4.0.0.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -17,8 +17,9 @@
 <body>
   <div class="container">
     <header>
+      <div class="hero-sparkline-wrap">$hero_sparkline</div>
       <h1>aqi-sql: Delhi AQI Analysis</h1>
-      <p class="subtitle">Real CPCB monitoring data, 2015&ndash;2020, analyzed entirely in SQL (window functions, CTEs, date functions). Part of the <strong>aqi.sql</strong> project.</p>
+      <p class="subtitle">Real CPCB monitoring data, 2015&ndash;2020, analyzed entirely in SQL (window functions, CTEs, date functions). Part of the <strong>aqi-sql</strong> project.</p>
       <div class="badges">
         <span class="badge">37 Delhi stations</span>
         <span class="badge">5.5 years of daily data</span>
@@ -66,12 +67,12 @@
         $rolling
       </div>
       <div class="card">
-        <h3>AQI Severity Breakdown &mdash; Worst &amp; Best Stations</h3>
+        <h3>AQI Severity Breakdown: Worst &amp; Best Stations</h3>
         <p class="hint">Toggle between the 15 worst and 15 best stations</p>
         $severity
       </div>
       <div class="card">
-        <h3>Monthly Station Rankings &mdash; RANK() vs DENSE_RANK()</h3>
+        <h3>Monthly Station Rankings: RANK() vs DENSE_RANK()</h3>
         <p class="hint">Pick a month &middot; tied stations share a DENSE_RANK() but diverge under RANK()</p>
         $monthly_ranking
       </div>
@@ -83,7 +84,9 @@
         <p class="hint">Pick two stations to compare their 30-day rolling AQI average side by side</p>
         <div class="compare-controls">
           <select id="compare-a" class="compare-select">$station_options_a</select>
-          <span class="vs-label">vs</span>
+          <button type="button" id="compare-swap" class="swap-btn" aria-label="Swap stations" title="Swap stations">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </button>
           <select id="compare-b" class="compare-select">$station_options_b</select>
         </div>
         <div id="compare-chart" style="height:480px;"></div>
@@ -93,7 +96,7 @@
 
     <div id="tab-data" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-data" tabindex="0">
       <div class="card">
-        <h3>All Stations &mdash; Full Ranking</h3>
+        <h3>All Stations: Full Ranking</h3>
         <p class="hint">Click any column header to sort, or search by station name</p>
         $table
       </div>
@@ -102,7 +105,7 @@
     <div id="tab-map" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-map" tabindex="0">
       <div class="card">
         <h3>Delhi Station Map</h3>
-        <p class="hint">Live from the deployed API — click a marker for station details</p>
+        <p class="hint">Live from the deployed API. Click a marker for station details</p>
         <div id="station-map"></div>
         <p class="map-status" id="map-status">Loading…</p>
       </div>

@@ -31,7 +31,7 @@ def build(df06, df04, df03):
          f"{peak_period['pct_severe']:.1f}% severe days", WARNING, ICON_FLAME),
         ("Sharpest YoY Drop",
          f"{MONTH_LABELS.get(biggest_drop['month'], biggest_drop['month'])} {biggest_drop['year']}",
-         f"{biggest_drop['yoy_change']:.1f} AQI points \u2014 likely COVID lockdown", ACCENT, ICON_TREND_DOWN),
+         f"{biggest_drop['yoy_change']:.1f} AQI points (likely COVID lockdown)", ACCENT, ICON_TREND_DOWN),
     ]
  
     html_cards = ""

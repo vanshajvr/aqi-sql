@@ -26,7 +26,8 @@ def build(df05, df06, station_names):
         for cat in SEVERITY_ORDER:
             fig.add_trace(go.Bar(
                 y=pivot.index, x=pivot[cat], name=cat, orientation="h",
-                marker_color=SEVERITY_COLORS[cat], visible=(vi == 0),
+                marker=dict(color=SEVERITY_COLORS[cat], cornerradius=3, line=dict(width=0)),
+                visible=(vi == 0),
                 showlegend=False,
                 hovertemplate=f"<b>%{{y}}</b><br>{cat}: " + "%{x:.1f}%<extra></extra>",
             ))
@@ -59,4 +60,3 @@ def build(df05, df06, station_names):
         legend=dict(orientation="h", y=1.05, yanchor="bottom", x=0, xanchor="left"),
     )
     return base_layout(fig, height=600, top_margin=130)
- 

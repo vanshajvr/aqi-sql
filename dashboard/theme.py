@@ -41,13 +41,13 @@ def base_layout(fig, height, top_margin=60):
         paper_bgcolor=CARD_BG,
         plot_bgcolor=CARD_BG,
         font=dict(family="Inter, Helvetica, Arial, sans-serif", color=TEXT, size=13),
-        margin=dict(l=50, r=30, t=top_margin, b=50),
+        margin=dict(l=56, r=36, t=top_margin, b=56),
         height=height,
         hovermode="closest",
         hoverlabel=dict(bgcolor=HOVER_BG, bordercolor=ACCENT,
-                         font=dict(color="#ffffff", size=12)),
-        xaxis=dict(gridcolor=GRID, zerolinecolor=GRID),
-        yaxis=dict(gridcolor=GRID, zerolinecolor=GRID),
+                         font=dict(family="Inter, Helvetica, Arial, sans-serif", color="#ffffff", size=12)),
+        xaxis=dict(gridcolor=GRID, griddash="dot", gridwidth=1, zeroline=False),
+        yaxis=dict(gridcolor=GRID, griddash="dot", gridwidth=1, zeroline=False),
         legend=dict(bgcolor="rgba(0,0,0,0)"),
     )
     return fig

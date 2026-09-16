@@ -13,12 +13,12 @@ def build(df02):
         visible = (i == default_i)
         fig.add_trace(go.Bar(
             x=d["station_name"], y=d["worst_rank"], name="RANK()",
-            marker_color=ACCENT, visible=visible, offsetgroup=0,
+            marker=dict(color=ACCENT, cornerradius=4, line=dict(width=0)), visible=visible, offsetgroup=0,
             hovertemplate="<b>%{x}</b><br>RANK: %{y}<extra></extra>",
         ))
         fig.add_trace(go.Bar(
             x=d["station_name"], y=d["worst_dense_rank"], name="DENSE_RANK()",
-            marker_color=ACCENT_2, visible=visible, offsetgroup=1,
+            marker=dict(color=ACCENT_2, cornerradius=4, line=dict(width=0)), visible=visible, offsetgroup=1,
             hovertemplate="<b>%{x}</b><br>DENSE_RANK: %{y}<extra></extra>",
         ))
 

@@ -12,7 +12,8 @@ def build(df06):
         sub = d.head(n).iloc[::-1]
         fig.add_trace(go.Bar(
             x=sub["overall_avg_aqi"], y=sub["station_name"], orientation="h",
-            marker=dict(color=sub["overall_avg_aqi"], colorscale=[[0, ACCENT], [1, "#f85149"]]),
+            marker=dict(color=sub["overall_avg_aqi"], colorscale=[[0, ACCENT], [1, "#f85149"]],
+                        cornerradius=6, line=dict(width=0)),
             text=sub["overall_avg_aqi"].round(1), textposition="outside",
             visible=(i == 1),
             hovertemplate="<b>%{y}</b><br>Avg AQI: %{x:.1f}<extra></extra>",
@@ -27,7 +28,6 @@ def build(df06):
         updatemenus=[dict(type="buttons", direction="right", x=1, y=1.05, xanchor="right", yanchor="bottom",
                            bgcolor="#21262d", bordercolor=GRID, font=dict(color=TEXT, size=11),
                            buttons=buttons, pad=dict(l=6, r=6, t=4, b=4))],
-        xaxis_title="Overall Average AQI", yaxis_title="", bargap=0.28,
+        xaxis_title="Overall Average AQI", yaxis_title="", bargap=0.35,
     )
     return base_layout(fig, height=fixed_height, top_margin=70)
- 

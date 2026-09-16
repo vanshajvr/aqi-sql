@@ -18,9 +18,12 @@ body {
 * { scrollbar-width: thin; scrollbar-color: #30363d #0d1117; }
 .container { max-width: 1200px; margin: 0 auto; padding: 48px 64px 64px; }
 @media (max-width: 700px) { .container { padding: 24px 16px 40px; } }
-header { margin-bottom: 40px; }
-h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.02em; color: #f0f6fc; }
-p.subtitle { color: #8b949e; margin: 0; font-size: 14px; line-height: 1.6; }
+header { margin-bottom: 40px; position: relative; padding: 24px 0 8px; overflow: hidden; }
+.hero-sparkline-wrap { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.hero-sparkline { width: 100%; height: 100%; display: block; }
+header > *:not(.hero-sparkline-wrap) { position: relative; z-index: 1; }
+h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.02em; color: #f0f6fc; font-family: 'Space Grotesk', 'Inter', sans-serif; }
+p.subtitle { color: #8b949e; margin: 0; font-size: 14px; line-height: 1.6; font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 500; }
 .badges { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .badge {
   font-size: 12px; padding: 4px 10px; border-radius: 999px;
@@ -125,6 +128,20 @@ tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
   border-color: #58a6ff; outline: none;
 }
 .vs-label { color: #6e7681; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.swap-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0;
+  background: #161b22; border: 1px solid #30363d; border-radius: 50%;
+  color: #8b949e; cursor: pointer; padding: 0;
+  transition: color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.swap-btn svg { width: 16px; height: 16px; }
+.swap-btn:hover { color: #58a6ff; border-color: #58a6ff; }
+.swap-btn.spinning { animation: swapSpin 300ms ease; }
+@keyframes swapSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(180deg); }
+}
 .compare-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
 .compare-stat-card { background: #0d1117; border: 1px solid #21262d; border-radius: 10px; padding: 16px 18px; }
 .compare-stat-name { font-weight: 600; color: #f0f6fc; margin-bottom: 10px; font-size: 14px; }

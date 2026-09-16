@@ -29,7 +29,6 @@ let mapInitialized = false;
 
 async function initMap() {
   if (mapInitialized) {
-    // tab was hidden when Leaflet first sized itself — fix the blank-tile bug
     setTimeout(() => mapInstance && mapInstance.invalidateSize(), 50);
     return;
   }
@@ -39,16 +38,12 @@ async function initMap() {
   const mapEl = document.getElementById("station-map");
   if (!mapEl) return;
 
-  // Skeleton-pulse placeholder while /api/stations is in flight, instead
-  // of plain "Loading…" text.
   if (statusEl) {
-    statusEl.innerHTML = missingCoords > 0
-        ? `<span class="live-dot"></span> ${plotted} stations plotted, ${missingCoords} missing coordinates`
-        : `<span class="live-dot"></span> ${plotted} stations plotted — live from the API`;
+    statusEl.textContent = "";
     statusEl.classList.add("skeleton-text");
   }
 
-  mapInstance = L.map("station-map").setView([28.6139, 77.2090], 10); // Delhi center
+  mapInstance = L.map("station-map").setView([28.6139, 77.2090], 10);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -93,9 +88,9 @@ async function initMap() {
 
     if (statusEl) {
       statusEl.classList.remove("skeleton-text");
-      statusEl.textContent = missingCoords > 0
-        ? `${plotted} stations plotted, ${missingCoords} missing coordinates`
-        : `${plotted} stations plotted — live from the API`;
+      statusEl.innerHTML = missingCoords > 0
+        ? `<span class="live-dot"></span> ${plotted} stations plotted, ${missingCoords} missing coordinates`
+        : `<span class="live-dot"></span> ${plotted} stations plotted, live from the API`;
     }
   } catch (err) {
     if (statusEl) {
@@ -108,8 +103,6 @@ async function initMap() {
   }
 }
 
-// Hook into the existing tab system (see tabs.js) — Leaflet must init only
-// once its container is visible, or tiles render blank.
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     if (btn.dataset.tab === "map") {
