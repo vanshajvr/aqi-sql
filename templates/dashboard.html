@@ -9,7 +9,7 @@
      update this version too or charts may render incorrectly/blank. -->
 <script src="https://cdn.plot.ly/plotly-4.0.0.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrainsMono:wght@400;500;600&family=SpaceGrotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -34,8 +34,7 @@
     <div class="tabs" role="tablist">
       <button class="tab-btn active" id="tabbtn-overview" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="overview">Overview</button>
       <button class="tab-btn" id="tabbtn-trends" role="tab" aria-selected="false" aria-controls="tab-trends" data-tab="trends">Trends</button>
-      <button class="tab-btn" id="tabbtn-explorer" role="tab" aria-selected="false" aria-controls="tab-explorer" data-tab="explorer">Station Explorer</button>
-      <button class="tab-btn" id="tabbtn-compare" role="tab" aria-selected="false" aria-controls="tab-compare" data-tab="compare">Compare Stations</button>
+      <button class="tab-btn" id="tabbtn-explorer" role="tab" aria-selected="false" aria-controls="tab-explorer" data-tab="explorer">Station Analysis</button>
       <button class="tab-btn" id="tabbtn-data" role="tab" aria-selected="false" aria-controls="tab-data" data-tab="data">Full Data</button>
       <button class="tab-btn" id="tabbtn-map" role="tab" aria-selected="false" aria-controls="tab-map" data-tab="map">Station Map</button>
     </div>
@@ -65,38 +64,44 @@
     </div>
 
     <div id="tab-explorer" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-explorer" tabindex="0">
-      <div class="card">
-        <h3>Rolling AQI Average by Station</h3>
-        <p class="hint">Select a station from the dropdown in the chart</p>
-        $rolling
+      <div class="subtabs" role="tablist" aria-label="Station analysis view">
+        <button class="subtab-btn active" id="subtabbtn-single" role="tab" aria-selected="true" aria-controls="subtab-single" data-subtab="single">Explore a Station</button>
+        <button class="subtab-btn" id="subtabbtn-compare" role="tab" aria-selected="false" aria-controls="subtab-compare" data-subtab="compare">Compare Two Stations</button>
       </div>
-      <div class="card">
-        <h3>AQI Severity Breakdown: Worst &amp; Best Stations</h3>
-        <p class="hint">Toggle between the 15 worst and 15 best stations</p>
-        $severity
-      </div>
-      <div class="card">
-        <h3>Monthly Station Rankings: RANK() vs DENSE_RANK()</h3>
-        <p class="hint">Pick a month &middot; tied stations share a DENSE_RANK() but diverge under RANK()</p>
-        $monthly_ranking
-      </div>
-    </div>
 
-    <div id="tab-compare" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-compare" tabindex="0">
-      <div class="card">
-        <h3>Compare Two Stations</h3>
-        <p class="hint">Pick two stations to compare their 30-day rolling AQI average side by side</p>
-        <div class="compare-controls">
-          <select id="compare-a" class="compare-select">$station_options_a</select>
-          <button type="button" id="compare-swap" class="swap-btn" aria-label="Swap stations" title="Swap stations">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-          </button>
-          <select id="compare-b" class="compare-select">$station_options_b</select>
+      <div id="subtab-single" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-single">
+        <div class="card">
+          <h3>Rolling AQI Average by Station</h3>
+          <p class="hint">Select a station from the dropdown in the chart</p>
+          $rolling
         </div>
-        <div id="compare-chart" style="height:480px;"></div>
-        <div class="compare-stats" id="compare-stats"></div>
+        <div class="card">
+          <h3>AQI Severity Breakdown: Worst &amp; Best Stations</h3>
+          <p class="hint">Toggle between the 15 worst and 15 best stations</p>
+          $severity
+        </div>
+        <div class="card">
+          <h3>Monthly Station Rankings: RANK() vs DENSE_RANK()</h3>
+          <p class="hint">Pick a month &middot; tied stations share a DENSE_RANK() but diverge under RANK()</p>
+          $monthly_ranking
+        </div>
       </div>
-    </div>
+
+      <div id="subtab-compare" class="subtab-content" role="tabpanel" aria-labelledby="subtabbtn-compare">
+        <div class="card">
+          <h3>Compare Two Stations</h3>
+          <p class="hint">Pick two stations to compare their 30-day rolling AQI average side by side</p>
+          <div class="compare-controls">
+            <select id="compare-a" class="compare-select">$station_options_a</select>
+            <button type="button" id="compare-swap" class="swap-btn" aria-label="Swap stations" title="Swap stations">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            </button>
+            <select id="compare-b" class="compare-select">$station_options_b</select>
+          </div>
+          <div id="compare-chart" style="height:480px;"></div>
+          <div class="compare-stats" id="compare-stats"></div>
+        </div>
+      </div>
 
     <div id="tab-data" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-data" tabindex="0">
       <div class="card">
@@ -120,6 +125,7 @@
 
   <script>window.COMPARE_DATA = $compare_data_json;</script>
   <script src="static/dashboard.js"></script>
+  <script src="static/subtabs.js"></script>
   <script src="static/tabs.js"></script>
   <script src="static/compare.js"></script>
   <script src="static/animate.js"></script>

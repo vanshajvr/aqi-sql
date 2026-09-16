@@ -1,8 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const buttons = Array.from(document.querySelectorAll(".tab-btn"));
-  const contents = document.querySelectorAll(".tab-content");
+  const buttons = Array.from(document.querySelectorAll(".subtab-btn"));
+  const contents = document.querySelectorAll(".subtab-content");
+  if (!buttons.length) return;
 
-  function activateTab(btn) {
+  function activateSubtab(btn) {
     buttons.forEach(b => {
       b.classList.remove("active");
       b.setAttribute("aria-selected", "false");
@@ -15,21 +16,22 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.tabIndex = 0;
     btn.focus();
 
-    const shown = document.getElementById("tab-" + btn.dataset.tab);
+    const shown = document.getElementById("subtab-" + btn.dataset.subtab);
     shown.classList.add("active");
 
     shown.querySelectorAll(".plotly-graph-div").forEach(div => {
       if (window.Plotly) Plotly.Plots.resize(div);
     });
+
+    if (btn.dataset.subtab === "compare" && window.renderCompareChart) {
+      requestAnimationFrame(() => window.renderCompareChart());
+    }
   }
 
   buttons.forEach((btn, i) => {
     btn.tabIndex = btn.classList.contains("active") ? 0 : -1;
+    btn.addEventListener("click", () => activateSubtab(btn));
 
-    btn.addEventListener("click", () => activateTab(btn));
-
-    // WAI-ARIA tablist keyboard pattern: Left/Right (or Up/Down) moves
-    // focus and activates the adjacent tab; Home/End jump to first/last.
     btn.addEventListener("keydown", (e) => {
       let target = null;
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
@@ -43,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (target) {
         e.preventDefault();
-        activateTab(target);
+        activateSubtab(target);
       }
     });
   });
