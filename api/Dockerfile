@@ -33,7 +33,7 @@ COPY dashboard/ ./dashboard/
 COPY queries/ ./queries/
 COPY templates/ ./templates/
 COPY static/ ./static/
-COPY api/main.py ./api/main.py
+COPY api/*.py ./api/
 COPY data/seed/ ./data/raw/
 
 RUN python3 fetch_data.py && python3 build_dashboard.py
