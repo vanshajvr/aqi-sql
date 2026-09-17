@@ -31,6 +31,12 @@
       </div>
     </header>
 
+    <div class="mode-switch" role="tablist" aria-label="Historical or live data">
+      <button class="mode-btn active" id="modebtn-historical" role="tab" aria-selected="true" aria-controls="mode-historical" data-mode="historical">Historical Analysis (2015&ndash;2020)</button>
+      <button class="mode-btn" id="modebtn-live" role="tab" aria-selected="false" aria-controls="mode-live" data-mode="live">Live Right Now</button>
+    </div>
+
+    <div id="mode-historical" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-historical">
     <div class="tabs" role="tablist">
       <button class="tab-btn active" id="tabbtn-overview" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="overview">Overview</button>
       <button class="tab-btn" id="tabbtn-trends" role="tab" aria-selected="false" aria-controls="tab-trends" data-tab="trends">Trends</button>
@@ -133,6 +139,41 @@
         <p class="map-status" id="map-status">Loading…</p>
       </div>
     </div>
+    </div>
+
+    <div id="mode-live" class="mode-content" role="tabpanel" aria-labelledby="modebtn-live">
+      <p class="live-disclaimer">
+        <strong>Live data</strong> from CPCB's real-time API, via data.gov.in.
+        Refreshed periodically, not backfilled, and not cross-checked against
+        the 2015&ndash;2020 historical analysis above. See the footer for full
+        source details.
+      </p>
+
+      <div class="subtabs" role="tablist" aria-label="Live view">
+        <button class="subtab-btn active" id="subtabbtn-live-picker" role="tab" aria-selected="true" aria-controls="subtab-live-picker" data-subtab="live-picker">Station Picker</button>
+        <button class="subtab-btn" id="subtabbtn-live-map" role="tab" aria-selected="false" aria-controls="subtab-live-map" data-subtab="live-map">Live Map</button>
+      </div>
+
+      <div id="subtab-live-picker" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-live-picker">
+        <div class="card">
+          <h3>Live Station Reading</h3>
+          <p class="hint">Pick a station for its current CPCB reading</p>
+          <select id="live-station-select" class="compare-select"></select>
+          <div id="live-reading-panel" class="live-reading-panel">
+            <p class="map-status" id="live-picker-status">Loading…</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="subtab-live-map" class="subtab-content" role="tabpanel" aria-labelledby="subtabbtn-live-map">
+        <div class="card">
+          <h3>Live Delhi Station Map</h3>
+          <p class="hint">Markers colored by today's live AQI, not the historical average</p>
+          <div id="live-map"></div>
+          <p class="map-status" id="live-map-status">Loading…</p>
+        </div>
+      </div>
+    </div>
 
     <footer>Data source: Central Pollution Control Board (CPCB), via public Kaggle dataset. Generated with build_dashboard.py.</footer>
   </div>
@@ -142,9 +183,11 @@
   <script src="static/subtabs.js"></script>
   <script src="static/chart-filter.js"></script>
   <script src="static/tabs.js"></script>
+  <script src="static/mode-switch.js"></script>
   <script src="static/compare.js"></script>
   <script src="static/animate.js"></script>
   <!-- defer: keep this after the deferred Leaflet script so L is defined -->
   <script defer src="static/map.js"></script>
+  <script defer src="static/live.js"></script>
 </body>
 </html>
