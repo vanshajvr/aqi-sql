@@ -34,7 +34,7 @@ def fetch_live_delhi_raw():
             "filters[city]": "Delhi",
             "limit": 500,
         },
-        timeout=25,
+        timeout=50,
     )
     resp.raise_for_status()
     return resp.json()
