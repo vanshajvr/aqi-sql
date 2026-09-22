@@ -222,7 +222,7 @@ tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
 .compare-stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; color: #8b949e; }
 .compare-stat-row b { color: #c9d1d9; }
 
-#station-map { height: 520px; border-radius: 10px; overflow: hidden; }
+#station-map, #live-map { height: 520px; border-radius: 10px; overflow: hidden; }
 .map-status { font-size: 12px; color: #6e7681; margin: 10px 0 0; font-family: 'JetBrains Mono', 'Inter', monospace; display: flex; align-items: center; gap: 6px; }
 .live-dot {
   display: inline-block; width: 7px; height: 7px; border-radius: 50%;
