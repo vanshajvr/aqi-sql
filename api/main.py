@@ -1,14 +1,12 @@
 import sqlite3
 from functools import lru_cache
 from pathlib import Path
+import os
 
-import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-
-from api.live import get_live_stations
 
 ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "aqi.db"
@@ -178,23 +176,21 @@ def run_named_query(name: str):
     return run_query_cached(name)
 
 
-@app.get("/api/live/stations")
-def list_live_stations():
+@app.get("/api/config")
+def get_config():
     """
-    Live station readings from CPCB's real-time API (data.gov.in) — NOT
-    the baked-in historical database everything else on this API uses.
-    Cached server-side for 30 minutes (see api/live.py) so we're not
-    hitting CPCB's API on every dashboard visit.
+    Hands the browser the CPCB API key needed for client-side live data
+    calls. This is a deliberate architecture decision, not an oversight -
+    see the commit history for the full reasoning: server-side calls to
+    CPCB's API consistently timed out from Render (confirmed even at 50s),
+    while direct browser calls work instantly - strongly suggesting CPCB's
+    infrastructure silently drops requests from cloud-provider IP ranges.
+    Client-side calling was the only path that actually works.
 
-    Unlike every other endpoint here, this one depends on an external
-    service outside this project's control — fails with a clear 503
-    (not a raw crash) if the API key isn't configured or CPCB's API is
-    unreachable, so a live-data outage doesn't look like this whole
-    service is broken.
+    CPCB_PUBLIC_API_KEY is a SEPARATE, DEDICATED key from any other
+    personal use of the developer's data.gov.in account - isolated so
+    that if this specific key is ever abused or needs revoking, nothing
+    else is affected. It's a free, read-only, government open-data key
+    with no financial exposure and no access beyond public AQI readings.
     """
-    try:
-        return get_live_stations()
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    except requests.RequestException as e:
-        raise HTTPException(status_code=503, detail=f"Could not reach the CPCB live API: {e}")
+    return {"cpcb_api_key": os.environ.get("CPCB_PUBLIC_API_KEY")}

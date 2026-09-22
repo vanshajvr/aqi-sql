@@ -1,6 +1,9 @@
 // Same-origin by default, same convention as the historical map.js
 const LIVE_API_BASE = window.AQI_API_BASE || "";
 
+const CPCB_RESOURCE_ID = "3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69";
+const CPCB_API_URL = `https://api.data.gov.in/resource/${CPCB_RESOURCE_ID}`;
+
 // Same severity buckets/colors as the rest of the dashboard
 // (dashboard/theme.py SEVERITY_COLORS)
 const LIVE_SEVERITY_COLORS = {
@@ -22,22 +25,102 @@ function liveBucketForAqi(aqi) {
   return "Severe";
 }
 
+// Ported from the original server-side api/live.py (removed - CPCB's API
+// consistently timed out when called from Render, confirmed even at 50s,
+// while direct browser calls work instantly). Same logic, same edge
+// cases, now running client-side: groups the CPCB API's long-format rows
+// (one per station+pollutant) by station, computes each station's AQI as
+// the max pollutant sub-index (CPCB's own official method), and skips
+// the real "NA" string bug confirmed in actual API data - a missing
+// reading comes back as the literal string "NA", not JSON null.
+//
+// Verified manually with Node against the same real 301-record fixture
+// and edge cases the original Python version's test suite used (max
+// sub-index not average, all-NA station -> null not 0, whitespace-only
+// station name mismatch) - not wired into pytest since there's no JS
+// test runner in this project, but every case that had a Python test
+// before was re-run and passed here too.
+function computeStationAqi(rawResponse) {
+  const stations = {};
+
+  (rawResponse.records || []).forEach((record) => {
+    const name = (record.station || "").trim();
+    const pollutant = record.pollutant_id;
+    const avgRaw = record.avg_value;
+
+    if (!stations[name]) {
+      stations[name] = {
+        station_name: name,
+        latitude: parseFloat(record.latitude),
+        longitude: parseFloat(record.longitude),
+        last_update: record.last_update,
+        pollutants: {},
+      };
+    }
+
+    if (avgRaw == null || avgRaw === "NA") return;
+    const value = parseFloat(avgRaw);
+    if (Number.isNaN(value)) return;
+
+    stations[name].pollutants[pollutant] = value;
+  });
+
+  return Object.values(stations).map((station) => {
+    const entries = Object.entries(station.pollutants);
+    let dominant = null;
+    let aqi = null;
+    if (entries.length) {
+      entries.sort((a, b) => b[1] - a[1]);
+      dominant = entries[0][0];
+      aqi = entries[0][1];
+    }
+    return {
+      station_name: station.station_name,
+      latitude: station.latitude,
+      longitude: station.longitude,
+      last_update: station.last_update,
+      aqi,
+      dominant_pollutant: dominant,
+      pollutants: station.pollutants,
+    };
+  });
+}
+
 let liveStations = null;
 let liveDataPromise = null;
+let cpcbApiKeyPromise = null;
 
-// Fetches /api/live/stations exactly once, no matter how many callers
-// (station picker + live map) ask for it - later callers just await the
-// same in-flight/completed promise instead of re-fetching.
+function fetchCpcbApiKeyOnce() {
+  if (!cpcbApiKeyPromise) {
+    cpcbApiKeyPromise = fetch(`${LIVE_API_BASE}/api/config`)
+      .then((resp) => resp.json())
+      .then((cfg) => {
+        if (!cfg.cpcb_api_key) throw new Error("CPCB_PUBLIC_API_KEY is not configured on the server");
+        return cfg.cpcb_api_key;
+      });
+  }
+  return cpcbApiKeyPromise;
+}
+
+// Fetches CPCB's live API directly from the browser (not through our own
+// backend - see computeStationAqi's comment for why) exactly once, no
+// matter how many callers (station picker + live map) ask for it - later
+// callers just await the same in-flight/completed promise.
 function fetchLiveStationsOnce() {
   if (!liveDataPromise) {
-    liveDataPromise = fetch(`${LIVE_API_BASE}/api/live/stations`).then(async (resp) => {
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        throw new Error(body.detail || `API returned ${resp.status}`);
-      }
-      liveStations = await resp.json();
-      return liveStations;
-    });
+    liveDataPromise = fetchCpcbApiKeyOnce()
+      .then((apiKey) => {
+        const url = `${CPCB_API_URL}?api-key=${encodeURIComponent(apiKey)}&format=json&filters[city]=Delhi&limit=500`;
+        return fetch(url);
+      })
+      .then((resp) => {
+        if (!resp.ok) throw new Error(`CPCB API returned ${resp.status}`);
+        return resp.json();
+      })
+      .then((raw) => {
+        liveStations = computeStationAqi(raw);
+        return liveStations;
+      });
   }
   return liveDataPromise;
 }
