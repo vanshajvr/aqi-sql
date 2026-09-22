@@ -42,4 +42,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  // Whichever mode is active by default on page load also needs its data
+  // fetch triggered - activateMode() only runs on click, so the default
+  // view would otherwise never load anything until the user clicks away
+  // and back. Deferred scripts (including live.js) finish executing
+  // before DOMContentLoaded fires, so window.initLiveData is guaranteed
+  // to exist here.
+  const defaultActive = buttons.find(b => b.classList.contains("active"));
+  if (defaultActive && defaultActive.dataset.mode === "live" && window.initLiveData) {
+    requestAnimationFrame(() => window.initLiveData());
+  }
 });

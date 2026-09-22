@@ -136,15 +136,26 @@ function renderStationReading(station) {
 
   const bucket = liveBucketForAqi(station.aqi);
   const color = LIVE_SEVERITY_COLORS[bucket] || "#8b949e";
-  const pollutantRows = Object.entries(station.pollutants || {})
-    .map(([p, v]) => `<div class="compare-stat-row"><span>${p}</span><b>${v}</b></div>`)
+  const pollutantChips = Object.entries(station.pollutants || {})
+    .map(([p, v]) => `
+      <div class="pollutant-chip">
+        <div class="pollutant-chip-label">${p}</div>
+        <div class="pollutant-chip-value">${v}</div>
+      </div>`)
     .join("");
 
   panel.innerHTML = `
-    <div class="live-aqi-hero" style="color:${color}">${station.aqi.toFixed(0)}</div>
-    <div class="live-aqi-bucket" style="color:${color}">${bucket || "N/A"}</div>
-    <p class="hint">Dominant pollutant: ${station.dominant_pollutant || "N/A"} &middot; last updated ${station.last_update}</p>
-    <div class="compare-stat-card">${pollutantRows || "<p class=\"hint\">No pollutant readings available.</p>"}</div>
+    <div class="live-reading-hero" style="border-left-color:${color}">
+      <div class="live-aqi-row">
+        <div class="live-aqi-hero" style="color:${color}">${station.aqi.toFixed(0)}</div>
+        <div>
+          <div class="live-aqi-bucket" style="color:${color}">${bucket || "N/A"}</div>
+          <div class="live-dot-row"><span class="live-dot"></span>${station.last_update}</div>
+        </div>
+      </div>
+      <p class="hint" style="margin:10px 0 0;">Dominant pollutant: <b>${station.dominant_pollutant || "N/A"}</b></p>
+    </div>
+    <div class="live-pollutant-grid">${pollutantChips || "<p class=\"hint\">No pollutant readings available.</p>"}</div>
   `;
 }
 

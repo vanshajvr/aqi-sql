@@ -32,11 +32,11 @@
     </header>
 
     <div class="mode-switch" role="tablist" aria-label="Historical or live data">
-      <button class="mode-btn active" id="modebtn-historical" role="tab" aria-selected="true" aria-controls="mode-historical" data-mode="historical">Historical Analysis (2015&ndash;2020)</button>
-      <button class="mode-btn" id="modebtn-live" role="tab" aria-selected="false" aria-controls="mode-live" data-mode="live">Live Right Now</button>
+      <button class="mode-btn active" id="modebtn-live" role="tab" aria-selected="true" aria-controls="mode-live" data-mode="live">Live Right Now</button>
+      <button class="mode-btn" id="modebtn-historical" role="tab" aria-selected="false" aria-controls="mode-historical" data-mode="historical">Historical Analysis (2015&ndash;2020)</button>
     </div>
 
-    <div id="mode-historical" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-historical">
+    <div id="mode-historical" class="mode-content" role="tabpanel" aria-labelledby="modebtn-historical">
     <div class="tabs" role="tablist">
       <button class="tab-btn active" id="tabbtn-overview" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="overview">Overview</button>
       <button class="tab-btn" id="tabbtn-trends" role="tab" aria-selected="false" aria-controls="tab-trends" data-tab="trends">Trends</button>
@@ -141,7 +141,7 @@
     </div>
     </div>
 
-    <div id="mode-live" class="mode-content" role="tabpanel" aria-labelledby="modebtn-live">
+    <div id="mode-live" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-live">
       <p class="live-disclaimer">
         <strong>Live data</strong> from CPCB's real-time API, via data.gov.in.
         Refreshed periodically, not backfilled, and not cross-checked against
@@ -155,7 +155,7 @@
       </div>
 
       <div id="subtab-live-picker" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-live-picker">
-        <div class="card">
+        <div class="card live-picker-card">
           <h3>Live Station Reading</h3>
           <p class="hint">Pick a station for its current CPCB reading</p>
           <select id="live-station-select" class="compare-select"></select>
