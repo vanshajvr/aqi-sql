@@ -306,6 +306,12 @@ tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
 .leaflet-popup-content { font-size: 13px; line-height: 1.6; }
 .leaflet-popup-content .popup-stat { font-family: 'JetBrains Mono', monospace; }
 
+/* Fallback basemap when no CARTO key is configured: OSM tiles inverted into a
+   dark map. hue-rotate keeps water blue and parks green after the invert. */
+.leaflet-tile.osm-darkened, .osm-darkened .leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+}
+
 .map-views { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .map-view-btn {
   padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer;

@@ -80,13 +80,34 @@ function countBuckets(values) {
 window.countAqiBuckets = countBuckets;
 
 // Dark basemap to match the site; the bright OSM tiles washed marker colours
-// out. Shared with live.js.
-window.addDarkBasemap = function (map) {
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
-    maxZoom: 18,
-  }).addTo(map);
+// out. CARTO's dark tiles need an API key (served by /api/config from the
+// CARTO_API_KEY environment variable). Without one, fall back to free OSM
+// tiles darkened with a CSS filter, so the map never shows a blank or
+// watermarked background. Shared with live.js.
+let basemapConfigPromise = null;
+function basemapConfig() {
+  if (!basemapConfigPromise) {
+    basemapConfigPromise = fetch(`${API_BASE}/api/config`)
+      .then((r) => (r.ok ? r.json() : {}))
+      .catch(() => ({}));
+  }
+  return basemapConfigPromise;
+}
+
+window.addDarkBasemap = async function (map) {
+  const cfg = await basemapConfig();
+  if (cfg.carto_api_key) {
+    L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${encodeURIComponent(cfg.carto_api_key)}`, {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      maxZoom: 18,
+    }).addTo(map);
+  } else {
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 18,
+      className: "osm-darkened",
+    }).addTo(map);
+  }
 };
 
 // ---- Historical map views ------------------------------------------------
@@ -260,7 +281,7 @@ async function initMap() {
   }
 
   mapInstance = L.map("station-map").setView([28.6139, 77.2090], 10);
-  window.addDarkBasemap(mapInstance);
+  window.addDarkBasemap(mapInstance);   // async: markers don't need to wait for tiles
 
   try {
     const resp = await fetch(`${API_BASE}/api/stations`);
