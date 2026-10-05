@@ -1,16 +1,16 @@
 # aqi-sql
 
-### Delhi's air, read through 36,000 days of sensor data
+### Delhi's air, read through 70,000 days of sensor data
 
 [![CI](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml/badge.svg)](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml)
 
 **[Live dashboard](https://aqi-sql.onrender.com/)** · **[Read the findings](FINDINGS.md)** · [The SQL](queries/)
 
 Every winter, Delhi's air turns grey and the arguments start: is it the stubble
-fires, the traffic, the crackers, the cold? This project takes five years of
-government monitoring data, joins it to the weather, and tries to work out
-how much each of those really contributes, using SQL for all of the
-analysis.
+fires, the traffic, the crackers, the cold? This project takes government
+monitoring data from 2015 to 2026, joins it to the weather and to satellite
+fire counts, and tries to work out how much each of those really contributes,
+and whether anything has improved. All of the analysis is in SQL.
 
 ---
 
@@ -46,6 +46,14 @@ Wazirpur, Mundka and Punjabi Bagh are the most persistent, in the city's worst
 combining "pollution building" with "low lid forecast" warned before **69% of
 them** with under 4 false alerts a month, scored on years it wasn't tuned on.
 
+**And it isn't measurably better yet.** Bringing the data forward to 2026
+(OpenAQ, validated against the official record first), severe winter days fell
+from 12–17% to **3.9%**, a real drop. But for the same weather, winter
+pollution is about where it was before 2020. And while satellite-detected
+crop fires fell **about 90%**, Delhi's air in the smoke window didn't improve
+relative to its weather. Fire counts make the problem look more solved than
+the air does.
+
 **And I checked how sure to be.** Every headline number has a 95% interval
 (block bootstrap over weeks, or over stations re-running the actual SQL), and
 every conclusion holds within its interval. They're in
@@ -60,7 +68,8 @@ What this means for policy, and what I'm less sure about, is in
 
 ```
  Kaggle CPCB data ───┐
- Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 18 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+ OpenAQ (2020-26) ───┤
+ Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 20 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
  NASA FIRMS fires ───┘    (clean + load)                               └─► FastAPI ──► /api/* (map, raw query results)
 ```
 
@@ -78,12 +87,13 @@ What this means for policy, and what I'm less sure about, is in
 
 **Sources:** CPCB station readings via
 [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india)
-(official government data, 2015–2020), daily Delhi weather from the
+(official government data, 2015–2020), the same stations from 2020 to 2026
+via [OpenAQ](https://openaq.org/), daily Delhi weather from the
 [Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api)
 (ERA5 reanalysis: mixing height, wind, rain, temperature), and daily crop-fire
 counts in Punjab and northern Haryana from
 [NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/) (VIIRS satellite,
-stubble seasons 2015–2019).
+stubble seasons 2015–2025).
 
 Real sensor data is messy. Here's what the project found and how it handles it:
 
@@ -94,6 +104,8 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | Three stations reported CO 10× too high in early 2015, and two spiked in April 2018 | Station-months with a median above 5 mg/m³ are blanked (314 readings, <1%) |
 | East Arjun Nagar logged 1,553 readings, all with no AQI | Dropped |
 | Counting each station's reading separately let one bad day count up to 37 times | Every "share of days" counts city-days |
+| OpenAQ labels some CO, NO2 and SO2 feeds with the wrong units (e.g. "ppb" on values that are clearly mg/m³) | Units decided from magnitudes against the Kaggle era, rules documented in `prepare_openaq.py` |
+| OpenAQ has **no Delhi data from November 2022 to February 2025** | The backfill was validated against the official data before use ([pre-registered](analysis_plans/backfill_preregistration.md)); a stand-in monitor for the gap failed its test, so those winters stay unmeasured |
 
 ## The queries
 
@@ -117,6 +129,8 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | 16 | Which stations are *consistently* among the worst? | Monthly `RANK()` with eligibility rules |
 | 17 | Which rule should trigger a "bad air tomorrow" alert? | `LEAD()` next-day pairs, precision / recall / first-bad-day recall, train/test split |
 | 18 | Does crop-fire smoke from Punjab reach Delhi? | Satellite fire counts × wind direction, `NTILE()` thirds, Diwali weeks excluded |
+| 19 | Is Delhi's winter air better than before 2020? | Two sources unioned, fixed 12-station panel, weather-adjusted ratio |
+| 20 | Did burning fall, and did the smoke window clear? | Fire counts next to weather-adjusted smoke-window PM2.5, by year |
 
 ## The dashboard
 
@@ -126,7 +140,8 @@ up.
 
 - **Summary:** headline numbers and three takeaways
 - **Seasons & Weather:** why winter is worst, and the weeks the weather can't explain
-- **Pollution Sources:** the lockdown test, local vs regional pollutants, Diwali
+- **Pollution Sources:** crop-fire smoke and the wind, the lockdown test, local vs regional pollutants, Diwali
+- **Then vs Now:** winters before and after 2020, and fires against the smoke window
 - **Early Warning:** which alert rule to ship, as a cost vs value trade-off
 - **Stations:** map, station detail, and side-by-side comparison
 - **Data & Methods:** the full station table and data coverage
@@ -147,7 +162,10 @@ python3 -m uvicorn api.main:app --reload --port 8000
 
 # Optional
 python3 fetch_weather.py      # re-download weather (already in data/seed/)
-python3 fetch_fires.py        # re-download crop fires (needs FIRMS_MAP_KEY; already in data/seed/)
+python3 fetch_fires.py        # crop fires, incremental (needs FIRMS_MAP_KEY; already in data/seed/)
+python3 fetch_openaq.py       # raw 2020-26 station data (needs OPENAQ_API_KEY; ~15 min)
+python3 prepare_openaq.py     # units + stitching -> data/seed/openaq_daily.csv (already committed)
+python3 validate_backfill.py  # pre-registered tests A and B -> results/
 python3 export_bi.py          # tidy CSVs for Tableau / Power BI, see exports/README.md
 python3 uncertainty.py        # 95% intervals -> results/ (~4 min, fixed seed)
 pytest tests/                 # the test suite
@@ -164,25 +182,33 @@ coordinates.
 ```
 aqi-sql/
 ├── FINDINGS.md           the write-up
-├── queries/              18 SQL files, one question each
+├── queries/              20 SQL files, one question each
+├── analysis_plans/       pre-registered tests, committed before the results
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
 ├── fetch_weather.py      one-time weather download
-├── fetch_fires.py        one-time NASA FIRMS crop-fire download
+├── fetch_fires.py        NASA FIRMS crop-fire download (incremental)
+├── fetch_openaq.py       OpenAQ download (stations + US Embassy)
+├── prepare_openaq.py     OpenAQ unit rules + sensor stitching
+├── validate_backfill.py  runs the pre-registered backfill tests
+├── aqi.py                CPCB AQI from concentrations
 ├── build_dashboard.py    renders dashboard.html from the queries
 ├── export_bi.py          CSVs for Tableau / Power BI
 ├── uncertainty.py        bootstrap / Wilson intervals → results/
+├── results/              confidence intervals, backfill validation (pass and fail)
 ├── dashboard/            chart builders (Plotly), KPIs, table
 ├── templates/, static/   page skeleton, CSS, JS (tabs, Leaflet maps, live data)
 ├── api/                  FastAPI service + Dockerfile
-├── data/seed/            committed Delhi data + weather, used by the Docker build
+├── data/seed/            committed Delhi data, OpenAQ backfill, weather, fires (Docker build input)
 ├── tests/                query, API, cleaning and live-parsing tests
 └── exports/README.md     BI data dictionary
 ```
 
 ## Known limitations
 
-- **The data ends in July 2020.** Anything after that, including later
-  pollution-control measures, isn't covered yet.
+- **Three winters are missing** (2022–23 to 2024–25), and only one post-2020
+  winter (2025–26) has full coverage, so "then vs now" rests on a thin slice.
+  Post-2020 data is from OpenAQ, which matched the official data closely but
+  isn't the official record itself.
 - **Weather is one grid point** over central Delhi. That's fine for
   city-wide patterns, but too coarse for street-level effects.
 - **Rolling averages count rows, not calendar days.** Where a station has gaps,
@@ -193,36 +219,17 @@ aqi-sql/
 
 ## Future scope
 
-### Bringing the data up to today
+### Filling the gap and watching the trend
 
-The biggest open question is the obvious one: **is Delhi's air better now
-than before 2020?** Measures such as GRAP, BS-VI fuel and crop-residue schemes
-have arrived since. I've already checked whether
-[OpenAQ](https://openaq.org/) can fill the gap, and here's what's there:
-
-| Period | OpenAQ coverage of the 37 stations |
-|---|---|
-| All of 2020 | Excellent (29 stations with ≥300 days), including Jan–Jun 2020, which overlaps the current data and allows validation |
-| 2021 to October 2022 | Partial (roughly 55–75% of days) |
-| **November 2022 to February 2025** | **Nothing at any station**: OpenAQ lost the CPCB feed |
-| 2025 to now | Excellent (all 37 stations) |
-
-The plan has two parts:
-
-1. **Station network:** pull daily readings for the matched stations (all 37
-   map cleanly by name and operator), compute AQI with CPCB's formula
-   (OpenAQ provides concentrations, not AQI), and **validate it against the
-   official AQI on January–June 2020** before trusting anything newer. Then
-   compare winters like-for-like: 2018–19 and 2019–20 against 2020–21 and
-   2025–26.
-2. **A continuous PM2.5 line:** the US Embassy monitor has near-complete PM2.5
-   for every year from 2017 to 2026, *including* the missing 2023–24. Finding
-   4 says PM2.5 is regional, so one well-run site should track the city
-   closely. Checking that on the 2018–20 overlap would both validate the
-   bridge and test the finding.
-
-Two winters (2023–24 and 2024–25) would still be missing from the station
-network, and the write-up would need to say so.
+- **The missing winters (2022–23 to 2024–25):** CPCB's own portal holds this
+  data, but has no API. A careful one-off download for the 12 panel stations
+  would close the gap.
+- **Re-run "then vs now" each winter.** With one strong post-2020 winter, the
+  trend is the weakest part of the analysis. The pipeline is incremental, so
+  each new winter is a short download plus a re-run.
+- **Test the satellite blind spot directly.** If burning moved to after the
+  afternoon overpass, the night-time VIIRS pass should catch more of it. Comparing
+  day and night detections by year would show whether the 90% drop is real.
 
 ### Smaller ideas
 
@@ -234,7 +241,8 @@ network, and the write-up would need to say so.
 ## Credits
 
 Air-quality data: Central Pollution Control Board (CPCB), via
-[Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
+[Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india)
+and [OpenAQ](https://openaq.org/).
 Weather: ERA5 reanalysis via [Open-Meteo](https://open-meteo.com/). Fires:
 NASA FIRMS VIIRS active-fire data. Map tiles:
 © OpenStreetMap contributors.

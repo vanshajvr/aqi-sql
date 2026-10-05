@@ -23,18 +23,18 @@
         <span class="haze-blob haze-blob-3"></span>
       </div>
       <h1>What drives Delhi's air pollution?</h1>
-      <p class="subtitle">5.5 years of government monitoring data from 37 stations, joined to weather and analysed in SQL.</p>
+      <p class="subtitle">Government monitoring data from 37 stations, 2015&ndash;2026, joined to weather and satellite fire data, and analysed in SQL.</p>
       <div class="badges">
         <span class="badge">37 stations</span>
-        <span class="badge" data-no-animate>2015&ndash;2020</span>
-        <span class="badge">18 SQL queries</span>
+        <span class="badge" data-no-animate>2015&ndash;2026</span>
+        <span class="badge">20 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
     </header>
 
     <div class="mode-switch" role="tablist" aria-label="Historical or live data">
-      <button class="mode-btn active" id="modebtn-historical" role="tab" aria-selected="true" aria-controls="mode-historical" data-mode="historical">Analysis 2015&ndash;2020</button>
+      <button class="mode-btn active" id="modebtn-historical" role="tab" aria-selected="true" aria-controls="mode-historical" data-mode="historical">Analysis</button>
       <button class="mode-btn" id="modebtn-live" role="tab" aria-selected="false" aria-controls="mode-live" data-mode="live">Live Now</button>
     </div>
 
@@ -43,6 +43,7 @@
       <button class="tab-btn active" id="tabbtn-summary" role="tab" aria-selected="true" aria-controls="tab-summary" data-tab="summary">Summary</button>
       <button class="tab-btn" id="tabbtn-seasons" role="tab" aria-selected="false" aria-controls="tab-seasons" data-tab="seasons">Seasons &amp; Weather</button>
       <button class="tab-btn" id="tabbtn-sources" role="tab" aria-selected="false" aria-controls="tab-sources" data-tab="sources">Pollution Sources</button>
+      <button class="tab-btn" id="tabbtn-now" role="tab" aria-selected="false" aria-controls="tab-now" data-tab="now">Then vs Now</button>
       <button class="tab-btn" id="tabbtn-alerts" role="tab" aria-selected="false" aria-controls="tab-alerts" data-tab="alerts">Early Warning</button>
       <button class="tab-btn" id="tabbtn-stations" role="tab" aria-selected="false" aria-controls="tab-stations" data-tab="stations">Stations</button>
       <button class="tab-btn" id="tabbtn-data" role="tab" aria-selected="false" aria-controls="tab-data" data-tab="data">Data &amp; Methods</button>
@@ -147,6 +148,28 @@
             Anchored on each year's actual Diwali date: 3 weeks before = days &minus;21 to &minus;8, week before = &minus;7 to &minus;1, Diwali week = day 0 to +7. 2016 has no data, and 2017's baseline rests on 2 days. Diwali overlaps stubble season, so not all of the jump is firecrackers.
           </details>
         </div>
+      </div>
+    </div>
+
+    <div id="tab-now" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-now" tabindex="0">
+      <div class="card">
+        <h3>Is Delhi's winter air better than before 2020?</h3>
+        <p class="hint">Not yet measurably. The worst days are rarer, but for the same weather, winter pollution is about where it was. Grey bars: 2018&ndash;20. Blue: after. Dotted line: the 2018&ndash;20 average.</p>
+        <div class="grid-2 grid-tight">
+          <div>$then_now_severe</div>
+          <div>$then_now_ratio</div>
+        </div>
+        <details class="method"><summary>How this is measured</summary>
+          The same 12 stations in every winter (November&ndash;February), so a changing station mix can't fake a trend. Post-2020 data comes from OpenAQ and was checked against the official data on January&ndash;June 2020 before use (PM2.5 r = 0.97, median difference 3.9%). Severe days fell 11 points (95% interval &minus;19 to &minus;3); the weather-adjusted change is &minus;0.09 (&minus;0.32 to +0.16), not distinguishable from zero. Three winters (2022&ndash;23 to 2024&ndash;25) have no data: OpenAQ lost the feed, and a stand-in monitor failed its pre-registered test.
+        </details>
+      </div>
+      <div class="card">
+        <h3>Fires fell 90%. The smoke window didn't.</h3>
+        <p class="hint">Satellite-detected crop fires collapsed after 2021, but Delhi's pollution in the smoke window, relative to its weather, was the same in 2025 as in 2018&ndash;21.</p>
+        $then_now_stubble
+        <details class="method"><summary>How this is measured</summary>
+          Top: fires detected by NASA's VIIRS satellite in Punjab and northern Haryana, 15 October &ndash; 30 November. Bottom: Delhi PM2.5 from 16 October to 15 November, divided by what the day's weather predicts, on the same 12-station panel. 2025 minus 2018&ndash;21: &minus;0.006 (95% interval &minus;0.36 to +0.29). No PM2.5 points for 2015&ndash;16 (too few panel stations yet) or 2022&ndash;24 (no data in the window). Satellites only see fires burning at overpass time, and burning has reportedly shifted later in the day, so falling counts may partly be fires going unseen.
+        </details>
       </div>
     </div>
 
@@ -298,7 +321,7 @@
       </div>
     </div>
 
-    <footer>Data: Central Pollution Control Board (CPCB) via Kaggle &middot; weather: ERA5 via Open-Meteo &middot; built with SQL, Python and Plotly.</footer>
+    <footer>Data: Central Pollution Control Board (CPCB) via Kaggle and OpenAQ &middot; weather: ERA5 via Open-Meteo &middot; fires: NASA FIRMS &middot; built with SQL, Python and Plotly.</footer>
   </div>
 
   <script>window.COMPARE_DATA = $compare_data_json;</script>

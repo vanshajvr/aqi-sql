@@ -1,6 +1,6 @@
 # The lid over Delhi
 
-### What five years of air-quality data say about why the city can't breathe each winter
+### What a decade of air-quality data says about why the city can't breathe each winter
 
 Every November, Delhi's air makes the news. The usual suspects get named
 (stubble fires, traffic, Diwali crackers, the cold), usually all at once and
@@ -9,9 +9,11 @@ contributes, and which of them a city could do anything about.
 
 **The data:** about 36,000 daily readings from 37 government monitoring
 stations (CPCB, DPCC and IMD), April 2015 to July 2020, covering PM2.5, PM10,
-NO2, SO2, CO and AQI. I joined them to daily weather for the same period
-(ERA5 via Open-Meteo: mixing height, wind, rain and temperature) and to
-satellite fire counts for Punjab and Haryana (NASA FIRMS). All the
+NO2, SO2, CO and AQI, plus about 35,000 more station-days up to October 2026
+from OpenAQ (validated against the official data first; see finding 8). I
+joined them to daily weather (ERA5 via Open-Meteo: mixing height, wind, rain
+and temperature) and to satellite fire counts for Punjab and Haryana (NASA
+FIRMS). All the
 analysis is in SQL, every number below comes from a tested query in
 [`queries/`](queries/), and you can explore all of it at
 **[aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**.
@@ -26,10 +28,13 @@ analysis is in SQL, every number below comes from a tested query in
   and satellites show its smoke reaching Delhi when the wind is right.
 - **PM2.5, the most harmful pollutant, is a regional problem.** Delhi can't
   fix it alone. Traffic pollution is local, and the city *can* act on that.
+- **It isn't measurably better yet.** The worst days are rarer than before
+  2020, but for the same weather, winter air is about as polluted, and the
+  smoke window hasn't cleared even though satellite-detected fires fell 90%.
 
 ---
 
-## Seven findings
+## Eight findings
 
 ### 1. It's the lid, not just the smoke
 
@@ -146,6 +151,50 @@ industrial belt. **Wazirpur, Mundka and Punjabi Bagh** are among the city's 5
 worst stations about two months in every three. Anand Vihar manages 57%: it
 spikes higher, but it doesn't stay on top as reliably.
 
+### 8. Not yet measurably better
+
+The obvious question after all this: has anything changed since 2020? The
+original data stops in July 2020, so I brought it forward with OpenAQ, an open
+archive of the same government stations. Before trusting it, I set the pass
+marks in advance ([written down and committed before the
+results](analysis_plans/backfill_preregistration.md)) and checked it against
+the official data on the six months where both exist. It agreed closely:
+PM2.5 correlation 0.97, median difference 3.9%.
+
+The catch: OpenAQ has **no Delhi data from November 2022 to February 2025**.
+I tried to bridge the gap with the US Embassy monitor, which kept running, but
+it failed its pre-set test by a single winter month (December 2020, 18% off
+against a 15% limit). I didn't move the goalposts, so three winters stay
+unmeasured.
+
+Comparing the same 12 stations across the winters that remain:
+
+| Winter | Mean PM2.5 | Severe days (PM2.5 > 250) | PM2.5 vs weather-predicted |
+|---|---|---|---|
+| 2018–19 | 180 | 16.7% | 1.20× |
+| 2019–20 | 157 | 13.2% | 1.08× |
+| 2020–21 | 179 | 15.9% | 1.25× |
+| 2021–22 | 179 | 11.7% | 1.09× |
+| 2025–26 | 158 | **3.9%** | 1.05× |
+
+- **The worst days really are rarer.** Severe days fell 11 points against
+  2018–20, with a 95% interval of −19 to −3. That isn't luck.
+- **But the typical winter hasn't measurably improved.** For the same weather,
+  2025–26 was 0.09 below 2018–20, with an interval of −0.32 to +0.16, which
+  includes no change at all. Part of the rarer peaks may simply be a kinder
+  winter.
+- **The smoke window is the sharpest result.** Satellite-detected crop fires
+  fell about 90%, from 50,000–87,000 a season to 8,108 in 2025. Yet Delhi's
+  pollution from 16 October to 15 November, relative to its weather, was the
+  same in 2025 (1.78×) as in 2018–21 (the change is −0.006, interval −0.36 to
+  +0.29). Either burning has moved out of the satellites' view (there are
+  reports of fires being lit after the afternoon overpass), or other sources
+  fill the window.
+
+**The lesson for anyone judging progress:** satellite fire counts make
+crop-burning policy look like a success that Delhi's air doesn't yet show.
+Measure the air, adjusted for weather, not the fires.
+
 ---
 
 ## So what would I do?
@@ -249,8 +298,10 @@ softer than they look. December's 81% could plausibly be anywhere from 68% to
   It misses things like where the air is arriving from: monsoon days come out
   cleaner than their mixing height and wind predict. Compare the ratios with
   each other rather than reading them as exact multipliers.
-- **The data stops in July 2020,** before later measures such as the revised
-  Graded Response Action Plan.
+- **"Then vs now" rests on a thin slice.** It covers one post-2020 winter with
+  good coverage (2025–26), on 12 stations, with three winters missing. Its
+  post-2020 data comes from OpenAQ, which matched the official data closely
+  where they overlap, but isn't the official record itself.
 
 ## Things the data got wrong (and how I caught them)
 
@@ -283,6 +334,7 @@ would correct themselves if the source data were ever fixed.
 | 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's actual Diwali date |
 | 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
 | Alert | [`17_alert_rules.sql`](queries/17_alert_rules.sql) | Next-day pairs via `LEAD()`; precision, recall and first-bad-day recall per rule; train/test split with the choice made in SQL |
+| 8 | [`19_then_vs_now.sql`](queries/19_then_vs_now.sql), [`20_stubble_then_vs_now.sql`](queries/20_stubble_then_vs_now.sql), [`validate_backfill.py`](validate_backfill.py) | Fixed 12-station panel across winters; weather-adjusted ratio; pre-registered validation of the OpenAQ data ([plan](analysis_plans/backfill_preregistration.md), [results](results/backfill_validation.csv)) |
 | Intervals | [`uncertainty.py`](uncertainty.py) | Week-block bootstrap (daily figures); station bootstrap re-running `09` and `10`; Wilson interval (alert) |
 | Caveats | [`08`](queries/08_coverage.sql), [`03`](queries/03_yoy_comparison.sql) | Coverage audit; like-for-like year-over-year comparison |
 

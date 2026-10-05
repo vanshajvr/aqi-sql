@@ -106,6 +106,8 @@ FINDING_TABLES = [
     ("finding_persistent_hotspots", "16_persistent_hotspots.sql"),
     ("finding_alert_rules", "17_alert_rules.sql"),
     ("finding_fires_and_wind", "18_fires_and_wind.sql"),
+    ("finding_then_vs_now", "19_then_vs_now.sql"),
+    ("finding_stubble_then_vs_now", "20_stubble_then_vs_now.sql"),
     ("data_coverage", "08_coverage.sql"),
 ]
 

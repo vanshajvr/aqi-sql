@@ -35,6 +35,8 @@ QUERY_FILES = {
     "persistent-hotspots": "16_persistent_hotspots.sql",
     "alert-rules": "17_alert_rules.sql",
     "fires-and-wind": "18_fires_and_wind.sql",
+    "then-vs-now": "19_then_vs_now.sql",
+    "stubble-then-vs-now": "20_stubble_then_vs_now.sql",
 }
 
 # Read the .sql files once at startup, not on every request.
