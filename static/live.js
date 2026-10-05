@@ -349,6 +349,12 @@ async function loadLiveMapData() {
       plotted += 1;
     });
 
+    if (window.addAqiLegend) {
+      const plottedStations = stations.filter((s) => s.latitude != null && s.longitude != null);
+      const { counts, noData } = window.countAqiBuckets(plottedStations.map((s) => s.aqi));
+      window.addAqiLegend(liveMapInstance, "Live AQI", counts, noData);
+    }
+
     if (statusEl) {
       statusEl.classList.remove("skeleton-text");
       statusEl.innerHTML = missingCoords > 0

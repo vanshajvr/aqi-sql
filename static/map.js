@@ -24,6 +24,61 @@ function bucketForAqi(aqi) {
   return "Severe";
 }
 
+const AQI_LEGEND_ROWS = [
+  ["Good", "0-50"],
+  ["Satisfactory", "51-100"],
+  ["Moderate", "101-200"],
+  ["Poor", "201-300"],
+  ["Very Poor", "301-400"],
+  ["Severe", "401+"],
+];
+
+// Adds (or refreshes) a CPCB AQI legend on a Leaflet map. Shared with
+// live.js, which loads after this file. counts is {bucket: n}; buckets with
+// no stations are dimmed rather than hidden so the full scale stays readable.
+// noData is the number of stations with no AQI (drawn grey on the map).
+window.addAqiLegend = function (map, title, counts, noData) {
+  if (map._aqiLegend) map.removeControl(map._aqiLegend);
+  const legend = L.control({ position: "bottomright" });
+  legend.onAdd = () => {
+    const div = L.DomUtil.create("div", "aqi-legend");
+    const rows = AQI_LEGEND_ROWS.map(([bucket, range]) => {
+      const n = (counts && counts[bucket]) || 0;
+      return `<div class="aqi-legend-row${n ? "" : " is-empty"}">
+        <span class="aqi-legend-swatch" style="background:${SEVERITY_COLORS[bucket]}"></span>
+        <span class="aqi-legend-name">${bucket}</span>
+        <span class="aqi-legend-range">${range}</span>
+        <span class="aqi-legend-count">${n}</span>
+      </div>`;
+    });
+    if (noData) {
+      rows.push(`<div class="aqi-legend-row">
+        <span class="aqi-legend-swatch" style="background:#8b949e"></span>
+        <span class="aqi-legend-name">No data</span>
+        <span class="aqi-legend-range"></span>
+        <span class="aqi-legend-count">${noData}</span>
+      </div>`);
+    }
+    div.innerHTML = `<div class="aqi-legend-title">${title}</div>${rows.join("")}`;
+    L.DomEvent.disableClickPropagation(div);
+    return div;
+  };
+  legend.addTo(map);
+  map._aqiLegend = legend;
+};
+
+function countBuckets(values) {
+  const counts = {};
+  let noData = 0;
+  values.forEach((v) => {
+    const b = bucketForAqi(v);
+    if (b) counts[b] = (counts[b] || 0) + 1;
+    else noData += 1;
+  });
+  return { counts, noData };
+}
+window.countAqiBuckets = countBuckets;
+
 let mapInstance = null;
 let mapInitialized = false;
 
@@ -85,6 +140,10 @@ async function initMap() {
       `);
       plotted += 1;
     });
+
+    const plottedStations = stations.filter((s) => s.latitude != null && s.longitude != null);
+    const { counts, noData } = countBuckets(plottedStations.map((s) => s.avg_aqi_2018_19));
+    window.addAqiLegend(mapInstance, "Avg AQI, 2018&ndash;19", counts, noData);
 
     if (statusEl) {
       statusEl.classList.remove("skeleton-text");
