@@ -13,8 +13,12 @@ Area: longitude 73.8-77.5, latitude 29.3-32.6 - Punjab and the northern
 Haryana paddy belt (Karnal, Kurukshetra, Kaithal). It stops ~80 km north of
 Delhi on purpose, so the city's own fires aren't counted as "stubble".
 
-Season: 15 September - 15 December, 2015-2019 (the paddy-stubble season;
-outside it fire counts are near zero). ~92 requests.
+Season: 15 September - 15 December, 2015-2025 (the paddy-stubble season;
+outside it fire counts are near zero). ~19 requests per season.
+
+Incremental: seasons already in data/seed/fires_daily.csv are kept exactly as
+they are and not re-fetched, so NASA reprocessing of old years can't shift
+the published 2015-2019 numbers.
 
 Counted: vegetation fires only (type 0) with nominal or high confidence
 (low-confidence detections dropped). Days with no detections are written as
@@ -46,7 +50,7 @@ from pathlib import Path
 OUT_PATH = Path(__file__).parent / "data" / "seed" / "fires_daily.csv"
 SOURCE = "VIIRS_SNPP_SP"
 AREA = "73.8,29.3,77.5,32.6"          # west, south, east, north
-YEARS = range(2015, 2020)
+YEARS = range(2015, 2026)
 SEASON = ((9, 15), (12, 15))          # inclusive
 DAYS_PER_REQUEST = 5                  # FIRMS maximum
 SECONDS_BETWEEN_REQUESTS = 3
@@ -83,12 +87,20 @@ def main():
     if not key:
         sys.exit("Set FIRMS_MAP_KEY first (see the docstring). Nothing written.")
 
+    existing = {}
+    if OUT_PATH.exists():
+        with open(OUT_PATH) as f:
+            existing = {r["date"]: r for r in csv.DictReader(f)}
+    have_years = {int(d[:4]) for d in existing}
+    todo = [y for y in YEARS if y not in have_years]
+    print(f"Keeping seasons {sorted(have_years)}; fetching {todo}")
+
     all_days = [d for y in YEARS for d in season_days(y)]
     counts = defaultdict(int)
     frp = defaultdict(float)
     requests_made = 0
 
-    for year in YEARS:
+    for year in todo:
         days = season_days(year)
         for i in range(0, len(days), DAYS_PER_REQUEST):
             chunk = days[i:i + DAYS_PER_REQUEST]
@@ -117,7 +129,10 @@ def main():
         writer.writerow(["date", "n_fires", "frp_sum_mw"])
         for d in all_days:
             k = d.isoformat()
-            writer.writerow([k, counts[k], round(frp[k], 1)])
+            if k in existing:
+                writer.writerow([k, existing[k]["n_fires"], existing[k]["frp_sum_mw"]])
+            else:
+                writer.writerow([k, counts[k], round(frp[k], 1)])
     tmp.replace(OUT_PATH)
     print(f"\nWrote {len(all_days)} days to {OUT_PATH} ({requests_made} requests)")
 

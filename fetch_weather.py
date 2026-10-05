@@ -35,8 +35,10 @@ from pathlib import Path
 
 OUT_PATH = Path(__file__).parent / "data" / "seed" / "weather_daily.csv"
 
-# Matches the AQI dataset's range (first reading 2015-01-01, last 2020-07-01)
-START, END = "2015-01-01", "2020-07-01"
+# 2015-01-01 (first Kaggle reading) to 2026-10-01 (last OpenAQ backfill date).
+# Extending END doesn't change the published analysis: those queries only join
+# weather to 2015-2020 readings.
+START, END = "2015-01-01", "2026-10-01"
 LAT, LON = 28.61, 77.21  # central New Delhi
 
 DAILY = [
@@ -101,8 +103,8 @@ def main():
         row["mixing_height_max_m"] = round(max_h) if max_h is not None else None
         rows.append(row)
 
-    if len(rows) < 2000:
-        sys.exit(f"Only {len(rows)} days returned, expected ~2000; not overwriting {OUT_PATH}")
+    if len(rows) < 4000:
+        sys.exit(f"Only {len(rows)} days returned, expected ~4,300; not overwriting {OUT_PATH}")
 
     fields = ["date", *COLUMNS.values(), "mixing_height_mean_m", "mixing_height_max_m"]
     tmp = OUT_PATH.with_suffix(".csv.tmp")

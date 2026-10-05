@@ -14,5 +14,8 @@ Lockdown: NO2 effect minus PM2.5 effect,-21.4,-29.553,-12.848,percentage points,
 "Fire effect (most minus fewest fires), north-westerly wind",0.692,0.057,1.255,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
 "Fire effect (most minus fewest fires), other wind",0.185,-0.323,0.619,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
 Fire effect: north-westerly minus other wind,0.507,-0.268,1.271,change in excess ratio,week-block bootstrap,positive = smoke arrives with the wind; 89.8% of resamples
+"Severe days (PM2.5 > 250), winter 2025-26 minus 2018-20",-11.016,-19.325,-3.309,percentage points,week-block bootstrap,negative = better now; 99.8% of resamples
+"Weather-adjusted ratio, winter 2025-26 minus 2018-20",-0.089,-0.315,0.157,ratio,week-block bootstrap,negative = better now; 77.0% of resamples
+"Smoke-window weather-adjusted ratio, 2025 minus 2018-21",-0.006,-0.364,0.288,ratio,week-block bootstrap,16 Oct - 15 Nov; negative = less excess now; 51.4% of resamples
 "First bad days warned, rule E (2018-20)",69.388,55.472,80.485,% of onsets,Wilson score interval,34 of 49 onsets
 "First bad days warned, rule B (2018-20)",0.0,0.0,7.27,% of onsets,Wilson score interval,0 of 49 onsets
