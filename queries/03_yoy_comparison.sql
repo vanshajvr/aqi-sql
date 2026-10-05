@@ -1,26 +1,62 @@
--- NOTE: yoy_change compares against the *previous row in this partition*
--- (LAG), not strictly "the prior calendar year". If an entire year is
--- missing for a given month (e.g. no January 2017 readings at all), the
--- January 2018 row's yoy_change silently compares against January 2016
--- instead — a 2-year gap reported with no indication it isn't 1 year.
--- Verified: with years 2015, 2016, 2018 present (2017 missing), the 2018
--- row's yoy_change is computed against 2016, not flagged as non-adjacent.
--- A stricter version would compute the actual year gap
--- (year - LAG(year) OVER (...)) and expose it alongside yoy_change so
--- the dashboard could flag or exclude non-adjacent comparisons.
-WITH monthly_city_avg AS(
+-- 03_yoy_comparison.sql
+-- Is the same month better or worse than it was a year earlier?
+--
+-- avg_aqi is the city-wide monthly mean across whichever stations reported,
+-- for the trend line. It is NOT used for the year-over-year change, because
+-- the station set changed a lot over time (8 stations in 2015-16, 37 from
+-- 2018; see 08_coverage.sql). Comparing raw city means would report a station
+-- joining or leaving as if the air itself got better or worse.
+--
+-- yoy_change is LIKE-FOR-LIKE: for each station that reported in this month
+-- in BOTH this year and the immediately previous year, take the change in its
+-- monthly mean, then average those changes across the matched stations.
+--
+-- yoy_change is NULL (not silently computed) when:
+--   * the previous calendar year has no data for this month (year_gap <> 1),
+--     so a 2-year gap is never reported as a 1-year change
+--   * fewer than 3 stations are matched, too few to call it city-wide
+-- year_gap and n_matched_stations are output so the reason is visible.
+WITH station_month AS (
     SELECT
-        strftime('%Y',date) AS year,
-        strftime('%m',date) AS month,
+        station_id,
+        CAST(strftime('%Y', date) AS INTEGER) AS year,
+        strftime('%m', date) AS month,
         AVG(aqi) AS avg_aqi
     FROM readings
     WHERE aqi IS NOT NULL
-    GROUP BY year,month 
+    GROUP BY station_id, year, month
+),
+city_month AS (
+    SELECT
+        year,
+        month,
+        AVG(avg_aqi) AS avg_aqi,
+        COUNT(*) AS n_stations
+    FROM station_month
+    GROUP BY year, month
+),
+matched AS (
+    SELECT
+        cur.year,
+        cur.month,
+        AVG(cur.avg_aqi - prev.avg_aqi) AS yoy_change,
+        COUNT(*) AS n_matched_stations
+    FROM station_month cur
+    JOIN station_month prev
+      ON prev.station_id = cur.station_id
+     AND prev.month = cur.month
+     AND prev.year = cur.year - 1
+    GROUP BY cur.year, cur.month
 )
 SELECT
-    month,
-    year,
-    ROUND(avg_aqi,1) AS avg_aqi,
-    ROUND(avg_aqi-LAG(avg_aqi) OVER (PARTITION BY month ORDER BY year),1) AS yoy_change
-FROM monthly_city_avg
-ORDER BY month,year;
+    c.month,
+    CAST(c.year AS TEXT) AS year,
+    ROUND(c.avg_aqi, 1) AS avg_aqi,
+    c.n_stations,
+    c.year - LAG(c.year) OVER (PARTITION BY c.month ORDER BY c.year) AS year_gap,
+    COALESCE(m.n_matched_stations, 0) AS n_matched_stations,
+    CASE WHEN m.n_matched_stations >= 3 THEN ROUND(m.yoy_change, 1) END AS yoy_change
+FROM city_month c
+LEFT JOIN matched m
+  ON m.year = c.year AND m.month = c.month
+ORDER BY c.month, c.year;

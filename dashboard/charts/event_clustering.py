@@ -1,17 +1,32 @@
 import plotly.graph_objects as go
 
-from ..theme import ACCENT, PERIOD_COLORS, PERIOD_LABELS, base_layout
- 
- 
+from ..theme import PERIOD_LABELS, SEVERITY_COLORS, base_layout
+
+# 04 now counts DAYS (city-wide mean AQI) on the CPCB scale, so the two series
+# reuse the severity breakdown's own colors for the same categories.
+SERIES = [
+    ("pct_days_very_poor_plus", "n_days_very_poor_plus", "Very Poor or worse (AQI > 300)", "Very Poor"),
+    ("pct_days_severe", "n_days_severe", "Severe (AQI > 400)", "Severe"),
+]
+
+
 def build(df04):
-    d = df04.sort_values("pct_severe", ascending=False)
-    colors = [PERIOD_COLORS.get(p, ACCENT) for p in d["period"]]
+    d = df04.sort_values("pct_days_very_poor_plus", ascending=False)
     x_labels = [PERIOD_LABELS.get(p, p) for p in d["period"]]
- 
-    fig = go.Figure(go.Bar(
-        x=x_labels, y=d["pct_severe"], marker=dict(color=colors, cornerradius=8, line=dict(width=0)), width=0.5,
-        text=d["pct_severe"].astype(str) + "%", textposition="outside",
-        hovertemplate="<b>%{x}</b><br>%{y}%% severe days<extra></extra>",
-    ))
-    fig.update_layout(xaxis_title="", yaxis_title="% Days with Severe AQI (\u2265300)", bargap=0.4)
-    return base_layout(fig, height=480, top_margin=50)
+
+    fig = go.Figure()
+    for pct_col, n_col, name, bucket in SERIES:
+        fig.add_trace(go.Bar(
+            x=x_labels, y=d[pct_col], name=name,
+            marker=dict(color=SEVERITY_COLORS[bucket], cornerradius=4, line=dict(width=0)),
+            text=d[pct_col].map(lambda v: f"{v:.1f}%"), textposition="outside",
+            customdata=d[[n_col, "n_days"]].values,
+            hovertemplate="<b>%{x}</b><br>" + name + ": %{y:.1f}% of days"
+                          "<br>%{customdata[0]} of %{customdata[1]} days<extra></extra>",
+        ))
+    fig.update_layout(
+        barmode="group", bargap=0.3, bargroupgap=0.08,
+        xaxis_title="", yaxis_title="% of days (city-wide mean AQI)",
+        legend=dict(orientation="h", y=1.08, x=0, bgcolor="rgba(0,0,0,0)"),
+    )
+    return base_layout(fig, height=480, top_margin=60)

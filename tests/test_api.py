@@ -63,11 +63,8 @@ def test_station_detail_not_found(client):
     assert r.status_code == 404
 
 
-@pytest.mark.parametrize("name", [
-    "rolling-average", "station-ranking", "yoy-comparison",
-    "event-clustering", "severity-breakdown", "pipeline-summary",
-])
-def test_all_six_named_queries_return_200(client, name):
+@pytest.mark.parametrize("name", list(main_module.QUERY_FILES))
+def test_all_named_queries_return_200(client, name):
     r = client.get(f"/api/queries/{name}")
     assert r.status_code == 200
     assert isinstance(r.json(), list)

@@ -27,7 +27,7 @@
       <div class="badges">
         <span class="badge">37 Delhi stations</span>
         <span class="badge">5.5 years of daily data</span>
-        <span class="badge">6 SQL queries</span>
+        <span class="badge">9 SQL queries</span>
       </div>
     </header>
 
@@ -40,6 +40,7 @@
     <div class="tabs" role="tablist">
       <button class="tab-btn active" id="tabbtn-overview" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="overview">Overview</button>
       <button class="tab-btn" id="tabbtn-trends" role="tab" aria-selected="false" aria-controls="tab-trends" data-tab="trends">Trends</button>
+      <button class="tab-btn" id="tabbtn-drivers" role="tab" aria-selected="false" aria-controls="tab-drivers" data-tab="drivers">What Moves AQI</button>
       <button class="tab-btn" id="tabbtn-explorer" role="tab" aria-selected="false" aria-controls="tab-explorer" data-tab="explorer">Station Analysis</button>
       <button class="tab-btn" id="tabbtn-data" role="tab" aria-selected="false" aria-controls="tab-data" data-tab="data">Full Data</button>
       <button class="tab-btn" id="tabbtn-map" role="tab" aria-selected="false" aria-controls="tab-map" data-tab="map">Station Map</button>
@@ -58,14 +59,27 @@
       <div class="grid-2">
         <div class="card">
           <h3>Delhi Monthly Average AQI Over Time</h3>
-          <p class="hint">2015&ndash;2020 &middot; drag the slider below the chart or use 1y/3y/All</p>
+          <p class="hint">2015&ndash;2020 &middot; grey points: fewer than 10 stations reporting, so read pre-2018 values with caution &middot; drag the slider or use 1y/3y/All</p>
           $yoy
         </div>
         <div class="card">
-          <h3>Severe-Day Frequency: Winter vs Rest of Year</h3>
-          <p class="hint">% of days per period with AQI &ge; 300</p>
+          <h3>Bad-Air Days: Winter vs Rest of Year</h3>
+          <p class="hint">% of days the city-wide mean AQI crossed each CPCB line &middot; days with &ge;5 stations &middot; excludes the 2020 lockdown</p>
           $event
         </div>
+      </div>
+    </div>
+
+    <div id="tab-drivers" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-drivers" tabindex="0">
+      <div class="card">
+        <h3>What the 2020 Lockdown Removed, by Pollutant</h3>
+        <p class="hint">25 Mar &ndash; 3 May 2020 vs the same dates in 2019, same stations. Grey: how much lower 2020 already was in early March, before the lockdown. Blue: the extra drop during the lockdown. Traffic (NO<sub>2</sub>) and dust (PM10) fell most; PM2.5 fell least.</p>
+        $lockdown
+      </div>
+      <div class="card">
+        <h3>Diwali: City-wide AQI Around the Festival, by Year</h3>
+        <p class="hint">Anchored on each year's actual Diwali date (it moves between mid-Oct and mid-Nov). Labels show the week after vs the 3-week baseline. 2016 has no data; 2017's baseline rests on 2 days. Stubble smoke also rises in this window, so not all of the jump is firecrackers.</p>
+        $diwali
       </div>
     </div>
 
@@ -128,6 +142,11 @@
         <h3>All Stations: Full Ranking</h3>
         <p class="hint">Click any column header to sort, or search by station name</p>
         $table
+      </div>
+      <div class="card">
+        <h3>Data Coverage: Share of Days with an AQI Reading</h3>
+        <p class="hint">Per station, per year. Most stations only joined in 2017&ndash;2018, which is why year-over-year changes are computed on matched stations only</p>
+        $coverage
       </div>
     </div>
 

@@ -21,17 +21,18 @@ ICON_TREND_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 def build(df06, df04, df03):
     worst = df06.sort_values("overall_avg_aqi", ascending=False).iloc[0]
     best = df06.sort_values("overall_avg_aqi", ascending=True).iloc[0]
-    peak_period = df04.sort_values("pct_severe", ascending=False).iloc[0]
+    peak_period = df04.sort_values("pct_days_very_poor_plus", ascending=False).iloc[0]
     biggest_drop = df03.dropna(subset=["yoy_change"]).sort_values("yoy_change").iloc[0]
  
     cards = [
         ("Worst Station", worst["station_name"], f"Avg AQI {worst['overall_avg_aqi']:.1f}", NEGATIVE, ICON_WARNING),
         ("Best Station", best["station_name"], f"Avg AQI {best['overall_avg_aqi']:.1f}", POSITIVE, ICON_LEAF),
         ("Peak Severity Period", PERIOD_LABELS.get(peak_period["period"], peak_period["period"]),
-         f"{peak_period['pct_severe']:.1f}% severe days", WARNING, ICON_FLAME),
+         f"{peak_period['pct_days_very_poor_plus']:.0f}% of days Very Poor or worse", WARNING, ICON_FLAME),
         ("Sharpest YoY Drop",
          f"{MONTH_LABELS.get(biggest_drop['month'], biggest_drop['month'])} {biggest_drop['year']}",
-         f"{biggest_drop['yoy_change']:.1f} AQI points (likely COVID lockdown)", ACCENT, ICON_TREND_DOWN),
+         f"{biggest_drop['yoy_change']:.1f} AQI vs a year earlier, same "
+         f"{biggest_drop['n_matched_stations']} stations (COVID lockdown)", ACCENT, ICON_TREND_DOWN),
     ]
  
     html_cards = ""

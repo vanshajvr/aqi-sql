@@ -3,15 +3,25 @@ import plotly.graph_objects as go
 
 from ..theme import ACCENT,GRID,TEXT,base_layout
 
+# Months with fewer stations than this are drawn muted: before 2018 the
+# "city-wide" mean rests on a handful of stations (see 08_coverage.sql).
+LOW_COVERAGE_STATIONS = 10
+LOW_COVERAGE_COLOR = "#6e7681"
+
 def build(df03):
     d = df03.copy()
     d["date"] = pd.to_datetime(d["year"].astype(str) + "-" + d["month"] + "-01")
     d = d.sort_values("date")
     fig = go.Figure(go.Scatter(
         x=d["date"], y=d["avg_aqi"], mode="lines+markers",
-        line=dict(color=ACCENT, width=2), marker=dict(size=5, color=ACCENT),
+        line=dict(color=ACCENT, width=2),
+        marker=dict(size=8, color=[LOW_COVERAGE_COLOR if n < LOW_COVERAGE_STATIONS else ACCENT
+                                   for n in d["n_stations"]],
+                    line=dict(color="#161b22", width=2)),
         fill="tozeroy", fillcolor="rgba(88,166,255,0.08)",
-        hovertemplate="<b>%{x|%b %Y}</b><br>Avg AQI: %{y:.1f}<extra></extra>",
+        customdata=d[["n_stations"]].values,
+        hovertemplate="<b>%{x|%b %Y}</b><br>Avg AQI: %{y:.1f}"
+                      "<br>%{customdata[0]} stations reporting<extra></extra>",
     ))
     fig.update_layout(
         xaxis_title="", yaxis_title="City-wide Average AQI",

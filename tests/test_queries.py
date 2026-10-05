@@ -71,26 +71,51 @@ def test_rank_vs_dense_rank_diverge_on_tie(db_builder):
     assert jan.loc["S4", "worst_dense_rank"] == 3   # DENSE_RANK does not skip
 
 
-def test_yoy_can_silently_span_non_adjacent_years(db_builder):
+def test_yoy_is_null_across_a_missing_year(db_builder):
     """
-    Regression test for the documented LAG() limitation: if a year is
-    entirely missing for a given month, the next available year's
-    yoy_change compares against whatever year came before the gap, not
-    against a null/flagged "no prior year" state.
+    Regression test for the old LAG() bug: with June 2019 missing entirely,
+    June 2020 used to be compared against June 2018 and reported as a
+    1-year change. It must now be NULL, with year_gap showing why.
     """
-    stations = [("S1", "Test", "Delhi", 28.6, 77.2)]
-    readings = [
-        ("S1", "2018-06-01", 200),
-        # 2019-06 deliberately has NO readings at all
-        ("S1", "2020-06-01", 170),
-    ]
+    stations = [(f"S{i}", f"Test {i}", "Delhi", 28.6, 77.2) for i in range(3)]
+    readings = [(f"S{i}", "2018-06-01", 200) for i in range(3)]
+    # 2019-06 deliberately has NO readings at all
+    readings += [(f"S{i}", "2020-06-01", 170) for i in range(3)]
     db = db_builder("yoy_gap", stations, readings)
     df = run_query(db, "03_yoy_comparison.sql")
     june = df[df["month"] == "06"].set_index("year")
 
     assert "2019" not in june.index  # confirms the gap genuinely exists
-    # 2020's yoy_change is silently computed against 2018, not flagged
-    assert june.loc["2020", "yoy_change"] == pytest.approx(-30.0)
+    assert june.loc["2020", "year_gap"] == 2
+    assert pd.isna(june.loc["2020", "yoy_change"])
+
+
+def test_yoy_ignores_stations_joining_the_network(db_builder):
+    """
+    A new, very polluted station joining in 2019 raises the raw city mean,
+    but the like-for-like change only uses stations present in both years.
+    """
+    stations = [(f"S{i}", f"Test {i}", "Delhi", 28.6, 77.2) for i in range(4)]
+    readings = [(f"S{i}", "2018-01-01", 200) for i in range(3)]
+    readings += [(f"S{i}", "2019-01-01", 180) for i in range(3)]
+    readings += [("S3", "2019-01-01", 500)]  # joins in 2019
+    db = db_builder("yoy_join", stations, readings)
+    jan = run_query(db, "03_yoy_comparison.sql").set_index("year")
+
+    assert jan.loc["2019", "avg_aqi"] == pytest.approx(260.0)  # raw mean went UP
+    assert jan.loc["2019", "n_matched_stations"] == 3
+    assert jan.loc["2019", "yoy_change"] == pytest.approx(-20.0)  # air got better
+
+
+def test_yoy_needs_three_matched_stations(db_builder):
+    stations = [("S1", "Test", "Delhi", 28.6, 77.2), ("S2", "Test 2", "Delhi", 28.6, 77.2)]
+    readings = [("S1", "2018-01-01", 200), ("S2", "2018-01-01", 200),
+                ("S1", "2019-01-01", 100), ("S2", "2019-01-01", 100)]
+    db = db_builder("yoy_thin", stations, readings)
+    jan = run_query(db, "03_yoy_comparison.sql").set_index("year")
+
+    assert jan.loc["2019", "n_matched_stations"] == 2
+    assert pd.isna(jan.loc["2019", "yoy_change"])
 
 
 def test_severity_percentages_sum_to_100(db_builder):

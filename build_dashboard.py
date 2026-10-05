@@ -12,7 +12,10 @@ from dashboard.charts import (
     rolling_average,
     severity_breakdown,
     comparison,
-    monthly_ranking
+    monthly_ranking,
+    diwali,
+    coverage,
+    lockdown,
 )
 
 ROOT = Path(__file__).parent
@@ -46,6 +49,9 @@ def main():
         rolling=to_div(rolling_average.build(df01, df06, station_names)),
         severity=to_div(severity_breakdown.build(df05, df06, station_names)),
         monthly_ranking=to_div(monthly_ranking.build(df02)),
+        diwali=to_div(diwali.build(data["df07"])),
+        coverage=to_div(coverage.build(data["df08"], station_names)),
+        lockdown=to_div(lockdown.build(data["df09"])),
         table=build_station_table(df06, df05, station_names),
         compare_data_json=compare_json,
         station_options_a=options_a,

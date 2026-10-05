@@ -23,6 +23,9 @@ QUERY_FILES = {
     "event-clustering": "04_event_clustering.sql",
     "severity-breakdown": "05_severity_breakdown.sql",
     "pipeline-summary": "06_pipeline_summary.sql",
+    "diwali-effect": "07_diwali_effect.sql",
+    "coverage": "08_coverage.sql",
+    "lockdown-pollutants": "09_lockdown_pollutants.sql",
 }
 
 # Read the .sql files once at startup, not on every request.
