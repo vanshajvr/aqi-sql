@@ -132,6 +132,45 @@ spikes higher, but it doesn't stay on top as reliably.
 
 ---
 
+## Putting it to work: a "bad air tomorrow" alert
+
+Finding 1 says winter pollution follows the weather, and weather can be
+forecast. So I treated it as a product question: **if you were building an
+app that warns people the evening before a bad-air day, which rule should
+trigger the alert?**
+
+The trap is the obvious rule: *"today was bad, so tomorrow will be too."* It
+looks great on paper, with 79% of its alerts right and 80% of bad days
+covered. But it **never warns before the first bad day of a spell**, because
+it only fires once the spell has started. The first day is the one where a
+warning changes what people do: closing windows, rescheduling a run, keeping
+a child with asthma indoors.
+
+So I judged rules on two numbers:
+
+- **the share of first bad days warned** (the value), and
+- **false alerts per month** (the cost: too many and people mute the app),
+  capped at 4.
+
+To keep myself honest, I fixed the candidate rules and the choice criterion
+in advance, picked a winner on 2015–17, and only then scored it on 2018–20:
+
+| Rule (2018–20) | First bad days warned | False alerts / month |
+|---|---|---|
+| Today was bad (AQI > 300) | **0%** | 1.8 |
+| Every day, November–January | 37% | 2.2 |
+| **Today was Poor or worse (> 200) *and* tomorrow's forecast is a low lid with no rain** | **69%** | **3.9** |
+
+The winning rule combines both halves of the story: pollution already
+building, plus a lid about to drop. It warns before about 7 in 10 first bad
+days and stays just inside the false-alarm budget. One honest caveat: the
+"forecast" here is the actual next-day weather, a perfect forecast, so a real
+app would score somewhat lower. All seven rules are in
+[`17_alert_rules.sql`](queries/17_alert_rules.sql) and on the dashboard's
+Early Warning tab.
+
+---
+
 ## What I'm less sure about
 
 - **The early years are thin.** Only 8 stations reported in 2015–16 and 17 in
@@ -181,6 +220,7 @@ would correct themselves if the source data were ever fixed.
 | 5 | [`09`](queries/09_lockdown_pollutants.sql), [`15`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |
 | 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's actual Diwali date |
 | 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
+| Alert | [`17_alert_rules.sql`](queries/17_alert_rules.sql) | Next-day pairs via `LEAD()`; precision, recall and first-bad-day recall per rule; train/test split with the choice made in SQL |
 | Caveats | [`08`](queries/08_coverage.sql), [`03`](queries/03_yoy_comparison.sql) | Coverage audit; like-for-like year-over-year comparison |
 
 Every chart behind these findings is on the live dashboard:

@@ -27,7 +27,7 @@
       <div class="badges">
         <span class="badge">37 stations</span>
         <span class="badge" data-no-animate>2015&ndash;2020</span>
-        <span class="badge">16 SQL queries</span>
+        <span class="badge">17 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
@@ -43,6 +43,7 @@
       <button class="tab-btn active" id="tabbtn-summary" role="tab" aria-selected="true" aria-controls="tab-summary" data-tab="summary">Summary</button>
       <button class="tab-btn" id="tabbtn-seasons" role="tab" aria-selected="false" aria-controls="tab-seasons" data-tab="seasons">Seasons &amp; Weather</button>
       <button class="tab-btn" id="tabbtn-sources" role="tab" aria-selected="false" aria-controls="tab-sources" data-tab="sources">Pollution Sources</button>
+      <button class="tab-btn" id="tabbtn-alerts" role="tab" aria-selected="false" aria-controls="tab-alerts" data-tab="alerts">Early Warning</button>
       <button class="tab-btn" id="tabbtn-stations" role="tab" aria-selected="false" aria-controls="tab-stations" data-tab="stations">Stations</button>
       <button class="tab-btn" id="tabbtn-data" role="tab" aria-selected="false" aria-controls="tab-data" data-tab="data">Data &amp; Methods</button>
     </div>
@@ -138,6 +139,33 @@
             Anchored on each year's actual Diwali date: 3 weeks before = days &minus;21 to &minus;8, week before = &minus;7 to &minus;1, Diwali week = day 0 to +7. 2016 has no data, and 2017's baseline rests on 2 days. Diwali overlaps stubble season, so not all of the jump is firecrackers.
           </details>
         </div>
+      </div>
+    </div>
+
+    <div id="tab-alerts" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-alerts" tabindex="0">
+      <div class="card">
+        <h3>Which rule should send a "bad air tomorrow" alert?</h3>
+        <p class="hint">The obvious rule (B: today was bad) never warns before the first bad day. Rule E warned before 69% of them, within the false-alarm budget.</p>
+        <div class="grid-2 grid-tight">
+          <div>$alert_tradeoff</div>
+          <div class="rule-key">
+            <p><b>A</b> every day, November&ndash;January</p>
+            <p><b>B</b> today was Very Poor (AQI &gt; 300)</p>
+            <p><b>C</b> today was Poor or worse (AQI &gt; 200)</p>
+            <p><b>D</b> forecast: low mixing height, no rain</p>
+            <p class="rule-key-pick"><b>E</b> C and D together <span>chosen</span></p>
+            <p><b>F</b> B or D</p>
+            <p><b>G</b> B, or C and D together</p>
+          </div>
+        </div>
+        <details class="method"><summary>How this is measured</summary>
+          Each rule decides in the evening whether to alert for tomorrow; a hit is a city-wide AQI above 300. "First bad days" are the start of each bad spell (today fine, tomorrow bad): the warning that changes what people do. Rules and the choice criterion were fixed in advance: on 2015&ndash;17, pick the best first-bad-day rate with at most 4 false alerts a month. Scores shown are 2018&ndash;20, which played no part in the choice. The forecast is the actual next-day weather, so real-world scores would be somewhat lower.
+        </details>
+      </div>
+      <div class="card">
+        <h3>Scorecard, 2018&ndash;2020</h3>
+        <p class="hint">Rules scored on years they were not tuned on.</p>
+        $alert_table
       </div>
     </div>
 

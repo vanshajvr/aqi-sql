@@ -63,6 +63,7 @@ header explains the method.
 | `finding_lockdown_weather_adjusted.csv` | 15 | Finding 5: lockdown effect, weather-adjusted |
 | `finding_diwali.csv` | 07 | Finding 6: AQI around each year's Diwali |
 | `finding_persistent_hotspots.csv` | 16 | Finding 7: months in the top 5 worst, per station |
+| `finding_alert_rules.csv` | 17 | Alert section: each rule's precision, recall and first-bad-day recall, train and test |
 | `data_coverage.csv` | 08 | Caveats: % of days with data, per station per year |
 
 ## Suggested dashboard (4 pages)

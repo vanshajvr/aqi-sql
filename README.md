@@ -37,6 +37,12 @@ stayed with the city switched off.
 Wazirpur, Mundka and Punjabi Bagh are the most persistent, in the city's worst
 5 about two months in three.
 
+**And it can be turned into a warning.** Treating it as a product question,
+"which rule should send a *bad air tomorrow* alert?", the obvious rule
+("today was bad") never warns before the first bad day of a spell. A rule
+combining "pollution building" with "low lid forecast" warned before **69% of
+them** with under 4 false alerts a month, scored on years it wasn't tuned on.
+
 What this means for policy, and what I'm less sure about, is in
 **[FINDINGS.md](FINDINGS.md)**.
 
@@ -46,7 +52,7 @@ What this means for policy, and what I'm less sure about, is in
 
 ```
  Kaggle CPCB data ──┐
-                    ├─► fetch_data.py ──► SQLite ──► 16 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+                    ├─► fetch_data.py ──► SQLite ──► 17 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
  Open-Meteo weather ┘    (clean +                                     └─► FastAPI ──► /api/* (map, raw query results)
                           load)
 ```
@@ -99,6 +105,7 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | 14 | Was the lockdown's weather unusual? | Windowed weather comparison |
 | 15 | The lockdown effect, adjusted for weather | Weather-matched expected values |
 | 16 | Which stations are *consistently* among the worst? | Monthly `RANK()` with eligibility rules |
+| 17 | Which rule should trigger a "bad air tomorrow" alert? | `LEAD()` next-day pairs, precision / recall / first-bad-day recall, train/test split |
 
 ## The dashboard
 
@@ -109,6 +116,7 @@ up.
 - **Summary:** headline numbers and three takeaways
 - **Seasons & Weather:** why winter is worst, and the weeks the weather can't explain
 - **Pollution Sources:** the lockdown test, local vs regional pollutants, Diwali
+- **Early Warning:** which alert rule to ship, as a cost vs value trade-off
 - **Stations:** map, station detail, and side-by-side comparison
 - **Data & Methods:** the full station table and data coverage
 - **Live Now:** current readings from CPCB's live API (only when data.gov.in is up)
@@ -143,7 +151,7 @@ coordinates.
 ```
 aqi-sql/
 ├── FINDINGS.md           the write-up
-├── queries/              16 SQL files, one question each
+├── queries/              17 SQL files, one question each
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
 ├── fetch_weather.py      one-time weather download
 ├── build_dashboard.py    renders dashboard.html from the queries

@@ -32,6 +32,7 @@ def load_all(db_path, queries_dir):
         "df13": run_query(conn, queries_dir, "13_weather_adjusted_excess.sql"),
         "df15": run_query(conn, queries_dir, "15_lockdown_weather_adjusted.sql"),
         "df16": run_query(conn, queries_dir, "16_persistent_hotspots.sql"),
+        "df17": run_query(conn, queries_dir, "17_alert_rules.sql"),
     }
 
     stations_df = pd.read_sql_query("SELECT station_id, station_name FROM stations", conn)

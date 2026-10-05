@@ -104,6 +104,7 @@ FINDING_TABLES = [
     ("finding_lockdown_weather_adjusted", "15_lockdown_weather_adjusted.sql"),
     ("finding_diwali", "07_diwali_effect.sql"),
     ("finding_persistent_hotspots", "16_persistent_hotspots.sql"),
+    ("finding_alert_rules", "17_alert_rules.sql"),
     ("data_coverage", "08_coverage.sql"),
 ]
 

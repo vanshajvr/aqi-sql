@@ -108,6 +108,17 @@ a.badge-link:hover { background: rgba(88,166,255,0.1); }
 .goto-tab:hover { text-decoration: underline; }
 @media (max-width: 900px) { .takeaways { grid-template-columns: 1fr; } }
 
+.grid-tight { gap: 16px; align-items: center; }
+.rule-key { font-size: 13px; color: #8b949e; line-height: 1.5; }
+.rule-key p { margin: 0 0 8px; }
+.rule-key b { display: inline-block; width: 22px; color: #f0f6fc; font-family: 'JetBrains Mono', monospace; }
+.rule-key-pick { color: #c9d1d9; }
+.rule-key-pick span { margin-left: 6px; font-size: 11px; color: #3fb950; border: 1px solid rgba(63,185,80,0.5);
+  border-radius: 999px; padding: 1px 8px; }
+.table-scroll { overflow-x: auto; }
+.alert-table td:not(:first-child), .alert-table th:not(:first-child) { text-align: right; font-family: 'JetBrains Mono', monospace; }
+.alert-table tr.selected-rule td { color: #3fb950; font-weight: 600; }
+
 details.method { margin-top: 12px; font-size: 12px; color: #8b949e; line-height: 1.6; }
 details.method summary { cursor: pointer; color: #6e7681; list-style: none; width: fit-content; }
 details.method summary::before { content: "+ "; font-family: 'JetBrains Mono', monospace; }

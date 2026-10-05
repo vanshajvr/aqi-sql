@@ -107,3 +107,37 @@ def test_weather_adjusted_lockdown_change(conn):
     assert pm["weather_adjusted_change_pct"] == -50.0
     assert rows[("NO2", "lockdown")]["weather_adjusted_change_pct"] == -60.0
     assert ("PM10", "lockdown") not in rows               # no data, no row
+
+
+# ---------- 17_alert_rules.sql ----------
+
+def test_alert_rules_metrics_onsets_and_selection(conn):
+    """
+    Jan 2016 (train). AQI 100 -> 350 -> 350 -> 100, then a missing day, then 400.
+      pair 1->2: tomorrow bad, an ONSET; only the weather rule (D) can see it
+      pair 2->3: tomorrow bad; persistence (B) is right
+      pair 3->4: tomorrow fine; persistence fires anyway -> false alert
+      4 -> 6 skips a day, so it is not a next-day pair at all
+    """
+    def day(d, aqi, low_lid):
+        conn.executemany("INSERT INTO readings (station_id, date, aqi) VALUES (?, ?, ?)",
+                         [(f"S{i}", d, aqi) for i in range(5)])
+        conn.execute("INSERT INTO weather VALUES (?, 10, 5, 5, 0, ?)", (d, 300 if low_lid else 900))
+    day("2016-01-01", 100, False)
+    day("2016-01-02", 350, True)
+    day("2016-01-03", 350, False)
+    day("2016-01-04", 100, False)
+    day("2016-01-06", 400, True)
+
+    rows = {r["rule"]: r for r in run_query(conn, "17_alert_rules.sql") if r["split"] == "train"}
+    b = rows["B today > 300"]
+    assert (b["n_days"], b["n_bad_days"], b["n_onsets"]) == (3, 2, 1)
+    assert (b["n_alerts"], b["precision"], b["recall"], b["onset_recall"]) == (2, 0.5, 0.5, 0.0)
+    assert b["false_alerts_per_30d"] == 10.0 and b["within_guardrail"] == 0
+
+    d = rows["D weather (low lid, dry)"]
+    assert (d["n_alerts"], d["precision"], d["onset_recall"]) == (1, 1.0, 1.0)
+    assert d["within_guardrail"] == 1
+
+    # Within the guardrail, D has the best onset recall -> selected
+    assert [r for r, v in rows.items() if v["selected_on_train"]] == ["D weather (low lid, dry)"]
