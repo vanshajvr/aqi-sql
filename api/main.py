@@ -37,6 +37,7 @@ QUERY_FILES = {
     "fires-and-wind": "18_fires_and_wind.sql",
     "then-vs-now": "19_then_vs_now.sql",
     "stubble-then-vs-now": "20_stubble_then_vs_now.sql",
+    "station-then-vs-now": "21_station_then_vs_now.sql",
 }
 
 # Read the .sql files once at startup, not on every request.
@@ -115,14 +116,19 @@ def health():
 def list_stations():
     """
     Station-level summary for the map: one row per station with its
-    coordinates (if geocoded), 2018-2019 average AQI, and worst-month info
-    — everything a marker/popup needs, in one call.
+    coordinates (if geocoded), 2018-2019 average AQI, worst-month info, and
+    the values behind each map view (PM2.5 then/now and change, NO2 hotspot
+    index, persistence) - everything a marker/popup needs, in one call.
 
     Reuses 06_pipeline_summary.sql (already covered by the dashboard) for
     the AQI stats, then merges in lat/lon separately, rather than
     re-deriving the same ranking logic inline here.
     """
     summary_rows = {r["station_id"]: r for r in run_query_cached("pipeline-summary")}
+    periods = {r["station_id"]: r for r in run_query_cached("station-then-vs-now")}
+    no2_index = {r["station_id"]: r["index_vs_city_median"]
+                 for r in run_query_cached("station-fingerprint") if r["pollutant"] == "NO2"}
+    persistence = {r["station_id"]: r["pct_months_top5"] for r in run_query_cached("persistent-hotspots")}
 
     conn = get_conn()
     try:
@@ -145,6 +151,12 @@ def list_stations():
             "worst_overall_rank": stats.get("worst_overall_rank"),
             "worst_month": stats.get("worst_month"),
             "worst_month_avg_aqi": stats.get("worst_month_avg_aqi"),
+            # map views (see 21, 10, 16)
+            "pm25_2018_19": periods.get(station_id, {}).get("pm25_2018_19"),
+            "pm25_2025_26": periods.get(station_id, {}).get("pm25_2025_26"),
+            "change_pct": periods.get(station_id, {}).get("change_pct"),
+            "no2_index": no2_index.get(station_id),
+            "pct_months_top5": persistence.get(station_id),
         })
 
     # Stations with no summary row (no readings) sort last; `or 0` keeps the

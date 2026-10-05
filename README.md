@@ -69,7 +69,7 @@ What this means for policy, and what I'm less sure about, is in
 ```
  Kaggle CPCB data ───┐
  OpenAQ (2020-26) ───┤
- Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 20 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+ Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 21 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
  NASA FIRMS fires ───┘    (clean + load)                               └─► FastAPI ──► /api/* (map, raw query results)
 ```
 
@@ -131,6 +131,7 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | 18 | Does crop-fire smoke from Punjab reach Delhi? | Satellite fire counts × wind direction, `NTILE()` thirds, Diwali weeks excluded |
 | 19 | Is Delhi's winter air better than before 2020? | Two sources unioned, fixed 12-station panel, weather-adjusted ratio |
 | 20 | Did burning fall, and did the smoke window clear? | Fire counts next to weather-adjusted smoke-window PM2.5, by year |
+| 21 | How did each station change, 2018–19 to 2025–26? | Equal 12-month windows, coverage rule, both sources unioned |
 
 ## The dashboard
 
@@ -143,7 +144,7 @@ up.
 - **Pollution Sources:** crop-fire smoke and the wind, the lockdown test, local vs regional pollutants, Diwali
 - **Then vs Now:** winters before and after 2020, and fires against the smoke window
 - **Early Warning:** which alert rule to ship, as a cost vs value trade-off
-- **Stations:** map, station detail, and side-by-side comparison
+- **Stations:** a map with five views (PM2.5 2018–19 and 2025–26, change, NO2 hotspots, persistence), station detail, and side-by-side comparison
 - **Data & Methods:** the full station table and data coverage
 - **Live Now:** current readings from CPCB's live API (only when data.gov.in is up)
 
@@ -182,7 +183,7 @@ coordinates.
 ```
 aqi-sql/
 ├── FINDINGS.md           the write-up
-├── queries/              20 SQL files, one question each
+├── queries/              21 SQL files, one question each
 ├── analysis_plans/       pre-registered tests, committed before the results
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
 ├── fetch_weather.py      one-time weather download

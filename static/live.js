@@ -378,10 +378,7 @@ window.initLiveMap = async function () {
   if (!mapEl) return;
 
   liveMapInstance = L.map("live-map").setView([28.6139, 77.2090], 10);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 18,
-  }).addTo(liveMapInstance);
+  window.addDarkBasemap(liveMapInstance);
   liveMapMarkers = L.layerGroup().addTo(liveMapInstance);
 
   await loadLiveMapData();

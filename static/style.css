@@ -306,6 +306,30 @@ tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
 .leaflet-popup-content { font-size: 13px; line-height: 1.6; }
 .leaflet-popup-content .popup-stat { font-family: 'JetBrains Mono', monospace; }
 
+.map-views { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.map-view-btn {
+  padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer;
+  background: #0d1117; color: #8b949e; border: 1px solid #30363d; border-radius: 999px;
+}
+.map-view-btn:hover { color: #c9d1d9; border-color: #8b949e; }
+.map-view-btn.active { color: #0d1117; background: #58a6ff; border-color: #58a6ff; font-weight: 600; }
+.map-label {
+  color: #f0f6fc; font-size: 11px; font-weight: 600; white-space: nowrap;
+  text-shadow: 0 0 3px #0d1117, 0 0 3px #0d1117, 0 0 6px #0d1117;
+  transform: translate(10px, -6px); pointer-events: none;
+}
+.leaflet-tooltip.map-hover {
+  background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px;
+  font-size: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.leaflet-tooltip.map-hover::before { border-top-color: #30363d; }
+.map-gradient-legend { min-width: 230px; max-width: 260px; }
+.gradient-bar { height: 10px; border-radius: 5px; margin: 4px 0; }
+.gradient-ticks { display: flex; justify-content: space-between; font-size: 11px; color: #8b949e;
+  font-family: 'JetBrains Mono', monospace; }
+.gradient-note { font-size: 11px; color: #8b949e; margin-top: 4px; line-height: 1.4; }
+@media (max-width: 600px) { .map-gradient-legend { min-width: 0; max-width: 180px; } }
+
 .aqi-legend {
   background: rgba(22, 27, 34, 0.92); color: #c9d1d9; border: 1px solid #30363d;
   border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.5;

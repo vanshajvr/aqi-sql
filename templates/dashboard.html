@@ -27,7 +27,7 @@
       <div class="badges">
         <span class="badge">37 stations</span>
         <span class="badge" data-no-animate>2015&ndash;2026</span>
-        <span class="badge">20 SQL queries</span>
+        <span class="badge">21 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
@@ -210,7 +210,14 @@
       <div id="subtab-station-map" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-station-map">
         <div class="card">
           <h3>Station map</h3>
-          <p class="hint">Colour shows the 2018&ndash;19 average AQI. Click a marker for details.</p>
+          <p class="hint">Pick a view. Colour and size both show the value; the stations at the extremes are labelled.</p>
+          <div class="map-views" role="group" aria-label="Map view">
+            <button type="button" class="map-view-btn" data-view="then" aria-pressed="false">PM2.5 2018&ndash;19</button>
+            <button type="button" class="map-view-btn active" data-view="now" aria-pressed="true">PM2.5 2025&ndash;26</button>
+            <button type="button" class="map-view-btn" data-view="change" aria-pressed="false">Change</button>
+            <button type="button" class="map-view-btn" data-view="no2" aria-pressed="false">NO&#8322; hotspots</button>
+            <button type="button" class="map-view-btn" data-view="persist" aria-pressed="false">Persistence</button>
+          </div>
           <div id="station-map"></div>
           <p class="map-status" id="map-status">Loading…</p>
         </div>

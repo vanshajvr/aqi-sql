@@ -86,3 +86,23 @@ def test_stubble_window_by_year_with_fires_and_minimum_days():
     assert rows[2025]["weather_adjusted_ratio"] == 1.5
     assert rows[2025]["n_panel_days"] == 31
     assert rows[2019]["n_panel_days"] == 10 and rows[2019]["mean_pm25"] is None
+
+
+def test_station_then_vs_now_coverage_and_change():
+    """21: A has full coverage both years (100 -> 80, -20%); B has only 199
+    days 'now' (below the 200-day rule); C never reported in either window."""
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE stations (station_id TEXT, station_name TEXT)")
+    c.executemany("INSERT INTO stations VALUES (?, ?)", [("A", "A"), ("B", "B"), ("C", "C")])
+    for table in ("readings", "readings_openaq"):
+        c.execute(f"CREATE TABLE {table} (station_id TEXT, date TEXT, pm25 REAL)")
+    then = [(date(2018, 10, 1) + timedelta(days=i)).isoformat() for i in range(365)]
+    now = [(date(2025, 10, 1) + timedelta(days=i)).isoformat() for i in range(365)]
+    c.executemany("INSERT INTO readings VALUES (?, ?, ?)", [(s, d, 100) for s in "AB" for d in then])
+    c.executemany("INSERT INTO readings_openaq VALUES ('A', ?, 80)", [(d,) for d in now])
+    c.executemany("INSERT INTO readings_openaq VALUES ('B', ?, 50)", [(d,) for d in now[:199]])
+    c.execute("INSERT INTO readings VALUES ('A', '2018-09-30', 9999)")   # outside the window
+    rows = {r["station_id"]: r for r in run_query(c, "21_station_then_vs_now.sql")}
+    assert (rows["A"]["pm25_2018_19"], rows["A"]["pm25_2025_26"], rows["A"]["change_pct"]) == (100.0, 80.0, -20.0)
+    assert rows["B"]["days_2025_26"] == 199 and rows["B"]["pm25_2025_26"] is None and rows["B"]["change_pct"] is None
+    assert rows["C"]["pm25_2018_19"] is None and rows["C"]["days_2018_19"] == 0
