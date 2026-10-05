@@ -141,3 +141,49 @@ def test_alert_rules_metrics_onsets_and_selection(conn):
 
     # Within the guardrail, D has the best onset recall -> selected
     assert [r for r, v in rows.items() if v["selected_on_train"]] == ["D weather (low lid, dry)"]
+
+
+# ---------- 18_fires_and_wind.sql ----------
+
+def test_fires_and_wind_dose_response_by_wind_and_diwali_exclusion():
+    """
+    Baseline: 10 dry December days in one weather bucket at PM2.5 100.
+    Six window days (Oct 2018) in the same bucket, two per fire third:
+      fewest: NW 100, other 100   -> ratios 1.0 / 1.0
+      middle: NW 150, other 150
+      most:   NW 200, other 120   -> ratios 2.0 / 1.2
+    Plus 6 Nov 2018 (Diwali 7 Nov, so within -3..+7): only in 'all days'.
+    """
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, pm25 REAL)")
+    c.execute("CREATE TABLE weather (date TEXT, mixing_height_mean_m REAL, wind_speed_kmh REAL, "
+              "wind_dir_deg REAL, rain_mm REAL)")
+    c.execute("CREATE TABLE fires (date TEXT, n_fires INTEGER, frp_sum_mw REAL)")
+
+    def day(d, pm25, wind_dir=90.0, fires_prev=None):
+        c.executemany("INSERT INTO readings VALUES (?, ?, ?)", [(f"S{i}", d, pm25) for i in range(5)])
+        c.execute("INSERT INTO weather VALUES (?, 300, 6, ?, 0)", (d, wind_dir))
+        if fires_prev is not None:
+            prev = (date.fromisoformat(d) - timedelta(days=1)).isoformat()
+            c.execute("INSERT INTO fires VALUES (?, ?, 0)", (prev, fires_prev))
+
+    for d in days(date(2018, 12, 1), 10):
+        day(d, 100)
+    NW, OTHER = 300.0, 90.0
+    day("2018-10-16", 100, NW, 10)
+    day("2018-10-18", 100, OTHER, 20)
+    day("2018-10-20", 150, NW, 500)
+    day("2018-10-22", 150, OTHER, 600)
+    day("2018-10-24", 200, NW, 3000)
+    day("2018-10-26", 120, OTHER, 3100)
+    day("2018-11-06", 999, NW, 4000)      # near Diwali
+
+    rows = run_query(c, "18_fires_and_wind.sql")
+    ex = {(r["wind"], r["fire_level"]): r for r in rows if r["scenario"] == "excluding Diwali"}
+    assert ex[("north-westerly", "fewest fires")]["excess_ratio"] == 1.0
+    assert ex[("north-westerly", "most fires")]["excess_ratio"] == 2.0
+    assert ex[("other", "most fires")]["excess_ratio"] == 1.2
+    assert ex[("north-westerly", "most fires")]["min_fires"] == 3000
+    assert sum(r["n_days"] for r in rows if r["scenario"] == "excluding Diwali") == 6
+    assert sum(r["n_days"] for r in rows if r["scenario"] == "all days") == 7
+    c.close()

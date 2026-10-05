@@ -34,6 +34,7 @@ QUERY_FILES = {
     "lockdown-weather-adjusted": "15_lockdown_weather_adjusted.sql",
     "persistent-hotspots": "16_persistent_hotspots.sql",
     "alert-rules": "17_alert_rules.sql",
+    "fires-and-wind": "18_fires_and_wind.sql",
 }
 
 # Read the .sql files once at startup, not on every request.

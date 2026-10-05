@@ -105,6 +105,7 @@ FINDING_TABLES = [
     ("finding_diwali", "07_diwali_effect.sql"),
     ("finding_persistent_hotspots", "16_persistent_hotspots.sql"),
     ("finding_alert_rules", "17_alert_rules.sql"),
+    ("finding_fires_and_wind", "18_fires_and_wind.sql"),
     ("data_coverage", "08_coverage.sql"),
 ]
 

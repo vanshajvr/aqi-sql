@@ -15,6 +15,12 @@ WEATHER_CSV = next(
                  Path(__file__).parent / "data" / "seed" / "weather_daily.csv") if p.exists()),
     None,
 )
+# Written by fetch_fires.py (NASA FIRMS); same raw/ then seed/ lookup as weather
+FIRES_CSV = next(
+    (p for p in (RAW_DIR / "fires_daily.csv",
+                 Path(__file__).parent / "data" / "seed" / "fires_daily.csv") if p.exists()),
+    None,
+)
 
 # A real station's PM2.5 (a subset of PM10) essentially never equals its PM10
 # to two decimals. Punjabi Bagh's PM10 column in the Kaggle data is a copy of
@@ -181,7 +187,20 @@ def main():
             )
         """)
 
+        conn.execute("""
+            CREATE TABLE fires(
+                date TEXT PRIMARY KEY,
+                n_fires INTEGER,
+                frp_sum_mw REAL
+            )
+        """)
+
         delhi_stations.to_sql("stations", conn, if_exists="append", index=False)
+        if FIRES_CSV is not None:
+            pd.read_csv(FIRES_CSV).to_sql("fires", conn, if_exists="append", index=False)
+        else:
+            print("WARNING: fires_daily.csv not found - run fetch_fires.py. "
+                  "Fire queries will return no rows.")
         if WEATHER_CSV is not None:
             pd.read_csv(WEATHER_CSV).to_sql("weather", conn, if_exists="append", index=False)
         else:

@@ -151,6 +151,27 @@ def station_bootstrap(conn, query_file, extract, n, rng):
     return pd.DataFrame(results)
 
 
+def fire_days(conn):
+    """Day-level rows behind 18_fires_and_wind.sql (Diwali weeks excluded):
+    the query's own CTEs, with its final aggregation swapped for a row select,
+    so fire thirds and expected values are exactly the query's."""
+    q = sql("18_fires_and_wind.sql")
+    body = q[q.index("WITH city_daily"):q.rindex("SELECT\n    scenario,")]
+    df = pd.read_sql_query(body + """
+        SELECT date, wind, fire_third, pm25, expected_pm25
+        FROM ranked WHERE scenario = 'excluding Diwali'""", conn)
+    df["week"] = pd.to_datetime(df["date"]).dt.strftime("%G-%V")
+    return df
+
+
+def fire_effect(df, wind):
+    """Excess ratio on most-fire days minus fewest-fire days, for one wind."""
+    def ratio(third):
+        d = df[(df["wind"] == wind) & (df["fire_third"] == third)]
+        return d["pm25"].mean() / d["expected_pm25"].mean() if len(d) else float("nan")
+    return ratio(3) - ratio(1)
+
+
 def lockdown_effects(df09):
     e = df09.set_index("pollutant")["lockdown_effect_pts"]
     return {"NO2": e.get("NO2"), "PM10": e.get("PM10"), "PM2.5": e.get("PM2.5")}
@@ -184,7 +205,7 @@ def main():
         boot = week_bootstrap(days, lambda d, m=months: share_very_poor(d, m), N_WEEK_RESAMPLES, rng)
         add(f"% of {label} days Very Poor or worse", est, percentile_ci(boot),
             "week-block bootstrap", "% of days")
-    print("1/5 season shares done")
+    print("1/6 season shares done")
 
     # 2. Stubble-season excess over weather (finding 2)
     sql13 = pd.read_sql_query(sql("13_weather_adjusted_excess.sql"), conn).set_index("half_month")
@@ -194,7 +215,7 @@ def main():
         boot = week_bootstrap(days, lambda d, h=half: excess_ratio(d, h), N_WEEK_RESAMPLES, rng)
         add(f"PM2.5 vs weather-predicted, {label}", est, percentile_ci(boot),
             "week-block bootstrap", "ratio (1 = weather explains it)")
-    print("2/5 weather excess done")
+    print("2/6 weather excess done")
 
     # 3. Lockdown effect by pollutant, 09's lower-bound method (finding 5)
     point = lockdown_effects(pd.read_sql_query(sql("09_lockdown_pollutants.sql"), conn))
@@ -206,7 +227,7 @@ def main():
     add("Lockdown: NO2 effect minus PM2.5 effect", point["NO2"] - point["PM2.5"], percentile_ci(gap),
         "station bootstrap, re-running 09", "percentage points",
         f"negative = NO2 fell more; {100 * (gap < 0).mean():.1f}% of resamples")
-    print("3/5 lockdown done")
+    print("3/6 lockdown done")
 
     # 4. Local vs regional spread (finding 4)
     point = spreads(pd.read_sql_query(sql("10_station_fingerprint.sql"), conn))
@@ -218,9 +239,29 @@ def main():
     add("Spread ratio, NO2 / PM2.5", point["NO2"] / point["PM2.5"],
         percentile_ci(boot["NO2"] / boot["PM2.5"]), "station bootstrap, re-running 10", "ratio",
         f"NO2 spread wider in {100 * (boot['NO2'] > boot['PM2.5']).mean():.1f}% of resamples")
-    print("4/5 spread done")
+    print("4/6 spread done")
 
-    # 5. Alert rule, test years (alert section)
+    # 5. Crop fires x wind (stubble section)
+    fd = fire_days(conn)
+    sql18 = pd.read_sql_query(sql("18_fires_and_wind.sql"), conn)
+    ex = sql18[sql18["scenario"] == "excluding Diwali"].set_index(["wind", "fire_level"])["excess_ratio"]
+    for wind in ("north-westerly", "other"):
+        est = fire_effect(fd, wind)
+        # the SQL rounds each ratio to 2 dp, so their difference can be 0.01 off
+        assert abs(est - (ex[(wind, "most fires")] - ex[(wind, "fewest fires")])) <= 0.011, "drifted from 18"
+    boot_nw = week_bootstrap(fd, lambda d: fire_effect(d, "north-westerly"), N_WEEK_RESAMPLES, rng)
+    boot_ot = week_bootstrap(fd, lambda d: fire_effect(d, "other"), N_WEEK_RESAMPLES, rng)
+    for wind, boot in (("north-westerly", boot_nw), ("other", boot_ot)):
+        add(f"Fire effect (most minus fewest fires), {wind} wind", fire_effect(fd, wind),
+            percentile_ci(boot), "week-block bootstrap", "change in excess ratio",
+            "15 Oct - 30 Nov, dry days, Diwali weeks excluded")
+    diff = boot_nw - boot_ot
+    add("Fire effect: north-westerly minus other wind", fire_effect(fd, "north-westerly") - fire_effect(fd, "other"),
+        percentile_ci(diff), "week-block bootstrap", "change in excess ratio",
+        f"positive = smoke arrives with the wind; {100 * np.nanmean(diff > 0):.1f}% of resamples")
+    print("5/6 fires done")
+
+    # 6. Alert rule, test years (alert section)
     sql17 = pd.read_sql_query(sql("17_alert_rules.sql"), conn)
     test = sql17[sql17["split"] == "test"].set_index("rule")
     for rule in ("E today > 200 AND weather", "B today > 300"):
@@ -229,7 +270,7 @@ def main():
         add(f"First bad days warned, rule {rule[0]} (2018-20)", 100 * k / n,
             tuple(100 * x for x in wilson_ci(k, n)), "Wilson score interval", "% of onsets",
             f"{k} of {n} onsets")
-    print("5/5 alert done")
+    print("6/6 alert done")
     conn.close()
 
     out = pd.DataFrame(rows)

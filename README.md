@@ -23,7 +23,10 @@ or worse, yet December is only 9–15% above what its weather alone predicts.
 
 **Crop burning is a four-week burst.** From late October to mid-November,
 PM2.5 runs up to **2.2× what the weather predicts**. No other part of the year
-comes close.
+comes close. Adding NASA satellite fire counts, the days after heavy burning
+in Punjab run at **2.1× the weather prediction when the wind blows from
+Punjab**. The fire effect is clear, while the wind's role is suggestive but
+not proven.
 
 **The haze never really leaves.** PM2.5 broke India's own 24-hour limit on
 **70% of days** in 2018–19, and the WHO guideline on all but two.
@@ -56,10 +59,9 @@ What this means for policy, and what I'm less sure about, is in
 ## How it works
 
 ```
- Kaggle CPCB data ──┐
-                    ├─► fetch_data.py ──► SQLite ──► 17 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
- Open-Meteo weather ┘    (clean +                                     └─► FastAPI ──► /api/* (map, raw query results)
-                          load)
+ Kaggle CPCB data ───┐
+ Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 18 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+ NASA FIRMS fires ───┘    (clean + load)                               └─► FastAPI ──► /api/* (map, raw query results)
 ```
 
 - **The SQL does the thinking.** Every aggregation, ranking, comparison and
@@ -76,9 +78,12 @@ What this means for policy, and what I'm less sure about, is in
 
 **Sources:** CPCB station readings via
 [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india)
-(official government data, 2015–2020), and daily Delhi weather from the
+(official government data, 2015–2020), daily Delhi weather from the
 [Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api)
-(ERA5 reanalysis: mixing height, wind, rain, temperature).
+(ERA5 reanalysis: mixing height, wind, rain, temperature), and daily crop-fire
+counts in Punjab and northern Haryana from
+[NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/) (VIIRS satellite,
+stubble seasons 2015–2019).
 
 Real sensor data is messy. Here's what the project found and how it handles it:
 
@@ -111,6 +116,7 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | 15 | The lockdown effect, adjusted for weather | Weather-matched expected values |
 | 16 | Which stations are *consistently* among the worst? | Monthly `RANK()` with eligibility rules |
 | 17 | Which rule should trigger a "bad air tomorrow" alert? | `LEAD()` next-day pairs, precision / recall / first-bad-day recall, train/test split |
+| 18 | Does crop-fire smoke from Punjab reach Delhi? | Satellite fire counts × wind direction, `NTILE()` thirds, Diwali weeks excluded |
 
 ## The dashboard
 
@@ -141,6 +147,7 @@ python3 -m uvicorn api.main:app --reload --port 8000
 
 # Optional
 python3 fetch_weather.py      # re-download weather (already in data/seed/)
+python3 fetch_fires.py        # re-download crop fires (needs FIRMS_MAP_KEY; already in data/seed/)
 python3 export_bi.py          # tidy CSVs for Tableau / Power BI, see exports/README.md
 python3 uncertainty.py        # 95% intervals -> results/ (~4 min, fixed seed)
 pytest tests/                 # the test suite
@@ -157,9 +164,10 @@ coordinates.
 ```
 aqi-sql/
 ├── FINDINGS.md           the write-up
-├── queries/              17 SQL files, one question each
+├── queries/              18 SQL files, one question each
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
 ├── fetch_weather.py      one-time weather download
+├── fetch_fires.py        one-time NASA FIRMS crop-fire download
 ├── build_dashboard.py    renders dashboard.html from the queries
 ├── export_bi.py          CSVs for Tableau / Power BI
 ├── uncertainty.py        bootstrap / Wilson intervals → results/
@@ -183,9 +191,50 @@ aqi-sql/
 - **Live readings depend on data.gov.in**, which is sometimes unreachable.
   The historical analysis doesn't depend on it.
 
+## Future scope
+
+### Bringing the data up to today
+
+The biggest open question is the obvious one: **is Delhi's air better now
+than before 2020?** Measures such as GRAP, BS-VI fuel and crop-residue schemes
+have arrived since. I've already checked whether
+[OpenAQ](https://openaq.org/) can fill the gap, and here's what's there:
+
+| Period | OpenAQ coverage of the 37 stations |
+|---|---|
+| All of 2020 | Excellent (29 stations with ≥300 days), including Jan–Jun 2020, which overlaps the current data and allows validation |
+| 2021 to October 2022 | Partial (roughly 55–75% of days) |
+| **November 2022 to February 2025** | **Nothing at any station**: OpenAQ lost the CPCB feed |
+| 2025 to now | Excellent (all 37 stations) |
+
+The plan has two parts:
+
+1. **Station network:** pull daily readings for the matched stations (all 37
+   map cleanly by name and operator), compute AQI with CPCB's formula
+   (OpenAQ provides concentrations, not AQI), and **validate it against the
+   official AQI on January–June 2020** before trusting anything newer. Then
+   compare winters like-for-like: 2018–19 and 2019–20 against 2020–21 and
+   2025–26.
+2. **A continuous PM2.5 line:** the US Embassy monitor has near-complete PM2.5
+   for every year from 2017 to 2026, *including* the missing 2023–24. Finding
+   4 says PM2.5 is regional, so one well-run site should track the city
+   closely. Checking that on the 2018–20 overlap would both validate the
+   bridge and test the finding.
+
+Two winters (2023–24 and 2024–25) would still be missing from the station
+network, and the write-up would need to say so.
+
+### Smaller ideas
+
+- **Re-score the alert rules with archived weather forecasts** instead of
+  actual next-day weather, to measure the real-world drop in performance.
+- **Rebuild the key findings in Tableau Public** from the
+  [BI exports](exports/README.md).
+
 ## Credits
 
 Air-quality data: Central Pollution Control Board (CPCB), via
 [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
-Weather: ERA5 reanalysis via [Open-Meteo](https://open-meteo.com/). Map tiles:
+Weather: ERA5 reanalysis via [Open-Meteo](https://open-meteo.com/). Fires:
+NASA FIRMS VIIRS active-fire data. Map tiles:
 © OpenStreetMap contributors.

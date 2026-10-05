@@ -11,5 +11,8 @@ Lockdown: NO2 effect minus PM2.5 effect,-21.4,-29.553,-12.848,percentage points,
 "Dirtiest / cleanest station, NO2",4.75,2.62,4.75,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
 "Dirtiest / cleanest station, PM2.5",1.76,1.54,1.76,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
 "Spread ratio, NO2 / PM2.5",2.699,1.606,2.879,ratio,"station bootstrap, re-running 10",NO2 spread wider in 100.0% of resamples
+"Fire effect (most minus fewest fires), north-westerly wind",0.692,0.057,1.255,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
+"Fire effect (most minus fewest fires), other wind",0.185,-0.323,0.619,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
+Fire effect: north-westerly minus other wind,0.507,-0.268,1.271,change in excess ratio,week-block bootstrap,positive = smoke arrives with the wind; 89.8% of resamples
 "First bad days warned, rule E (2018-20)",69.388,55.472,80.485,% of onsets,Wilson score interval,34 of 49 onsets
 "First bad days warned, rule B (2018-20)",0.0,0.0,7.27,% of onsets,Wilson score interval,0 of 49 onsets

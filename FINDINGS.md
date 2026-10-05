@@ -10,7 +10,8 @@ contributes, and which of them a city could do anything about.
 **The data:** about 36,000 daily readings from 37 government monitoring
 stations (CPCB, DPCC and IMD), April 2015 to July 2020, covering PM2.5, PM10,
 NO2, SO2, CO and AQI. I joined them to daily weather for the same period
-(ERA5 via Open-Meteo: mixing height, wind, rain and temperature). All the
+(ERA5 via Open-Meteo: mixing height, wind, rain and temperature) and to
+satellite fire counts for Punjab and Haryana (NASA FIRMS). All the
 analysis is in SQL, every number below comes from a tested query in
 [`queries/`](queries/), and you can explore all of it at
 **[aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**.
@@ -21,7 +22,8 @@ analysis is in SQL, every number below comes from a tested query in
 
 - **Winter smog is mostly the weather.** In winter the air over Delhi gets
   shallow, like a lid pressing down, and it traps whatever the city emits.
-- **Crop burning is real, but it's a four-week burst,** not the whole winter.
+- **Crop burning is real, but it's a four-week burst,** not the whole winter,
+  and satellites show its smoke reaching Delhi when the wind is right.
 - **PM2.5, the most harmful pollutant, is a regional problem.** Delhi can't
   fix it alone. Traffic pollution is local, and the city *can* act on that.
 
@@ -57,9 +59,36 @@ of November, **2.2×**. The rest of winter stays between 0.8× and 1.25×. Even
 the bottom of each 95% interval (1.3× and 1.7×) sits clearly above 1.
 
 That window lines up with the peak of crop-residue burning in Punjab and
-Haryana. Diwali falls in the same weeks, so this analysis can't separate the
-two. But together, they're the one time of year when something extra is
-clearly being added to the air.
+Haryana, and Diwali falls in the same weeks. Lining up in time isn't proof,
+so I went looking for the smoke itself.
+
+**Following the smoke.** NASA's satellites log every fire they detect. I
+counted the crop fires in Punjab and northern Haryana each day (over 370,000
+across five seasons) and asked: does Delhi's air get worse after big fire
+days, beyond what the weather explains? I kept the comparison within the
+burning window (15 October to 30 November) and took out the weeks around
+Diwali, since crackers are a local source that would muddy the test.
+
+| Fires the day before | Wind from Punjab (north-west) | Other winds |
+|---|---|---|
+| Fewest third | 1.38× | 1.18× |
+| Most third | **2.07×** | 1.36× |
+
+*(PM2.5 as a multiple of what the day's weather predicts)*
+
+When the wind blows from Punjab, the days after the heaviest burning run at
+**2.1× the weather prediction**. The rise from the fewest-fire days (+0.69) is
+clearly above zero (95% interval +0.06 to +1.26). In other winds, the rise is
+small and could be nothing. That's what you'd expect if smoke is being
+carried in, but I want to be honest about the limit: with only about 20 days
+in each group, the *difference* between the two winds isn't proven. It shows
+up in 90% of resamples, not 95%.
+
+So, carefully stated: **crop fires measurably add to Delhi's air when the wind
+blows from Punjab**, and the data hints, without proving, that the wind is
+what brings them. One by-product: with the Diwali weeks left in, high-fire
+days look bad in *any* wind, because cracker smoke is made inside the city
+and needs no wind to arrive.
 
 ### 3. The haze never really leaves
 
@@ -247,7 +276,7 @@ would correct themselves if the source data were ever fixed.
 | Finding | Query | Technique |
 |---|---|---|
 | 1 | [`04`](queries/04_event_clustering.sql), [`12`](queries/12_weather_by_month.sql), [`13`](queries/13_weather_adjusted_excess.sql) | Station readings rolled up to city-days with CPCB thresholds; monthly weather profile |
-| 2 | [`13_weather_adjusted_excess.sql`](queries/13_weather_adjusted_excess.sql) | Actual vs expected PM2.5 from same-weather days (mixing height × wind buckets) |
+| 2 | [`13_weather_adjusted_excess.sql`](queries/13_weather_adjusted_excess.sql), [`18_fires_and_wind.sql`](queries/18_fires_and_wind.sql) | Actual vs expected PM2.5 from same-weather days; previous-day satellite fire counts (NASA FIRMS) in thirds × wind direction, Diwali weeks excluded |
 | 3 | [`11_health_limits.sql`](queries/11_health_limits.sql) | City-day PM2.5 against India's and WHO's limits, complete years flagged |
 | 4 | [`10_station_fingerprint.sql`](queries/10_station_fingerprint.sql) | Each station vs the city median (window-function median), common 2018–19 window |
 | 5 | [`09`](queries/09_lockdown_pollutants.sql), [`15`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |

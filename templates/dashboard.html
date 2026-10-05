@@ -27,7 +27,7 @@
       <div class="badges">
         <span class="badge">37 stations</span>
         <span class="badge" data-no-animate>2015&ndash;2020</span>
-        <span class="badge">17 SQL queries</span>
+        <span class="badge">18 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
@@ -114,6 +114,14 @@
     </div>
 
     <div id="tab-sources" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-sources" tabindex="0">
+      <div class="card">
+        <h3>Crop-fire smoke rides the wind</h3>
+        <p class="hint">After heavy burning in Punjab, Delhi's PM2.5 reaches 2.1&times; the weather prediction when the wind blows from Punjab. In other winds the effect is small.</p>
+        $fires
+        <details class="method"><summary>How this is measured</summary>
+          Daily satellite fire counts in Punjab and northern Haryana (NASA FIRMS, VIIRS), the day before. Each bar compares PM2.5 with same-weather days, as in "Pollution beyond the weather". 15 October &ndash; 30 November, dry days only, and the weeks around Diwali removed: crackers are local smoke that needs no north-westerly, and leaving them in hides the wind pattern. With the wind from Punjab, the rise from fewest to most fires is +0.69&times; (95% interval +0.06 to +1.26). The difference from other winds is suggestive but not proven (90% of resamples).
+        </details>
+      </div>
       <div class="card">
         <h3>The 2020 lockdown test</h3>
         <p class="hint">Traffic (NO<sub>2</sub>) and dust (PM10) fell most. About half of the PM2.5 stayed.</p>
