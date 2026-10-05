@@ -13,6 +13,9 @@
 <link rel="stylesheet" href="static/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- MapLibre GL JS draws the historical station map; Leaflet still draws the live map -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+<script defer src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
 <body>
   <div class="container">
@@ -210,15 +213,27 @@
       <div id="subtab-station-map" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-station-map">
         <div class="card">
           <h3>Station map</h3>
-          <p class="hint">Pick a view. Colour and size both show the value; the stations at the extremes are labelled.</p>
-          <div class="map-views" role="group" aria-label="Map view">
-            <button type="button" class="map-view-btn" data-view="then" aria-pressed="false">PM2.5 2018&ndash;19</button>
-            <button type="button" class="map-view-btn active" data-view="now" aria-pressed="true">PM2.5 2025&ndash;26</button>
-            <button type="button" class="map-view-btn" data-view="change" aria-pressed="false">Change</button>
-            <button type="button" class="map-view-btn" data-view="no2" aria-pressed="false">NO&#8322; hotspots</button>
-            <button type="button" class="map-view-btn" data-view="persist" aria-pressed="false">Persistence</button>
+          <p class="hint">Pick a view. Colour and size both show the value. Hover a station, or click it for its full profile.</p>
+          <div class="gl-controls">
+            <div class="map-views" role="group" aria-label="Map view">
+              <button type="button" class="map-view-btn" data-view="then" aria-pressed="false">PM2.5 2018&ndash;19</button>
+              <button type="button" class="map-view-btn active" data-view="now" aria-pressed="true">PM2.5 2025&ndash;26</button>
+              <button type="button" class="map-view-btn" data-view="change" aria-pressed="false">Change</button>
+              <button type="button" class="map-view-btn" data-view="no2" aria-pressed="false">NO&#8322; hotspots</button>
+              <button type="button" class="map-view-btn" data-view="persist" aria-pressed="false">Persistence</button>
+            </div>
+            <div class="gl-tools">
+              <select id="gl-search" class="gl-search" aria-label="Find a station"></select>
+              <button type="button" id="gl-3d" class="map-view-btn gl-3d-btn" aria-pressed="false" title="Show stations as 3D columns">3D</button>
+            </div>
           </div>
-          <div id="station-map"></div>
+          <div class="gl-wrap">
+            <div id="station-map" class="gl-map"></div>
+            <aside id="gl-detail" class="gl-detail" aria-live="polite">
+              <div class="gl-detail-empty">Hover a station for its value.<br>Click one, or pick it from the list, for its full profile.</div>
+            </aside>
+          </div>
+          <div id="gl-legend" class="gl-legend"></div>
           <p class="map-status" id="map-status">Loading…</p>
         </div>
       </div>
@@ -342,5 +357,6 @@
   <!-- defer: keep this after the deferred Leaflet script so L is defined -->
   <script defer src="static/map.js"></script>
   <script defer src="static/live.js"></script>
+  <script defer src="static/station_map.js"></script>
 </body>
 </html>
