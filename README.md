@@ -43,6 +43,11 @@ Wazirpur, Mundka and Punjabi Bagh are the most persistent, in the city's worst
 combining "pollution building" with "low lid forecast" warned before **69% of
 them** with under 4 false alerts a month, scored on years it wasn't tuned on.
 
+**And I checked how sure to be.** Every headline number has a 95% interval
+(block bootstrap over weeks, or over stations re-running the actual SQL), and
+every conclusion holds within its interval. They're in
+[`results/confidence_intervals.csv`](results/confidence_intervals.csv).
+
 What this means for policy, and what I'm less sure about, is in
 **[FINDINGS.md](FINDINGS.md)**.
 
@@ -137,6 +142,7 @@ python3 -m uvicorn api.main:app --reload --port 8000
 # Optional
 python3 fetch_weather.py      # re-download weather (already in data/seed/)
 python3 export_bi.py          # tidy CSVs for Tableau / Power BI, see exports/README.md
+python3 uncertainty.py        # 95% intervals -> results/ (~4 min, fixed seed)
 pytest tests/                 # the test suite
 ```
 
@@ -156,6 +162,7 @@ aqi-sql/
 ├── fetch_weather.py      one-time weather download
 ├── build_dashboard.py    renders dashboard.html from the queries
 ├── export_bi.py          CSVs for Tableau / Power BI
+├── uncertainty.py        bootstrap / Wilson intervals → results/
 ├── dashboard/            chart builders (Plotly), KPIs, table
 ├── templates/, static/   page skeleton, CSS, JS (tabs, Leaflet maps, live data)
 ├── api/                  FastAPI service + Dockerfile

@@ -107,6 +107,8 @@ metrics AS (
         n_bad_days,
         n_onsets,
         n_alerts,
+        n_true_alerts,
+        n_onsets_warned,
         ROUND(30.0 * n_alerts / n_days, 1) AS alerts_per_30d,
         ROUND(1.0 * n_true_alerts / NULLIF(n_alerts, 0), 2) AS precision,
         ROUND(1.0 * n_true_alerts / n_bad_days, 2) AS recall,

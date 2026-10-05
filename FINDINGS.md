@@ -32,7 +32,9 @@ analysis is in SQL, every number below comes from a tested query in
 ### 1. It's the lid, not just the smoke
 
 On **81% of December days**, the city-wide AQI was "Very Poor" or worse
-(above 300). Across March to September, it was 14%.
+(above 300). Across March to September, it was 14%. (95% intervals: 68–93%
+against 9–19%. Wide, because there are only five Decembers, but nowhere near
+overlapping.)
 
 The cause is overhead. The *mixing height* (how deep a layer of air
 pollution can spread into) averages about **275 m in December and January**
@@ -42,14 +44,17 @@ air.
 
 To test this, I compared each December day with typical days from the rest
 of the year that had the same mixing height and wind. December comes out only
-**9–15% above what its weather predicts**. Winter air isn't bad because
+**9–15% above what its weather predicts**, and early December's interval
+(0.96–1.24×) includes 1, so I can't rule out that the weather explains all of
+it. Winter air isn't bad because
 something extra is burning. It's bad because nothing can escape.
 
 ### 2. Four weeks the weather can't explain
 
 Run the same comparison through the year and one window stands out. In late
 October, PM2.5 runs at **1.65×** what the weather predicts; in the first half
-of November, **2.2×**. The rest of winter stays between 0.8× and 1.25×.
+of November, **2.2×**. The rest of winter stays between 0.8× and 1.25×. Even
+the bottom of each 95% interval (1.3× and 1.7×) sits clearly above 1.
 
 That window lines up with the peak of crop-residue burning in Punjab and
 Haryana. Diwali falls in the same weeks, so this analysis can't separate the
@@ -71,7 +76,8 @@ Comparing stations over the same two years:
 - For **NO2**, which comes mostly from vehicle exhaust, the gap is **4.8×**.
 
 PM2.5 hangs over the whole city at similar levels. NO2 piles up at particular
-places: Anand Vihar (2.4× the city median), Punjabi Bagh, and the area
+places (its spread was wider than PM2.5's in all 500 resampled station
+networks): Anand Vihar (2.4× the city median), Punjabi Bagh, and the area
 around the JLN and Dhyan Chand stadiums.
 
 ### 5. The city pressed pause
@@ -86,7 +92,9 @@ against the same dates in 2019 in two ways:
 | Comparing dry days with same-weather days | −57% | −53% | −47% |
 
 Both methods agree on the order: traffic and dust fell furthest, and PM2.5
-fell least. The weather wasn't the reason: days with the lockdown window's
+fell least. Resampling the stations, the lower-bound effects are NO2 −41
+(interval −50 to −31) and PM2.5 −20 (−26 to −13), and NO2 fell further in
+every one of 500 resamples. The weather wasn't the reason: days with the lockdown window's
 weather predict the same PM2.5 in both years. Even with most of the city
 switched off, **about half of Delhi's PM2.5 stayed**. That half comes from
 somewhere a city lockdown doesn't reach.
@@ -163,11 +171,36 @@ in advance, picked a winner on 2015–17, and only then scored it on 2018–20:
 
 The winning rule combines both halves of the story: pollution already
 building, plus a lid about to drop. It warns before about 7 in 10 first bad
-days and stays just inside the false-alarm budget. One honest caveat: the
+days (34 of 49; 95% interval 55–80%) and stays just inside the false-alarm
+budget. The obvious rule's 0 of 49 has an upper bound of 7%, so the gap isn't
+luck. One honest caveat: the
 "forecast" here is the actual next-day weather, a perfect forecast, so a real
 app would score somewhat lower. All seven rules are in
 [`17_alert_rules.sql`](queries/17_alert_rules.sql) and on the dashboard's
 Early Warning tab.
+
+---
+
+## How sure am I?
+
+A number without a range invites the question "would that hold up next
+year?" So every headline figure has a 95% interval, in
+[`results/confidence_intervals.csv`](results/confidence_intervals.csv),
+computed by [`uncertainty.py`](uncertainty.py). How I resampled depends on
+where the uncertainty comes from:
+
+- **Daily figures:** I resampled **whole weeks**, not single days. Smog comes
+  in spells, and treating a five-day episode as five independent days would
+  make the intervals look far more certain than they are.
+- **Station comparisons:** I resampled **the stations themselves** and re-ran
+  the actual SQL query on each of 500 imaginary station networks. So the
+  intervals come from exactly the logic behind the published numbers.
+- **The alert result** is a count (34 of 49), so it gets a standard Wilson
+  interval.
+
+The short version: every conclusion above survives, but some numbers are
+softer than they look. December's 81% could plausibly be anywhere from 68% to
+93%, because five Decembers is not many.
 
 ---
 
@@ -221,6 +254,7 @@ would correct themselves if the source data were ever fixed.
 | 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's actual Diwali date |
 | 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
 | Alert | [`17_alert_rules.sql`](queries/17_alert_rules.sql) | Next-day pairs via `LEAD()`; precision, recall and first-bad-day recall per rule; train/test split with the choice made in SQL |
+| Intervals | [`uncertainty.py`](uncertainty.py) | Week-block bootstrap (daily figures); station bootstrap re-running `09` and `10`; Wilson interval (alert) |
 | Caveats | [`08`](queries/08_coverage.sql), [`03`](queries/03_yoy_comparison.sql) | Coverage audit; like-for-like year-over-year comparison |
 
 Every chart behind these findings is on the live dashboard:

@@ -1,0 +1,15 @@
+metric,estimate,ci_low,ci_high,unit,method,note
+% of December days Very Poor or worse,81.034,67.938,92.594,% of days,week-block bootstrap,
+% of March-September days Very Poor or worse,13.924,9.128,18.972,% of days,week-block bootstrap,
+"PM2.5 vs weather-predicted, late October",1.65,1.323,2.121,ratio (1 = weather explains it),week-block bootstrap,
+"PM2.5 vs weather-predicted, early November",2.235,1.677,3.003,ratio (1 = weather explains it),week-block bootstrap,
+"PM2.5 vs weather-predicted, early December",1.09,0.96,1.237,ratio (1 = weather explains it),week-block bootstrap,
+Lockdown effect on NO2 (lower bound),-41.3,-49.957,-31.043,percentage points,"station bootstrap, re-running 09",
+Lockdown effect on PM10 (lower bound),-36.8,-40.153,-33.1,percentage points,"station bootstrap, re-running 09",
+Lockdown effect on PM2.5 (lower bound),-19.9,-25.5,-13.133,percentage points,"station bootstrap, re-running 09",
+Lockdown: NO2 effect minus PM2.5 effect,-21.4,-29.553,-12.848,percentage points,"station bootstrap, re-running 09",negative = NO2 fell more; 100.0% of resamples
+"Dirtiest / cleanest station, NO2",4.75,2.62,4.75,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
+"Dirtiest / cleanest station, PM2.5",1.76,1.54,1.76,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
+"Spread ratio, NO2 / PM2.5",2.699,1.606,2.879,ratio,"station bootstrap, re-running 10",NO2 spread wider in 100.0% of resamples
+"First bad days warned, rule E (2018-20)",69.388,55.472,80.485,% of onsets,Wilson score interval,34 of 49 onsets
+"First bad days warned, rule B (2018-20)",0.0,0.0,7.27,% of onsets,Wilson score interval,0 of 49 onsets
