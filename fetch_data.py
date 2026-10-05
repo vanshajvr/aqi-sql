@@ -22,6 +22,12 @@ OPENAQ_CSV = next(
                  Path(__file__).parent / "data" / "seed" / "openaq_daily.csv") if p.exists()),
     None,
 )
+# Written by fetch_openaq.py --embassy: US Embassy PM2.5, raw (cleaned where used)
+EMBASSY_CSV = next(
+    (p for p in (RAW_DIR / "embassy_pm25_daily.csv",
+                 Path(__file__).parent / "data" / "seed" / "embassy_pm25_daily.csv") if p.exists()),
+    None,
+)
 # Written by fetch_fires.py (NASA FIRMS); same raw/ then seed/ lookup as weather
 FIRES_CSV = next(
     (p for p in (RAW_DIR / "fires_daily.csv",
@@ -203,6 +209,13 @@ def main():
             )
         """)
         conn.execute("""
+            CREATE TABLE embassy_pm25(
+                date TEXT PRIMARY KEY,
+                pm25 REAL,
+                observed_count INTEGER
+            )
+        """)
+        conn.execute("""
             CREATE TABLE fires(
                 date TEXT PRIMARY KEY,
                 n_fires INTEGER,
@@ -217,6 +230,8 @@ def main():
             openaq = openaq[openaq["station_id"].isin(delhi_stations["station_id"])]
             openaq = drop_implausible_co(drop_copied_pm10(openaq))
             openaq.to_sql("readings_openaq", conn, if_exists="append", index=False)
+        if EMBASSY_CSV is not None:
+            pd.read_csv(EMBASSY_CSV).to_sql("embassy_pm25", conn, if_exists="append", index=False)
         if FIRES_CSV is not None:
             pd.read_csv(FIRES_CSV).to_sql("fires", conn, if_exists="append", index=False)
         else:

@@ -22,7 +22,12 @@ are spaced 1.1 s apart and 429s are retried. About 800 requests, ~15 min.
 
 Usage (from the repo root, with OPENAQ_API_KEY in .env):
     set -a; source .env; set +a
-    python3 fetch_openaq.py
+    python3 fetch_openaq.py             # the 37 stations -> data/raw/openaq_raw.csv
+    python3 fetch_openaq.py --embassy   # US Embassy PM2.5 -> data/seed/embassy_pm25_daily.csv
+
+The US Embassy monitor (OpenAQ location 8118, AirNow; PM2.5 sensor 23534) is
+the candidate bridge across the Nov 2022 - Feb 2025 gap. It's saved raw (no
+cleaning); the pre-registered cleaning rule is applied where it's used.
 """
 import csv
 import json
@@ -39,6 +44,8 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 SEED = ROOT / "data" / "seed"
 OUT_PATH = ROOT / "data" / "raw" / "openaq_raw.csv"
+EMBASSY_OUT = SEED / "embassy_pm25_daily.csv"
+EMBASSY_SENSOR = 23534
 API = "https://api.openaq.org/v3"
 BBOX = "76.8,28.4,77.4,28.9"
 PARAMETERS = {"pm25", "pm10", "no2", "so2", "co", "o3"}
@@ -103,10 +110,37 @@ def match_locations(stations, locations):
     return matches
 
 
+def fetch_embassy(key):
+    rows, page = [], 1
+    while True:
+        data = get(f"{API}/sensors/{EMBASSY_SENSOR}/days?date_from=2017-01-01"
+                   f"&date_to={date.today().isoformat()}&limit=1000&page={page}", key)
+        for r in data["results"]:
+            rows.append({"date": r["period"]["datetimeFrom"]["local"][:10],
+                         "pm25": r["value"],
+                         "observed_count": r["coverage"]["observedCount"]})
+        if len(data["results"]) < 1000:
+            break
+        page += 1
+    seen, unique = set(), []
+    for r in sorted(rows, key=lambda r: r["date"]):
+        if r["date"] not in seen:
+            seen.add(r["date"])
+            unique.append(r)
+    with open(EMBASSY_OUT, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["date", "pm25", "observed_count"])
+        writer.writeheader()
+        writer.writerows(unique)
+    print(f"Wrote {len(unique):,} days ({unique[0]['date']} to {unique[-1]['date']}) to {EMBASSY_OUT}")
+
+
 def main():
     key = os.environ.get("OPENAQ_API_KEY", "").strip()
     if not key:
         sys.exit("Set OPENAQ_API_KEY first (see the docstring). Nothing written.")
+    if "--embassy" in sys.argv[1:]:
+        fetch_embassy(key)
+        return
 
     stations = load_stations()
     locations = get(f"{API}/locations?bbox={BBOX}&limit=1000", key)["results"]

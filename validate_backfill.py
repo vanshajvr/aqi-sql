@@ -14,6 +14,14 @@ Information only (not a criterion): AQI computed with aqi.py from OpenAQ
 concentrations vs the official Kaggle AQI, beside the baseline of the same
 formula on Kaggle's own concentrations (MAE 28.5, 74.4% same category).
 
+Test B: the US Embassy bridge, on two periods either side of the gap
+(July 2020 - October 2022, February 2025 - latest), embassy vs the OpenAQ
+city-wide daily PM2.5 (mean of >= 5 reporting stations), embassy cleaned by
+the pre-registered rule (drop PM2.5 <= 0 or > 999, or < 16 observations).
+  * daily log correlation >= 0.9 in each period
+  * every winter month (Nov-Feb) with paired data: embassy x 1.04 within
+    +/-15% of the city-wide monthly mean (means over the paired days)
+
 Usage (after fetch_data.py has built data/aqi.db with readings_openaq):
     python3 validate_backfill.py
 """
@@ -69,17 +77,64 @@ def test_a(conn):
     return rows, pm25
 
 
+WINTER_SCALE = 1.04       # pre-registered: city / embassy winter median, Oct 2018 - Jun 2020
+PERIODS = {"Jul 2020 - Oct 2022": ("2020-07-01", "2022-10-31"),
+           "Feb 2025 - latest": ("2025-02-01", "2099-12-31")}
+
+
+def test_b(conn):
+    paired = pd.read_sql_query("""
+        WITH city AS (
+            SELECT date, AVG(pm25) AS city_pm25
+            FROM readings_openaq
+            WHERE pm25 IS NOT NULL
+            GROUP BY date
+            HAVING COUNT(*) >= 5
+        )
+        SELECT c.date, c.city_pm25, e.pm25 AS emb_pm25
+        FROM city c
+        JOIN embassy_pm25 e ON e.date = c.date
+        WHERE e.pm25 > 0 AND e.pm25 <= 999 AND e.observed_count >= 16
+    """, conn)
+    rows, months = [], []
+    for label, (start, end) in PERIODS.items():
+        p = paired[(paired["date"] >= start) & (paired["date"] <= end)].copy()
+        r = np.corrcoef(np.log(p["city_pm25"]), np.log(p["emb_pm25"]))[0, 1]
+        rows.append({"test": "B", "check": f"Daily log correlation, {label}", "value": round(r, 3),
+                     "threshold": ">= 0.9", "passed": bool(r >= 0.9), "n_station_days": len(p),
+                     "kind": "criterion"})
+        p["month"] = p["date"].str[:7]
+        winter = p[p["date"].str[5:7].isin(["11", "12", "01", "02"])]
+        for month, g in winter.groupby("month"):
+            pct = 100 * (g["emb_pm25"].mean() * WINTER_SCALE - g["city_pm25"].mean()) / g["city_pm25"].mean()
+            months.append({"period": label, "month": month, "paired_days": len(g),
+                           "city_pm25": round(g["city_pm25"].mean(), 1),
+                           "embassy_scaled": round(g["emb_pm25"].mean() * WINTER_SCALE, 1),
+                           "pct_diff": round(pct, 1), "within_15": bool(abs(pct) <= 15)})
+    m = pd.DataFrame(months)
+    rows.append({"test": "B", "check": "Winter months within +/-15% (all required)",
+                 "value": int(m["within_15"].sum()), "threshold": f"all {len(m)}",
+                 "passed": bool(m["within_15"].all()), "n_station_days": int(m["paired_days"].sum()),
+                 "kind": "criterion"})
+    return rows, m
+
+
 def main():
     conn = sqlite3.connect(DB_PATH)
     rows, pm25 = test_a(conn)
+    rows_b, months_b = test_b(conn)
     conn.close()
+    print(months_b.to_string(index=False), "\n")
+    months_b.to_csv(OUT_PATH.with_name("backfill_bridge_months.csv"), index=False)
+    rows += rows_b
     out = pd.DataFrame(rows)
     OUT_PATH.parent.mkdir(exist_ok=True)
     out.to_csv(OUT_PATH, index=False)
     print(out.to_string(index=False))
-    criteria = out[out["kind"] == "criterion"]
-    verdict = "PASS" if criteria["passed"].all() else "FAIL"
-    print(f"\nTest A: {verdict} ({pm25['station_id'].nunique()} stations)")
+    for test in ("A", "B"):
+        criteria = out[(out["kind"] == "criterion") & (out["test"] == test)]
+        verdict = "PASS" if criteria["passed"].all() else "FAIL"
+        print(f"Test {test}: {verdict}")
 
 
 if __name__ == "__main__":
