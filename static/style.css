@@ -262,3 +262,7 @@ tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
 .leaflet-popup-tip { background: #161b22; }
 .leaflet-popup-content { font-size: 13px; line-height: 1.6; }
 .leaflet-popup-content .popup-stat { font-family: 'JetBrains Mono', monospace; }
+
+.live-retry-btn { margin-left: 8px; padding: 4px 12px; background: transparent; color: inherit;
+  border: 1px solid currentColor; border-radius: 6px; font: inherit; cursor: pointer; }
+.live-retry-btn:disabled { opacity: .6; cursor: default; }

@@ -90,39 +90,138 @@ let liveStations = null;
 let liveDataPromise = null;
 let cpcbApiKeyPromise = null;
 
+const LIVE_FETCH_TIMEOUT_MS = 15000;
+
+// Typed error so the UI can say what actually went wrong instead of a raw
+// browser string like "Failed to fetch". kind is one of:
+//   "network" - request never got a response (DNS, refused connection, offline)
+//   "timeout" - no response within LIVE_FETCH_TIMEOUT_MS
+//   "http"    - got a response with a non-2xx status (see .status)
+//   "parse"   - 2xx, but the body was not valid JSON
+//   "config"  - our own server has no CPCB key configured
+class LiveDataError extends Error {
+  constructor(kind, message, status) {
+    super(message);
+    this.name = "LiveDataError";
+    this.kind = kind;
+    this.status = status;
+  }
+}
+
+// fetch + JSON with a hard timeout. Without the timeout, a data.gov.in
+// outage that hangs instead of refusing would leave the page loading forever.
+async function liveFetchJson(url, what) {
+  let resp;
+  try {
+    resp = await fetch(url, { signal: AbortSignal.timeout(LIVE_FETCH_TIMEOUT_MS) });
+  } catch (err) {
+    if (err && err.name === "TimeoutError") {
+      throw new LiveDataError("timeout", `${what} did not respond within ${LIVE_FETCH_TIMEOUT_MS / 1000}s`);
+    }
+    throw new LiveDataError("network", `${what} could not be reached (${err && err.message})`);
+  }
+  if (!resp.ok) {
+    throw new LiveDataError("http", `${what} returned ${resp.status}`, resp.status);
+  }
+  try {
+    return await resp.json();
+  } catch (err) {
+    if (err && err.name === "TimeoutError") {
+      throw new LiveDataError("timeout", `${what} stopped responding mid-transfer`);
+    }
+    throw new LiveDataError("parse", `${what} returned an unreadable response`);
+  }
+}
+
+// Both loaders below cache their promise so concurrent callers (station
+// picker + live map) share one request. A FAILED promise is cleared again,
+// so "Try again" really re-requests instead of replaying the old failure
+// until the page is reloaded. Identity check guards against clearing a
+// newer in-flight promise.
 function fetchCpcbApiKeyOnce() {
   if (!cpcbApiKeyPromise) {
-    cpcbApiKeyPromise = fetch(`${LIVE_API_BASE}/api/config`)
-      .then((resp) => resp.json())
-      .then((cfg) => {
-        if (!cfg.cpcb_api_key) throw new Error("CPCB_PUBLIC_API_KEY is not configured on the server");
-        return cfg.cpcb_api_key;
-      });
+    const p = liveFetchJson(`${LIVE_API_BASE}/api/config`, "Config endpoint").then((cfg) => {
+      if (!cfg.cpcb_api_key) {
+        throw new LiveDataError("config", "CPCB_PUBLIC_API_KEY is not configured on the server");
+      }
+      return cfg.cpcb_api_key;
+    });
+    cpcbApiKeyPromise = p;
+    p.catch(() => {
+      if (cpcbApiKeyPromise === p) cpcbApiKeyPromise = null;
+    });
   }
   return cpcbApiKeyPromise;
 }
 
 // Fetches CPCB's live API directly from the browser (not through our own
-// backend - see computeStationAqi's comment for why) exactly once, no
-// matter how many callers (station picker + live map) ask for it - later
-// callers just await the same in-flight/completed promise.
+// backend - see computeStationAqi's comment for why). One shared request no
+// matter how many callers ask; cleared on failure so it can be retried.
 function fetchLiveStationsOnce() {
   if (!liveDataPromise) {
-    liveDataPromise = fetchCpcbApiKeyOnce()
+    const p = fetchCpcbApiKeyOnce()
       .then((apiKey) => {
         const url = `${CPCB_API_URL}?api-key=${encodeURIComponent(apiKey)}&format=json&filters[city]=Delhi&limit=500`;
-        return fetch(url);
-      })
-      .then((resp) => {
-        if (!resp.ok) throw new Error(`CPCB API returned ${resp.status}`);
-        return resp.json();
+        return liveFetchJson(url, "CPCB API");
       })
       .then((raw) => {
         liveStations = computeStationAqi(raw);
         return liveStations;
       });
+    liveDataPromise = p;
+    p.catch(() => {
+      if (liveDataPromise === p) liveDataPromise = null;
+    });
   }
   return liveDataPromise;
+}
+
+// Visitor-facing wording. States what happened and what still works;
+// raw detail goes to the console for debugging, not onto the page.
+function describeLiveError(err) {
+  const unaffected = "The historical analysis is unaffected.";
+  switch (err && err.kind) {
+    case "network":
+      return `The live data source (CPCB via data.gov.in) can't be reached right now. ${unaffected}`;
+    case "timeout":
+      return `The live data source is taking too long to respond. ${unaffected}`;
+    case "http":
+      if (err.status === 429) return `The live data source is rate-limiting requests. Wait a minute, then try again. ${unaffected}`;
+      if (err.status >= 500) return `The live data source reported a server error (HTTP ${err.status}). ${unaffected}`;
+      return `The live data source rejected the request (HTTP ${err.status}). ${unaffected}`;
+    case "parse":
+      return `The live data source sent a response this page couldn't read. ${unaffected}`;
+    case "config":
+      return `Live data isn't configured on this server. ${unaffected}`;
+    default:
+      return `Live data couldn't be loaded. ${unaffected}`;
+  }
+}
+
+// Fills a status element with the error message and a "Try again" button.
+// Built with DOM nodes + textContent (not innerHTML) so error text can
+// never inject markup.
+function renderLiveError(container, err, onRetry) {
+  console.error("[live] load failed:", err);
+  container.hidden = false;
+  container.classList.remove("skeleton-text");
+  container.classList.add("map-error");
+  container.textContent = "";
+
+  const msg = document.createElement("span");
+  msg.textContent = describeLiveError(err);
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "live-retry-btn";
+  btn.textContent = "Try again";
+  btn.addEventListener("click", () => {
+    btn.disabled = true;
+    btn.textContent = "Loading…";
+    onRetry();
+  });
+
+  container.append(msg, " ", btn);
 }
 
 function renderStationReading(station) {
@@ -159,30 +258,38 @@ function renderStationReading(station) {
   `;
 }
 
-async function initLiveStationPicker() {
+async function loadLivePicker() {
   const select = document.getElementById("live-station-select");
   const status = document.getElementById("live-picker-status");
   if (!select) return;
+
+  if (status) {
+    status.hidden = false;
+    status.classList.remove("map-error");
+    status.textContent = "Loading live data…";
+  }
 
   try {
     const stations = await fetchLiveStationsOnce();
     select.innerHTML = stations
       .map(s => `<option value="${s.station_name}">${s.station_name}</option>`)
       .join("");
+    select.style.display = "";
     if (status) status.hidden = true;
+
+    // Assigned (not addEventListener) so a retry re-running this can't
+    // stack duplicate handlers on the same <select>.
+    select.onchange = showSelected;
+    showSelected();
 
     function showSelected() {
       const chosen = stations.find(s => s.station_name === select.value);
       renderStationReading(chosen);
     }
-    select.addEventListener("change", showSelected);
-    showSelected();
   } catch (err) {
-    if (status) {
-      status.hidden = false;
-      status.textContent = `Could not load live data: ${err.message}`;
-      status.classList.add("map-error");
-    }
+    // An empty dropdown next to an error just looks broken; hide it until data loads.
+    select.style.display = "none";
+    if (status) renderLiveError(status, err, loadLivePicker);
   }
 }
 
@@ -190,39 +297,31 @@ async function initLiveStationPicker() {
 window.initLiveData = function () {
   if (window._liveDataInitStarted) return;
   window._liveDataInitStarted = true;
-  initLiveStationPicker();
+  loadLivePicker();
 };
 
 let liveMapInstance = null;
+let liveMapMarkers = null;
 let liveMapInitialized = false;
 
-// Called once, when the Live Map sub-tab is first shown (see subtabs.js)
-window.initLiveMap = async function () {
-  if (liveMapInitialized) {
-    setTimeout(() => liveMapInstance && liveMapInstance.invalidateSize(), 50);
-    return;
-  }
-  liveMapInitialized = true;
-
+// Fetches + plots station markers. Separate from map creation so "Try again"
+// can re-run just this part: calling L.map() twice on the same element throws.
+async function loadLiveMapData() {
   const statusEl = document.getElementById("live-map-status");
-  const mapEl = document.getElementById("live-map");
-  if (!mapEl) return;
 
   if (statusEl) {
+    statusEl.hidden = false;
+    statusEl.classList.remove("map-error");
     statusEl.textContent = "";
     statusEl.classList.add("skeleton-text");
   }
-
-  liveMapInstance = L.map("live-map").setView([28.6139, 77.2090], 10);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 18,
-  }).addTo(liveMapInstance);
 
   try {
     const stations = await fetchLiveStationsOnce();
     let plotted = 0;
     let missingCoords = 0;
+
+    liveMapMarkers.clearLayers();
 
     stations.forEach((s) => {
       if (s.latitude == null || s.longitude == null) {
@@ -238,7 +337,7 @@ window.initLiveMap = async function () {
         fillColor: color,
         fillOpacity: 0.85,
         weight: 1.5,
-      }).addTo(liveMapInstance);
+      }).addTo(liveMapMarkers);
 
       const aqiText = s.aqi != null ? s.aqi.toFixed(0) : "N/A";
       marker.bindPopup(`
@@ -257,10 +356,27 @@ window.initLiveMap = async function () {
         : `<span class="live-dot"></span> ${plotted} stations plotted, live from CPCB`;
     }
   } catch (err) {
-    if (statusEl) {
-      statusEl.classList.remove("skeleton-text");
-      statusEl.textContent = `Could not reach the live API (${err.message}).`;
-      statusEl.classList.add("map-error");
-    }
+    if (statusEl) renderLiveError(statusEl, err, loadLiveMapData);
   }
+}
+
+// Called once, when the Live Map sub-tab is first shown (see subtabs.js)
+window.initLiveMap = async function () {
+  if (liveMapInitialized) {
+    setTimeout(() => liveMapInstance && liveMapInstance.invalidateSize(), 50);
+    return;
+  }
+  liveMapInitialized = true;
+
+  const mapEl = document.getElementById("live-map");
+  if (!mapEl) return;
+
+  liveMapInstance = L.map("live-map").setView([28.6139, 77.2090], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 18,
+  }).addTo(liveMapInstance);
+  liveMapMarkers = L.layerGroup().addTo(liveMapInstance);
+
+  await loadLiveMapData();
 };
