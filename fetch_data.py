@@ -8,6 +8,13 @@ DB_PATH=Path(__file__).parent / "data" / "aqi.db"
 STATIONS_CSV=RAW_DIR / "stations.csv"
 READINGS_CSV=RAW_DIR / "station_day.csv"
 COORDS_CSV = RAW_DIR / "station_coords.csv"
+# Written by fetch_weather.py into data/seed/; the Docker build copies seed/
+# into raw/, so check raw/ first and fall back to seed/ for local runs.
+WEATHER_CSV = next(
+    (p for p in (RAW_DIR / "weather_daily.csv",
+                 Path(__file__).parent / "data" / "seed" / "weather_daily.csv") if p.exists()),
+    None,
+)
 
 # A real station's PM2.5 (a subset of PM10) essentially never equals its PM10
 # to two decimals. Punjabi Bagh's PM10 column in the Kaggle data is a copy of
@@ -134,7 +141,26 @@ def main():
             )
         """)
 
+        conn.execute("""
+            CREATE TABLE weather(
+                date TEXT PRIMARY KEY,
+                temp_mean_c REAL,
+                temp_min_c REAL,
+                wind_speed_kmh REAL,
+                wind_dir_deg REAL,
+                rain_mm REAL,
+                humidity_pct REAL,
+                mixing_height_mean_m REAL,
+                mixing_height_max_m REAL
+            )
+        """)
+
         delhi_stations.to_sql("stations", conn, if_exists="append", index=False)
+        if WEATHER_CSV is not None:
+            pd.read_csv(WEATHER_CSV).to_sql("weather", conn, if_exists="append", index=False)
+        else:
+            print("WARNING: weather_daily.csv not found - run fetch_weather.py. "
+                  "Weather queries will return no rows.")
         delhi_readings.to_sql("readings", conn, if_exists="append", index=False)
 
         # Every analytical query partitions/groups by station_id and orders by

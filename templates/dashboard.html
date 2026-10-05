@@ -27,7 +27,7 @@
       <div class="badges">
         <span class="badge">37 Delhi stations</span>
         <span class="badge">5.5 years of daily data</span>
-        <span class="badge">10 SQL queries</span>
+        <span class="badge">15 SQL queries</span>
       </div>
     </header>
 
@@ -71,9 +71,21 @@
     </div>
 
     <div id="tab-drivers" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-drivers" tabindex="0">
+      <div class="grid-2">
+        <div class="card">
+          <h3>Why Winter Is Worst: Shallow Air Traps Pollution</h3>
+          <p class="hint">Each dot is a calendar month. The lower the mixing height (the depth of air pollution can spread into), the higher the PM2.5. October and November sit far above months with the same mixing height. (April&ndash;June are dustier than their deep mixing height suggests: pre-monsoon dust storms.)</p>
+          $weather_monthly
+        </div>
+        <div class="card">
+          <h3>Pollution Beyond What the Weather Explains</h3>
+          <p class="hint">Dry days only: actual PM2.5 divided by PM2.5 on typical days with the same mixing height and wind. Dotted line at 1&times;: the weather fully explains the pollution. Late October to mid-November runs up to 2.2&times; what the weather predicts: the stubble-burning (and Diwali) window. December is bad, but its weather explains it</p>
+          $weather_excess
+        </div>
+      </div>
       <div class="card">
         <h3>What the 2020 Lockdown Removed, by Pollutant</h3>
-        <p class="hint">25 Mar &ndash; 3 May 2020 vs the same dates in 2019, same stations. Grey: how much lower 2020 already was in early March, before the lockdown. Blue: the extra drop during the lockdown. Traffic (NO<sub>2</sub>) and dust (PM10) fell most; PM2.5 fell least.</p>
+        <p class="hint">25 Mar &ndash; 3 May 2020 vs the same dates in 2019, same stations. Grey: how much lower 2020 already was in early March, before the lockdown. Blue: the extra drop during the lockdown. White diamonds: a second estimate that adjusts for weather instead (dry days vs same-weather days). The two methods bracket the effect; both show traffic (NO<sub>2</sub>) and dust (PM10) falling more than PM2.5.</p>
         $lockdown
       </div>
       <div class="card">

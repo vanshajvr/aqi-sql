@@ -24,6 +24,11 @@ CREATE TABLE readings (
     pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL,
     aqi REAL, aqi_bucket TEXT
 );
+CREATE TABLE weather (
+    date TEXT PRIMARY KEY,
+    temp_mean_c REAL, temp_min_c REAL, wind_speed_kmh REAL, wind_dir_deg REAL,
+    rain_mm REAL, humidity_pct REAL, mixing_height_mean_m REAL, mixing_height_max_m REAL
+);
 """
 
 
