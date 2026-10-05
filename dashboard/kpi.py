@@ -31,8 +31,7 @@ def build(df06, df04, df03):
          f"{peak_period['pct_days_very_poor_plus']:.0f}% of days Very Poor or worse", WARNING, ICON_FLAME),
         ("Sharpest YoY Drop",
          f"{MONTH_LABELS.get(biggest_drop['month'], biggest_drop['month'])} {biggest_drop['year']}",
-         f"{biggest_drop['yoy_change']:.1f} AQI vs a year earlier, same "
-         f"{biggest_drop['n_matched_stations']} stations (COVID lockdown)", ACCENT, ICON_TREND_DOWN),
+         f"{biggest_drop['yoy_change']:.1f} AQI vs a year earlier (lockdown)", ACCENT, ICON_TREND_DOWN),
     ]
  
     html_cards = ""

@@ -23,6 +23,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // "Go to tab" links inside content (e.g. the Summary takeaways)
+  document.querySelectorAll("[data-goto-tab]").forEach((link) => {
+    link.addEventListener("click", () => {
+      const target = buttons.find((b) => b.dataset.tab === link.dataset.gotoTab);
+      if (!target) return;
+      target.click();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
   buttons.forEach((btn, i) => {
     btn.tabIndex = btn.classList.contains("active") ? 0 : -1;
 

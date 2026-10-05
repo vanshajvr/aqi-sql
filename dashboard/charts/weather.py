@@ -32,7 +32,7 @@ def build_monthly(df12):
                           "<br>Rain days %{customdata[1]}%<extra></extra>",
         ))
     fig.update_layout(
-        xaxis=dict(title="Mean mixing height (m): how deep the air pollution can spread into",
+        xaxis=dict(title="Mean mixing height (m)",
                    gridcolor=GRID),
         yaxis=dict(title="Mean PM2.5 (µg/m³)", gridcolor=GRID, rangemode="tozero"),
         legend=dict(orientation="h", y=1.08, x=0, bgcolor="rgba(0,0,0,0)"),
@@ -61,7 +61,11 @@ def build_excess(df13):
     fig.add_hline(y=1.0, line=dict(color="#8b949e", width=1, dash="dot"))
     fig.update_layout(
         showlegend=False, bargap=0.25,
-        xaxis=dict(title="", tickangle=-45, gridcolor="rgba(0,0,0,0)"),
+        # One tick per month (at its first half) instead of 24 rotated labels;
+        # hovering a bar still says early or late
+        xaxis=dict(title="", tickangle=0, gridcolor="rgba(0,0,0,0)",
+                   tickvals=[l for l in d["label"] if l.startswith("early")],
+                   ticktext=[MONTH_NAMES[h[:2]] for h in d["half_month"] if h.endswith("-1")]),
         yaxis=dict(title="Actual PM2.5 / weather-predicted", ticksuffix="x",
                    gridcolor=GRID, rangemode="tozero"),
     )

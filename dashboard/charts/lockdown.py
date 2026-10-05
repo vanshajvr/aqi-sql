@@ -14,7 +14,7 @@ def build(df09, df15=None):
     fig = go.Figure()
     fig.add_trace(go.Bar(
         y=d["pollutant"], x=d["pct_change_pre"], orientation="h",
-        name="Already lower before lockdown (1-21 Mar)",
+        name="Already lower before lockdown",
         marker=dict(color=PRE_COLOR, cornerradius=4, line=dict(width=0)),
         customdata=custom,
         hovertemplate="<b>%{y}</b><br>Already lower before lockdown: %{x:.1f}%"
@@ -23,7 +23,7 @@ def build(df09, df15=None):
     ))
     fig.add_trace(go.Bar(
         y=d["pollutant"], x=d["lockdown_effect_pts"], orientation="h",
-        name="Attributable to lockdown (25 Mar - 3 May)",
+        name="Lockdown effect (lower bound)",
         marker=dict(color=ACCENT, cornerradius=4, line=dict(width=0)),
         text=d["lockdown_effect_pts"].map(lambda v: f"{v:.0f} pts"), textposition="inside",
         insidetextanchor="start",
@@ -38,7 +38,7 @@ def build(df09, df15=None):
                .reindex(d["pollutant"]))
         fig.add_trace(go.Scatter(
             x=adj.values, y=adj.index, mode="markers",
-            name="Weather-adjusted estimate (dry days)",
+            name="Weather-adjusted estimate",
             marker=dict(symbol="diamond", size=13, color="#f0f6fc",
                         line=dict(color=CARD_BG, width=2)),
             hovertemplate="<b>%{y}</b><br>Weather-adjusted change: %{x:.1f}%<extra></extra>",

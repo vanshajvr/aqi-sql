@@ -86,8 +86,40 @@ p.subtitle { color: #8b949e; margin: 0; font-size: 16px; line-height: 1.6; font-
 }
 .card h3 { font-size: 16px; font-weight: 600; color: #f0f6fc; margin: 0 0 6px; letter-spacing: -0.01em; }
 .card p.hint { font-size: 12px; color: #6e7681; margin: 0 0 16px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-@media (max-width: 1000px) { .grid-2 { grid-template-columns: 1fr; } }
+/* minmax(0, 1fr), not 1fr: charts in a hidden tab render at Plotly's default
+   700px, and a plain 1fr column won't shrink below its content, so the grid
+   overflowed the page and Plotly's resize then measured the oversized column */
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.grid-2 > * { min-width: 0; }
+.grid-2 + .grid-2 { margin-top: 24px; }
+a.badge-link { color: #58a6ff; text-decoration: none; border-color: rgba(88,166,255,0.4); }
+a.badge-link:hover { background: rgba(88,166,255,0.1); }
+
+.takeaways { list-style: none; counter-reset: tk; margin: 8px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.takeaways li { counter-increment: tk; display: flex; flex-direction: column; gap: 6px;
+  background: #0d1117; border: 1px solid #21262d; border-radius: 10px; padding: 16px; }
+.takeaways li::before { content: counter(tk); font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: #58a6ff; }
+.takeaways b { color: #f0f6fc; font-size: 14px; line-height: 1.4; }
+.takeaways span { color: #8b949e; font-size: 13px; line-height: 1.5; flex: 1; }
+.goto-tab { align-self: flex-start; margin-top: 6px; padding: 0; background: none; border: 0;
+  color: #58a6ff; font: inherit; font-size: 12px; cursor: pointer; }
+.goto-tab:hover { text-decoration: underline; }
+@media (max-width: 900px) { .takeaways { grid-template-columns: 1fr; } }
+
+details.method { margin-top: 12px; font-size: 12px; color: #8b949e; line-height: 1.6; }
+details.method summary { cursor: pointer; color: #6e7681; list-style: none; width: fit-content; }
+details.method summary::before { content: "+ "; font-family: 'JetBrains Mono', monospace; }
+details.method[open] summary::before { content: "\2212  "; }
+details.method summary::-webkit-details-marker { display: none; }
+details.method summary:hover { color: #c9d1d9; }
+details.method[open] summary { margin-bottom: 6px; }
+
+.method-list { margin: 8px 0 0; padding-left: 18px; color: #8b949e; font-size: 13px; line-height: 1.8; }
+.method-list b { color: #c9d1d9; font-weight: 600; }
+.method-list a { color: #58a6ff; }
+@media (max-width: 1000px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
 footer {
   color: #6e7681; font-size: 12px; text-align: center;
   margin-top: 32px; padding-top: 24px; border-top: 1px solid #21262d;

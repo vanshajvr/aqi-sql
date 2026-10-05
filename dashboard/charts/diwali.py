@@ -5,9 +5,9 @@ from ..theme import base_layout
 # One hue, light -> dark: the three windows are ordered in time and AQI rises
 # through them, so a sequential ramp reads correctly without a legend lookup.
 WINDOWS = [
-    ("baseline_aqi", "n_days_baseline", "3 weeks before (day -21 to -8)", "#9ecbff"),
-    ("week_before_aqi", "n_days_week_before", "Week before (day -7 to -1)", "#58a6ff"),
-    ("week_after_aqi", "n_days_week_after", "Diwali + 7 days (day 0 to +7)", "#1f6feb"),
+    ("baseline_aqi", "n_days_baseline", "3 weeks before", "#9ecbff"),
+    ("week_before_aqi", "n_days_week_before", "Week before", "#58a6ff"),
+    ("week_after_aqi", "n_days_week_after", "Diwali week", "#1f6feb"),
 ]
 
 

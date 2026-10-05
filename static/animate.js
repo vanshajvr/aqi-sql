@@ -31,5 +31,7 @@ function animateNumber(el, duration) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".kpi-sub, .badge").forEach((el) => animateNumber(el));
+  // data-no-animate opts out: a year range like "2015-2020" counting up from 0 looks broken
+  document.querySelectorAll(".kpi-sub:not([data-no-animate]), .badge:not([data-no-animate])")
+    .forEach((el) => animateNumber(el));
 });

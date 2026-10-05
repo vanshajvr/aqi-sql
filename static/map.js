@@ -162,10 +162,15 @@ async function initMap() {
   }
 }
 
+// The map lives in the Stations tab's "Map" sub-tab (the default sub-tab).
+// Leaflet can't size itself while hidden, so initialise it the first time
+// it becomes visible: opening the Stations tab while Map is the active
+// sub-tab, or clicking the Map sub-tab.
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    if (btn.dataset.tab === "map") {
-      btn.addEventListener("click", () => requestAnimationFrame(initMap));
-    }
-  });
+  const mapPane = document.getElementById("subtab-station-map");
+  const initIfVisible = () => {
+    if (mapPane && mapPane.classList.contains("active")) requestAnimationFrame(initMap);
+  };
+  document.querySelectorAll('.tab-btn[data-tab="stations"], .subtab-btn[data-subtab="station-map"]')
+    .forEach((btn) => btn.addEventListener("click", initIfVisible));
 });

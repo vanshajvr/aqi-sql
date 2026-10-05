@@ -32,7 +32,7 @@ def build(df06, df05, station_names):
           <th onclick="sortTable(0)">Rank</th>
           <th onclick="sortTable(1)">Station</th>
           <th onclick="sortTable(2)">Avg AQI (2018&ndash;19)</th>
-          <th onclick="sortTable(3)">% Severe Days</th>
+          <th onclick="sortTable(3)">% Severe Days (all years)</th>
           <th onclick="sortTable(4)">Worst Month</th>
           <th onclick="sortTable(5)">Worst Month AQI</th>
         </tr>

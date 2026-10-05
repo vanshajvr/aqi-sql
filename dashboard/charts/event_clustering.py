@@ -5,8 +5,8 @@ from ..theme import PERIOD_LABELS, SEVERITY_COLORS, base_layout
 # 04 now counts DAYS (city-wide mean AQI) on the CPCB scale, so the two series
 # reuse the severity breakdown's own colors for the same categories.
 SERIES = [
-    ("pct_days_very_poor_plus", "n_days_very_poor_plus", "Very Poor or worse (AQI > 300)", "Very Poor"),
-    ("pct_days_severe", "n_days_severe", "Severe (AQI > 400)", "Severe"),
+    ("pct_days_very_poor_plus", "n_days_very_poor_plus", "Very Poor+ (>300)", "Very Poor"),
+    ("pct_days_severe", "n_days_severe", "Severe (>400)", "Severe"),
 ]
 
 

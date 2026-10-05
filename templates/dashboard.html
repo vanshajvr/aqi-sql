@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Delhi AQI Dashboard</title>
+<title>Delhi Air Quality Analysis</title>
 <!-- Must match the Python plotly version pinned in requirements.txt -
      plotly==7.0.0 bundles plotly.js 4.0.0. If you bump plotly there,
      update this version too or charts may render incorrectly/blank. -->
@@ -22,125 +22,179 @@
         <span class="haze-blob haze-blob-2"></span>
         <span class="haze-blob haze-blob-3"></span>
       </div>
-      <h1>aqi-sql: Delhi AQI Analysis</h1>
-      <p class="subtitle">Real CPCB monitoring data, 2015&ndash;2020, analyzed entirely in SQL (window functions, CTEs, date functions). Part of the <strong>aqi-sql</strong> project.</p>
+      <h1>What drives Delhi's air pollution?</h1>
+      <p class="subtitle">5.5 years of government monitoring data from 37 stations, joined to weather and analysed in SQL.</p>
       <div class="badges">
-        <span class="badge">37 Delhi stations</span>
-        <span class="badge">5.5 years of daily data</span>
+        <span class="badge">37 stations</span>
+        <span class="badge" data-no-animate>2015&ndash;2020</span>
         <span class="badge">16 SQL queries</span>
+        <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
+        <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
     </header>
 
     <div class="mode-switch" role="tablist" aria-label="Historical or live data">
-      <button class="mode-btn active" id="modebtn-live" role="tab" aria-selected="true" aria-controls="mode-live" data-mode="live">Live Right Now</button>
-      <button class="mode-btn" id="modebtn-historical" role="tab" aria-selected="false" aria-controls="mode-historical" data-mode="historical">Historical Analysis (2015&ndash;2020)</button>
+      <button class="mode-btn active" id="modebtn-historical" role="tab" aria-selected="true" aria-controls="mode-historical" data-mode="historical">Analysis 2015&ndash;2020</button>
+      <button class="mode-btn" id="modebtn-live" role="tab" aria-selected="false" aria-controls="mode-live" data-mode="live">Live Now</button>
     </div>
 
-    <div id="mode-historical" class="mode-content" role="tabpanel" aria-labelledby="modebtn-historical">
+    <div id="mode-historical" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-historical">
     <div class="tabs" role="tablist">
-      <button class="tab-btn active" id="tabbtn-overview" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="overview">Overview</button>
-      <button class="tab-btn" id="tabbtn-trends" role="tab" aria-selected="false" aria-controls="tab-trends" data-tab="trends">Trends</button>
-      <button class="tab-btn" id="tabbtn-drivers" role="tab" aria-selected="false" aria-controls="tab-drivers" data-tab="drivers">What Moves AQI</button>
-      <button class="tab-btn" id="tabbtn-explorer" role="tab" aria-selected="false" aria-controls="tab-explorer" data-tab="explorer">Station Analysis</button>
-      <button class="tab-btn" id="tabbtn-data" role="tab" aria-selected="false" aria-controls="tab-data" data-tab="data">Full Data</button>
-      <button class="tab-btn" id="tabbtn-map" role="tab" aria-selected="false" aria-controls="tab-map" data-tab="map">Station Map</button>
+      <button class="tab-btn active" id="tabbtn-summary" role="tab" aria-selected="true" aria-controls="tab-summary" data-tab="summary">Summary</button>
+      <button class="tab-btn" id="tabbtn-seasons" role="tab" aria-selected="false" aria-controls="tab-seasons" data-tab="seasons">Seasons &amp; Weather</button>
+      <button class="tab-btn" id="tabbtn-sources" role="tab" aria-selected="false" aria-controls="tab-sources" data-tab="sources">Pollution Sources</button>
+      <button class="tab-btn" id="tabbtn-stations" role="tab" aria-selected="false" aria-controls="tab-stations" data-tab="stations">Stations</button>
+      <button class="tab-btn" id="tabbtn-data" role="tab" aria-selected="false" aria-controls="tab-data" data-tab="data">Data &amp; Methods</button>
     </div>
 
-    <div id="tab-overview" class="tab-content active" role="tabpanel" aria-labelledby="tabbtn-overview" tabindex="0">
+    <div id="tab-summary" class="tab-content active" role="tabpanel" aria-labelledby="tabbtn-summary" tabindex="0">
       <div class="kpi-grid">$kpi_cards</div>
       <div class="card">
-        <h3>Worst Delhi Stations by Average AQI, 2018&ndash;2019</h3>
-        <p class="hint">Toggle station count with the buttons in the chart</p>
+        <h3>Three things to know</h3>
+        <ol class="takeaways">
+          <li>
+            <b>Winter smog is mostly the weather.</b>
+            <span>Shallow winter air traps pollution. December is only 9&ndash;15% above what its weather predicts.</span>
+            <button type="button" class="goto-tab" data-goto-tab="seasons">Seasons &amp; Weather &rarr;</button>
+          </li>
+          <li>
+            <b>Crop burning adds a spike the weather can't explain.</b>
+            <span>Late October to mid-November runs up to 2.2&times; the weather-predicted level.</span>
+            <button type="button" class="goto-tab" data-goto-tab="seasons">Seasons &amp; Weather &rarr;</button>
+          </li>
+          <li>
+            <b>PM2.5 is regional; traffic pollution is local.</b>
+            <span>The 2020 lockdown cut NO<sub>2</sub> by 41&ndash;57% but PM2.5 by only 20&ndash;47%.</span>
+            <button type="button" class="goto-tab" data-goto-tab="sources">Pollution Sources &rarr;</button>
+          </li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Worst stations, 2018&ndash;19 average AQI</h3>
+        <p class="hint">Use the buttons to show more stations.</p>
         $worst_stations
       </div>
     </div>
 
-    <div id="tab-trends" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-trends" tabindex="0">
+    <div id="tab-seasons" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-seasons" tabindex="0">
       <div class="grid-2">
         <div class="card">
-          <h3>Delhi Monthly Average AQI Over Time</h3>
-          <p class="hint">2015&ndash;2020 &middot; grey points: fewer than 10 stations reporting, so read pre-2018 values with caution &middot; drag the slider or use 1y/3y/All</p>
+          <h3>AQI peaks every winter</h3>
+          <p class="hint">Monthly city-wide average. Grey points: fewer than 10 stations reporting.</p>
           $yoy
         </div>
         <div class="card">
-          <h3>Bad-Air Days: Winter vs Rest of Year</h3>
-          <p class="hint">% of days the city-wide mean AQI crossed each CPCB line &middot; days with &ge;5 stations &middot; excludes the 2020 lockdown</p>
+          <h3>Bad-air days by season</h3>
+          <p class="hint">81% of December days are Very Poor or worse, against 14% in March&ndash;September.</p>
           $event
+          <details class="method"><summary>How this is measured</summary>
+            One city-wide AQI per day (mean of reporting stations, days with &ge;5 stations). CPCB categories: Very Poor 301&ndash;400, Severe 401+. 2020 lockdown excluded.
+          </details>
         </div>
       </div>
-    </div>
-
-    <div id="tab-drivers" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-drivers" tabindex="0">
       <div class="grid-2">
         <div class="card">
-          <h3>Why Winter Is Worst: Shallow Air Traps Pollution</h3>
-          <p class="hint">Each dot is a calendar month. The lower the mixing height (the depth of air pollution can spread into), the higher the PM2.5. October and November sit far above months with the same mixing height. (April&ndash;June are dustier than their deep mixing height suggests: pre-monsoon dust storms.)</p>
+          <h3>Shallow air, dirtier air</h3>
+          <p class="hint">The lower the mixing height, the higher the PM2.5. October and November sit above the pattern.</p>
           $weather_monthly
+          <details class="method"><summary>How this is measured</summary>
+            Mixing height is the depth of air that pollution can spread into (ERA5 reanalysis, central Delhi). April&ndash;June are dustier than their mixing height suggests because of pre-monsoon dust storms.
+          </details>
         </div>
         <div class="card">
-          <h3>Pollution Beyond What the Weather Explains</h3>
-          <p class="hint">Dry days only: actual PM2.5 divided by PM2.5 on typical days with the same mixing height and wind. Dotted line at 1&times;: the weather fully explains the pollution. Late October to mid-November runs up to 2.2&times; what the weather predicts: the stubble-burning (and Diwali) window. December is bad, but its weather explains it</p>
+          <h3>Pollution beyond the weather</h3>
+          <p class="hint">Late October to mid-November reaches 2.2&times; what the weather predicts: the crop-burning window.</p>
           $weather_excess
+          <details class="method"><summary>How this is measured</summary>
+            Dry days only. Each day is compared with typical days that had the same mixing height and wind, using every month except October&ndash;November as the baseline. 1&times; means the weather fully explains the pollution. Diwali falls in the same window.
+          </details>
         </div>
-      </div>
-      <div class="card">
-        <h3>What the 2020 Lockdown Removed, by Pollutant</h3>
-        <p class="hint">25 Mar &ndash; 3 May 2020 vs the same dates in 2019, same stations. Grey: how much lower 2020 already was in early March, before the lockdown. Blue: the extra drop during the lockdown. White diamonds: a second estimate that adjusts for weather instead (dry days vs same-weather days). The two methods bracket the effect; both show traffic (NO<sub>2</sub>) and dust (PM10) falling more than PM2.5.</p>
-        $lockdown
-      </div>
-      <div class="card">
-        <h3>Local or Regional? How Much Each Pollutant Varies Across Stations</h3>
-        <p class="hint">One dot per station, 2018&ndash;2019. Particulates (PM2.5, PM10) sit close to the city median everywhere: a regional blanket that local action at one site barely moves. NO<sub>2</sub> and CO swing several-fold between sites: local hotspots, mostly traffic. SO<sub>2</sub> is low everywhere, so its spread matters little. Hover a dot for the station</p>
-        $fingerprint
-      </div>
-      <div class="card">
-        <h3>Diwali: City-wide AQI Around the Festival, by Year</h3>
-        <p class="hint">Anchored on each year's actual Diwali date (it moves between mid-Oct and mid-Nov). Labels show the week after vs the 3-week baseline. 2016 has no data; 2017's baseline rests on 2 days. Stubble smoke also rises in this window, so not all of the jump is firecrackers.</p>
-        $diwali
       </div>
     </div>
 
-    <div id="tab-explorer" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-explorer" tabindex="0">
-      <div class="subtabs" role="tablist" aria-label="Station analysis view">
-        <button class="subtab-btn active" id="subtabbtn-single" role="tab" aria-selected="true" aria-controls="subtab-single" data-subtab="single">Explore a Station</button>
-        <button class="subtab-btn" id="subtabbtn-compare" role="tab" aria-selected="false" aria-controls="subtab-compare" data-subtab="compare">Compare Two Stations</button>
+    <div id="tab-sources" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-sources" tabindex="0">
+      <div class="card">
+        <h3>The 2020 lockdown test</h3>
+        <p class="hint">Traffic (NO<sub>2</sub>) and dust (PM10) fell most. About half of the PM2.5 stayed.</p>
+        $lockdown
+        <details class="method"><summary>How this is measured</summary>
+          25 March &ndash; 3 May 2020 against the same dates in 2019, same stations. Grey: how much lower 2020 already was on 1&ndash;21 March. Blue: the extra drop during the lockdown, a conservative lower bound. White diamonds: a second estimate comparing dry days with same-weather days.
+        </details>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Local or regional?</h3>
+          <p class="hint">PM2.5 is similar everywhere (1.8&times; spread). NO<sub>2</sub> varies 4.8&times; between stations.</p>
+          $fingerprint
+          <details class="method"><summary>How this is measured</summary>
+            Each dot is one station's 2018&ndash;19 mean divided by the median of all stations. A narrow spread means a regional pollutant; a wide spread means local hotspots. SO<sub>2</sub> is low everywhere.
+          </details>
+        </div>
+        <div class="card">
+          <h3>The Diwali spike</h3>
+          <p class="hint">The week after Diwali averages 1.55&times; the AQI of the weeks before.</p>
+          $diwali
+          <details class="method"><summary>How this is measured</summary>
+            Anchored on each year's actual Diwali date: 3 weeks before = days &minus;21 to &minus;8, week before = &minus;7 to &minus;1, Diwali week = day 0 to +7. 2016 has no data, and 2017's baseline rests on 2 days. Diwali overlaps stubble season, so not all of the jump is firecrackers.
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-stations" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-stations" tabindex="0">
+      <div class="subtabs" role="tablist" aria-label="Station views">
+        <button class="subtab-btn active" id="subtabbtn-station-map" role="tab" aria-selected="true" aria-controls="subtab-station-map" data-subtab="station-map">Map</button>
+        <button class="subtab-btn" id="subtabbtn-single" role="tab" aria-selected="false" aria-controls="subtab-single" data-subtab="single">Station Detail</button>
+        <button class="subtab-btn" id="subtabbtn-compare" role="tab" aria-selected="false" aria-controls="subtab-compare" data-subtab="compare">Compare</button>
       </div>
 
-      <div id="subtab-single" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-single">
+      <div id="subtab-station-map" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-station-map">
+        <div class="card">
+          <h3>Station map</h3>
+          <p class="hint">Colour shows the 2018&ndash;19 average AQI. Click a marker for details.</p>
+          <div id="station-map"></div>
+          <p class="map-status" id="map-status">Loading…</p>
+        </div>
+      </div>
+
+      <div id="subtab-single" class="subtab-content" role="tabpanel" aria-labelledby="subtabbtn-single">
         <div class="chart-filter">
           <button type="button" id="chart-filter-btn" class="chart-filter-btn" aria-haspopup="true" aria-expanded="false" aria-controls="chart-filter-menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2" fill="#0d1117"/><circle cx="15" cy="12" r="2" fill="#0d1117"/><circle cx="9" cy="18" r="2" fill="#0d1117"/></svg>
             Show charts
           </button>
           <div class="chart-filter-menu" id="chart-filter-menu" hidden>
-            <label><input type="checkbox" class="chart-toggle" value="rolling" checked> Rolling AQI Average</label>
-            <label><input type="checkbox" class="chart-toggle" value="severity" checked> Severity Breakdown</label>
             <label><input type="checkbox" class="chart-toggle" value="ranking" checked> Persistent Hotspots</label>
+            <label><input type="checkbox" class="chart-toggle" value="rolling" checked> Rolling Average</label>
+            <label><input type="checkbox" class="chart-toggle" value="severity" checked> Days by Category</label>
           </div>
         </div>
 
         <p class="chart-empty-state" id="chart-empty-state" hidden>No charts selected. Pick at least one from "Show charts" above.</p>
+        <div class="card" data-chart="ranking">
+          <h3>Most persistent hotspots</h3>
+          <p class="hint">Wazirpur, Mundka and Punjabi Bagh are among the month's 5 worst about two months in three.</p>
+          $hotspots
+          <details class="method"><summary>How this is measured</summary>
+            Only months with &ge;20 reporting stations (February 2018 &ndash; June 2020). Anand Vihar has the worst average but spikes rather than staying on top.
+          </details>
+        </div>
         <div class="card" data-chart="rolling">
-          <h3>Rolling AQI Average by Station</h3>
-          <p class="hint">Select a station from the dropdown in the chart</p>
+          <h3>Rolling average by station</h3>
+          <p class="hint">Pick a station from the dropdown in the chart.</p>
           $rolling
         </div>
         <div class="card" data-chart="severity">
-          <h3>AQI Severity Breakdown: Worst &amp; Best Stations</h3>
-          <p class="hint">Toggle between the 15 worst and 15 best stations</p>
+          <h3>Days in each AQI category</h3>
+          <p class="hint">Switch between the 15 worst and 15 best stations.</p>
           $severity
-        </div>
-        <div class="card" data-chart="ranking">
-          <h3>Persistent Hotspots: How Often Each Station Is Among the Month's 5 Worst</h3>
-          <p class="hint">Months with &ge;20 reporting stations (Feb 2018 &ndash; Jun 2020). Wazirpur, Mundka and Punjabi Bagh, the north-west industrial belt, are in the top 5 about two months in three. Anand Vihar has the worst average but spikes rather than staying top: 57% of months</p>
-          $hotspots
         </div>
       </div>
 
       <div id="subtab-compare" class="subtab-content" role="tabpanel" aria-labelledby="subtabbtn-compare">
         <div class="card">
-          <h3>Compare Two Stations</h3>
-          <p class="hint">Pick two stations to compare their 30-day rolling AQI average side by side</p>
+          <h3>Compare two stations</h3>
+          <p class="hint">30-day rolling average AQI.</p>
           <div class="compare-controls">
             <select id="compare-a" class="compare-select">$station_options_a</select>
             <button type="button" id="compare-swap" class="swap-btn" aria-label="Swap stations" title="Swap stations">
@@ -156,33 +210,30 @@
 
     <div id="tab-data" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-data" tabindex="0">
       <div class="card">
-        <h3>All Stations: Full Ranking</h3>
-        <p class="hint">Click any column header to sort, or search by station name</p>
+        <h3>About this analysis</h3>
+        <ul class="method-list">
+          <li><b>Data:</b> CPCB station readings (via Kaggle) and daily weather (ERA5 via Open-Meteo).</li>
+          <li><b>Fair comparisons:</b> city-wide figures need &ge;5 reporting stations; trends compare the same stations; rankings use 2018&ndash;19, when all stations report.</li>
+          <li><b>Cleaning:</b> two sensor faults removed (Punjabi Bagh PM10, early-2015 CO).</li>
+          <li><b>Read more:</b> <a href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">findings memo</a> &middot; <a href="https://github.com/vanshajvr/aqi-sql/tree/main/queries" target="_blank" rel="noopener">SQL queries</a> &middot; <a href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">code</a></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>All stations</h3>
+        <p class="hint">Click a column to sort, or search by name.</p>
         $table
       </div>
       <div class="card">
-        <h3>Data Coverage: Share of Days with an AQI Reading</h3>
-        <p class="hint">Per station, per year. Most stations only joined in 2017&ndash;2018, which is why year-over-year changes are computed on matched stations only</p>
+        <h3>Data coverage</h3>
+        <p class="hint">Share of days with a reading. Most stations joined in 2017&ndash;18.</p>
         $coverage
       </div>
     </div>
-
-    <div id="tab-map" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-map" tabindex="0">
-      <div class="card">
-        <h3>Delhi Station Map</h3>
-        <p class="hint">Live from the deployed API. Click a marker for station details</p>
-        <div id="station-map"></div>
-        <p class="map-status" id="map-status">Loading…</p>
-      </div>
-    </div>
     </div>
 
-    <div id="mode-live" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-live">
+    <div id="mode-live" class="mode-content" role="tabpanel" aria-labelledby="modebtn-live">
       <p class="live-disclaimer">
-        <strong>Live data</strong> from CPCB's real-time API, via data.gov.in.
-        Refreshed periodically, not backfilled, and not cross-checked against
-        the 2015&ndash;2020 historical analysis above. See the footer for full
-        source details.
+        <strong>Current readings</strong> from CPCB's live API (data.gov.in). Separate from the 2015&ndash;2020 analysis.
       </p>
 
       <div class="subtabs" role="tablist" aria-label="Live view">
@@ -192,8 +243,8 @@
 
       <div id="subtab-live-picker" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-live-picker">
         <div class="card live-picker-card">
-          <h3>Live Station Reading</h3>
-          <p class="hint">Pick a station for its current CPCB reading</p>
+          <h3>Live station reading</h3>
+          <p class="hint">Pick a station for its current reading.</p>
           <select id="live-station-select" class="compare-select"></select>
           <div id="live-reading-panel" class="live-reading-panel">
             <p class="map-status" id="live-picker-status">Loading…</p>
@@ -203,15 +254,15 @@
 
       <div id="subtab-live-map" class="subtab-content" role="tabpanel" aria-labelledby="subtabbtn-live-map">
         <div class="card">
-          <h3>Live Delhi Station Map</h3>
-          <p class="hint">Markers colored by today's live AQI, not the historical average</p>
+          <h3>Live map</h3>
+          <p class="hint">Colour shows the current AQI.</p>
           <div id="live-map"></div>
           <p class="map-status" id="live-map-status">Loading…</p>
         </div>
       </div>
     </div>
 
-    <footer>Data source: Central Pollution Control Board (CPCB), via public Kaggle dataset. Generated with build_dashboard.py.</footer>
+    <footer>Data: Central Pollution Control Board (CPCB) via Kaggle &middot; weather: ERA5 via Open-Meteo &middot; built with SQL, Python and Plotly.</footer>
   </div>
 
   <script>window.COMPARE_DATA = $compare_data_json;</script>

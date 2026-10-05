@@ -17,15 +17,10 @@ def build(df10):
         hovertemplate="<b>%{customdata[0]}</b><br>%{y}: %{x:.2f}x city median"
                       "<br>Mean %{customdata[1]}<br>Rank %{customdata[2]}<extra></extra>",
     ))
-    # Spread label at the right edge of each row
+    # Spread goes in the row label, so it never collides with an outlier dot
     spread = d.groupby("pollutant")["pollutant_max_to_min"].first()
-    x_label = d["index_vs_city_median"].max() + 0.25
-    fig.add_trace(go.Scatter(
-        x=[x_label] * len(order), y=order, mode="text",
-        text=[f"{spread[p]:.1f}x apart" for p in order],
-        textfont=dict(color="#8b949e", size=12), textposition="middle left",
-        hoverinfo="skip", showlegend=False,
-    ))
+    row_labels = [f"{p} · {spread[p]:.1f}× apart" for p in order]
+    x_max = d["index_vs_city_median"].max() + 0.2
     top = d.loc[d["index_vs_city_median"].idxmax()]
     fig.add_annotation(x=top["index_vs_city_median"], y=top["pollutant"], text=top["short_name"],
                        showarrow=False, yshift=16, font=dict(color="#c9d1d9", size=11))
@@ -35,7 +30,8 @@ def build(df10):
     fig.update_layout(
         showlegend=False,
         xaxis=dict(title="Station mean / median of all stations (2018-2019)",
-                   ticksuffix="x", gridcolor=GRID, range=[0, x_label + 0.05]),
-        yaxis=dict(categoryorder="array", categoryarray=order, title=""),
+                   ticksuffix="x", gridcolor=GRID, range=[0, x_max]),
+        yaxis=dict(categoryorder="array", categoryarray=order, title="",
+                   tickvals=order, ticktext=row_labels),
     )
     return base_layout(fig, height=420, top_margin=50)
