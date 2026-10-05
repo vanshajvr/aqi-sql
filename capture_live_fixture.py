@@ -1,8 +1,10 @@
 """
 capture_live_fixture.py
 
-Re-captures tests/fixtures/live_delhi_sample.json: a real response from CPCB's
-live API (data.gov.in), used by tests/test_live.py.
+Captures tests/fixtures/live_delhi_sample.json: a real response from CPCB's
+live API (data.gov.in). Optional: tests/test_live.py runs an extra shape check
+on it when present; the core tests use the hand-built fixture
+(tests/fixtures/live_delhi_handbuilt.json) so CI never depends on data.gov.in.
 
 Usage (from the repo root):
     export CPCB_PUBLIC_API_KEY=...      # the dedicated read-only key; never commit it
@@ -120,14 +122,11 @@ def main():
     n_stations, na_count = summarize(records)
 
     print("\nNext steps")
-    print(f"  1. In tests/test_live.py, set the station-count assertion to {n_stations} "
-          f"(it was 43 for the 2026-09-16 capture) and update the capture date in the docstring.")
+    print("  1. pytest tests/test_live.py   <- test_real_capture_parses_cleanly now runs on it")
     if na_count == 0:
-        print("  2. WARNING: no 'NA' readings in this capture, but test_na_string_values_are_skipped "
-              "relies on them. Rerun at another time, or hand-edit one avg_value to \"NA\".")
-    else:
-        print("  2. 'NA' readings are present, so test_na_string_values_are_skipped has data to bite on.")
-    print(f"  3. git add {args.out} && git status   <- it was never committed before, which is how it was lost.")
+        print("  2. Note: no 'NA' readings in this capture. The NA-handling tests use the")
+        print("     hand-built fixture, so they still cover that case.")
+    print(f"  3. git add {args.out}   <- commit it, or it will be lost again")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,20 @@
 """
-Tests compute_station_aqi() against a real captured CPCB API response
-(tests/fixtures/live_delhi_sample.json - 301 real records pulled live on
-2026-09-16). fetch_live_delhi_raw() itself isn't tested here - it needs a
-real network call and a real private API key, neither of which belong in
-an automated test suite.
+Tests compute_station_aqi() against CPCB API-shaped data.
+
+tests/fixtures/live_delhi_handbuilt.json is a HAND-BUILT sample in the
+data.gov.in response format. It reproduces every quirk seen in real responses
+(the literal string "NA" for missing readings, trailing spaces in station
+names, stations with nothing reported), so CI never depends on data.gov.in
+being up. The original real capture was never committed and was lost, and
+data.gov.in's API was refusing connections when this was rebuilt (Oct 2026).
+
+If a real capture exists (capture_live_fixture.py writes
+tests/fixtures/live_delhi_sample.json), test_real_capture_parses_cleanly runs
+against it too; otherwise it is skipped.
+
+fetch_live_delhi_raw() itself isn't tested here - it needs a real network
+call and a real private API key, neither of which belong in an automated
+test suite.
 """
 import json
 from pathlib import Path
@@ -12,32 +23,60 @@ import pytest
 
 from api.live import compute_station_aqi
 
-FIXTURE = Path(__file__).parent / "fixtures" / "live_delhi_sample.json"
+FIXTURES = Path(__file__).parent / "fixtures"
+HANDBUILT = FIXTURES / "live_delhi_handbuilt.json"
+REAL_CAPTURE = FIXTURES / "live_delhi_sample.json"
 
 
 @pytest.fixture
-def real_sample():
-    return json.load(open(FIXTURE))
+def sample():
+    return json.loads(HANDBUILT.read_text())
 
 
-def test_parses_all_stations_in_sample(real_sample):
-    stations = compute_station_aqi(real_sample)
-    # confirmed by hand against this exact fixture earlier
-    assert len(stations) == 43
+def by_name(stations):
+    return {s["station_name"]: s for s in stations}
 
 
-def test_na_string_values_are_skipped_not_crashed(real_sample):
+def test_parses_all_stations_in_sample(sample):
+    stations = by_name(compute_station_aqi(sample))
+    assert set(stations) == {
+        "Anand Vihar, Delhi - DPCC",
+        "Dwarka-Sector 8, Delhi - DPCC",      # trailing space trimmed
+        "Sri Aurobindo Marg, Delhi - DPCC",
+        "ITO, Delhi - CPCB",
+    }
+    assert stations["ITO, Delhi - CPCB"]["aqi"] == 134.0
+    assert stations["ITO, Delhi - CPCB"]["dominant_pollutant"] == "NO2"
+    assert stations["Sri Aurobindo Marg, Delhi - DPCC"]["aqi"] is None
+    assert stations["Anand Vihar, Delhi - DPCC"]["latitude"] == pytest.approx(28.646233)
+
+
+def test_na_string_values_are_skipped_not_crashed(sample):
     """
     Regression test for the real "NA" string bug found in live API data -
-    Anand Vihar's PM10 reading was literally the string "NA" on the day
-    this fixture was captured. Must not crash, must not be treated as 0.
+    Anand Vihar's PM10 reading came back as the literal string "NA". Must not
+    crash, must not be treated as 0.
     """
-    stations = compute_station_aqi(real_sample)
-    anand = next(s for s in stations if s["station_name"] == "Anand Vihar, Delhi - DPCC")
+    anand = by_name(compute_station_aqi(sample))["Anand Vihar, Delhi - DPCC"]
 
     assert "PM10" not in anand["pollutants"]  # the NA reading is excluded
-    assert anand["aqi"] is not None
-    assert anand["aqi"] > 0  # not silently zeroed out by the bad value
+    assert anand["aqi"] == 312.0              # max of the readings that do exist
+    assert anand["dominant_pollutant"] == "PM2.5"
+
+
+@pytest.mark.skipif(not REAL_CAPTURE.exists(), reason="no real capture saved (run capture_live_fixture.py)")
+def test_real_capture_parses_cleanly():
+    """Shape check on a real capture, whatever day it was taken: every record
+    lands in a station, names are trimmed, and AQIs are positive or null."""
+    raw = json.loads(REAL_CAPTURE.read_text())
+    stations = compute_station_aqi(raw)
+    assert stations
+    names = {(r.get("station") or "").strip() for r in raw["records"]}
+    assert {s["station_name"] for s in stations} == names
+    for s in stations:
+        assert s["station_name"] == s["station_name"].strip()
+        assert s["aqi"] is None or s["aqi"] > 0
+        assert all(isinstance(v, float) for v in s["pollutants"].values())
 
 
 def test_aqi_is_max_pollutant_subindex_not_average():
