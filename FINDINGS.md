@@ -1,126 +1,187 @@
-# Delhi's air, 2015–2020: what the monitoring data says
+# The lid over Delhi
 
-**Question.** When is Delhi's air worst, what drives it, and which levers
-would actually move it?
+### What five years of air-quality data say about why the city can't breathe each winter
 
-**Data.** Daily readings from 37 government monitoring stations (CPCB, DPCC,
-IMD), April 2015 to July 2020: about 36,000 station-days of PM2.5, PM10, NO2,
-SO2, CO and AQI, joined to daily weather for the same period (ERA5
-reanalysis via Open-Meteo: mixing height, wind, rain, temperature). All
-analysis is SQL; every figure below comes from a query in
-[`queries/`](queries/) and is covered by tests.
+Every November, Delhi's air makes the news. The usual suspects get named
+(stubble fires, traffic, Diwali crackers, the cold), usually all at once and
+usually without numbers. I wanted to know how much each one actually
+contributes, and which of them a city could do anything about.
 
-## Findings
+**The data:** about 36,000 daily readings from 37 government monitoring
+stations (CPCB, DPCC and IMD), April 2015 to July 2020, covering PM2.5, PM10,
+NO2, SO2, CO and AQI. I joined them to daily weather for the same period
+(ERA5 via Open-Meteo: mixing height, wind, rain and temperature). All the
+analysis is in SQL, every number below comes from a tested query in
+[`queries/`](queries/), and you can explore all of it at
+**[aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**.
 
-**1. Winter is the worst season, and the weather is why.** On 81% of December
-days the city-wide AQI was "Very Poor" or worse (above 300), against 14% of
-days from March to September. The cause is the depth of air pollution can
-spread into (the mixing height): about 275 m in December and January against
-about 890 m in May. Comparing each December day with typical days that had the
-same mixing height and wind, December's PM2.5 is only 9–15% above what its
-weather predicts. Winter air is bad mostly because it traps everything already
-being emitted.
+---
 
-**2. Stubble season adds a burst the weather can't explain.** Run the same
-comparison for late October and the first half of November, and PM2.5 is 1.65×
-and 2.2× what the weather predicts. No other part of the year comes close; the
-rest of winter sits between 0.8× and 1.25×. That window matches the peak of crop burning
-in Punjab and Haryana (Diwali falls in the same weeks, so the two aren't
-separated here).
+## The short version
 
-**3. Fine-particle pollution is almost constant and far above health limits.**
-In 2018–19, the two complete years, city-wide PM2.5 exceeded India's own
-24-hour standard (60 µg/m³) on 70% of days (73% in 2018, 67% in 2019) and the
-WHO guideline (15 µg/m³) on all but two days. The annual mean was 108–114
-µg/m³.
+- **Winter smog is mostly the weather.** In winter the air over Delhi gets
+  shallow, like a lid pressing down, and it traps whatever the city emits.
+- **Crop burning is real, but it's a four-week burst,** not the whole winter.
+- **PM2.5, the most harmful pollutant, is a regional problem.** Delhi can't
+  fix it alone. Traffic pollution is local, and the city *can* act on that.
 
-**4. PM2.5 is a regional problem; NO2 is a local one.** Comparing stations over
-the same two years, the dirtiest station has only 1.8× the PM2.5 of the
-cleanest. For NO2, mostly from vehicle exhaust, the gap is 4.8×. PM2.5
-blankets the whole city at similar levels, while NO2 concentrates at specific
-sites: Anand Vihar (2.4× the city median), Punjabi Bagh, and the
-JLN / Dhyan Chand stadium area.
+---
 
-**5. The 2020 lockdown is a natural experiment, and it agrees.** Two methods
-bracket the effect of halting traffic and construction (25 March – 3 May 2020,
-vs the same dates in 2019):
+## Seven findings
 
-| | NO2 | PM10 | PM2.5 |
+### 1. It's the lid, not just the smoke
+
+On **81% of December days**, the city-wide AQI was "Very Poor" or worse
+(above 300). Across March to September, it was 14%.
+
+The cause is overhead. The *mixing height* (how deep a layer of air
+pollution can spread into) averages about **275 m in December and January**
+against **890 m in May**. In winter, Delhi's lid drops to roughly a third of
+its summer height, and the same emissions get squeezed into a third of the
+air.
+
+To test this, I compared each December day with typical days from the rest
+of the year that had the same mixing height and wind. December comes out only
+**9–15% above what its weather predicts**. Winter air isn't bad because
+something extra is burning. It's bad because nothing can escape.
+
+### 2. Four weeks the weather can't explain
+
+Run the same comparison through the year and one window stands out. In late
+October, PM2.5 runs at **1.65×** what the weather predicts; in the first half
+of November, **2.2×**. The rest of winter stays between 0.8× and 1.25×.
+
+That window lines up with the peak of crop-residue burning in Punjab and
+Haryana. Diwali falls in the same weeks, so this analysis can't separate the
+two. But together, they're the one time of year when something extra is
+clearly being added to the air.
+
+### 3. The haze never really leaves
+
+In 2018 and 2019, the two complete years, city-wide PM2.5 broke **India's own
+24-hour limit (60 µg/m³) on 70% of days** (73% in 2018, 67% in 2019). It broke
+the WHO guideline (15 µg/m³) on **all but two days** in two years. The annual
+average was 108–114 µg/m³.
+
+### 4. Same sky, different streets
+
+Comparing stations over the same two years:
+
+- The dirtiest station has only **1.8× the PM2.5** of the cleanest.
+- For **NO2**, which comes mostly from vehicle exhaust, the gap is **4.8×**.
+
+PM2.5 hangs over the whole city at similar levels. NO2 piles up at particular
+places: Anand Vihar (2.4× the city median), Punjabi Bagh, and the area
+around the JLN and Dhyan Chand stadiums.
+
+### 5. The city pressed pause
+
+The 2020 COVID lockdown (25 March to 3 May) was an accidental experiment:
+traffic and construction stopped almost overnight. I measured the effect
+against the same dates in 2019 in two ways:
+
+| | NO2 (traffic) | PM10 (dust) | PM2.5 |
 |---|---|---|---|
 | Netting out the pre-lockdown gap (lower bound) | −41 pts | −37 pts | −20 pts |
 | Comparing dry days with same-weather days | −57% | −53% | −47% |
 
-Both rank traffic (NO2) and dust (PM10) above PM2.5. Weather didn't cause the
-drop: days with the lockdown window's weather predict the same PM2.5 in both
-years. And even with most local activity stopped, about half of the city's
-PM2.5 remained.
+Both methods agree on the order: traffic and dust fell furthest, and PM2.5
+fell least. The weather wasn't the reason: days with the lockdown window's
+weather predict the same PM2.5 in both years. Even with most of the city
+switched off, **about half of Delhi's PM2.5 stayed**. That half comes from
+somewhere a city lockdown doesn't reach.
 
-**6. Diwali adds a short spike on top of the season.** The week after Diwali
-averaged 1.55× the AQI of the three weeks before, ranging from 1.2× (2015,
-2018) to 2.1× (2017, 2019). Five festivals, overlapping with stubble smoke, is
-too few to isolate firecrackers precisely.
+### 6. One festival, one bad week
 
-**7. Anand Vihar is the worst on average; the north-west industrial belt is
-the most persistent.** Anand Vihar ranks first for average AQI, PM2.5, PM10,
-NO2 and CO, with zero "Good" days in 1,583 days of data. But month by month,
-Wazirpur, Mundka and Punjabi Bagh are in the city's 5 worst stations about
-two months in three, against 57% for Anand Vihar, which spikes rather than
-staying on top.
+The week after Diwali averaged **1.55×** the AQI of the three weeks before,
+ranging from 1.2× (2015, 2018) to more than 2× (2017, 2019). Five festivals that
+overlap with stubble season are too few to pin the effect on crackers alone,
+but the spike is real every year.
 
-## What this suggests
+### 7. The worst station isn't the most stubborn one
 
-- **City-only measures can't fix PM2.5.** Because it is regional (findings
-  4–5), winter PM2.5 needs action across the wider NCR airshed (neighbouring
-  states, power plants, regional burning), not just within Delhi.
-- **Local traffic measures *can* win at hotspots.** NO2 responds to local
-  traffic (findings 4–5). Targeted measures at Anand Vihar and the other NO2
-  hotspots would deliver measurable local improvement, even though they won't
-  move the city's PM2.5 much.
-- **Trigger winter restrictions on the weather forecast, not after AQI spikes.**
-  December–January pollution is mostly trapped by weather (finding 1), and
-  mixing height and wind are forecast days ahead. Emergency curbs timed to
-  forecast stagnation would act before the worst days instead of during them.
-- **Treat late October to mid-November as a separate, emission-driven problem.**
-  That is the one window where pollution far exceeds what the weather explains
-  (finding 2), so the lever there is upstream: crop-residue management in
-  Punjab and Haryana before the window opens.
+**Anand Vihar** is Delhi's worst station on average. It ranks first for AQI,
+PM2.5, PM10, NO2 and CO, and in 1,583 days of data it never once recorded a
+"Good" day.
 
-## Caveats and data quality
+Month by month, though, the more persistent offenders are in the north-west
+industrial belt. **Wazirpur, Mundka and Punjabi Bagh** are among the city's 5
+worst stations about two months in every three. Anand Vihar manages 57%: it
+spikes higher, but it doesn't stay on top as reliably.
 
-- **Station coverage changed a lot.** Only 8 stations reported in 2015–16 and
-  17 in 2017; all 37 report only from 2018. Year-over-year changes therefore
-  compare only stations present in both years, station rankings use
-  2018–2019, and city-wide day counts require at least 5 reporting stations.
-  Long-run "Delhi got better/worse since 2015" claims are not supportable from
-  this data.
-- **Two sensor faults are removed at load time.** Punjabi Bagh's PM10 column
-  is a copy of its PM2.5 column on 95% of days, so its PM10 is excluded. CO
-  from three CPCB stations in January–June 2015 (10–20 mg/m³, a calibration
-  shift) and from two stations in April 2018 is also excluded: 314 readings,
-  under 1% of CO data.
-- **The lockdown comparison uses one baseline year** (2019). The two methods
-  give a range rather than a point estimate. The lower bound is conservative:
-  early March 2020 was already cleaner than its weather explains, possibly
-  from COVID closures that began around 12–13 March.
-- **Weather is one point at central Delhi** (ERA5 reanalysis, about a 25 km
-  grid), and the weather matching uses only mixing height and wind. It misses
-  other factors such as where the air arrives from: monsoon days are cleaner
-  than their mixing height and wind predict. Read the ratios against each
-  other rather than as exact multipliers.
-- **The data ends in July 2020.** Findings describe 2015–2020, before later
-  measures such as the Graded Response Action Plan revisions.
+---
 
-## Method, in brief
+## So what would I do?
+
+1. **Treat PM2.5 as a regional problem.** It's spread evenly across the city
+   and survived a lockdown (findings 4 and 5), so winter PM2.5 needs
+   coordinated action across the wider NCR airshed: neighbouring states,
+   power plants and regional burning. Delhi acting alone won't fix it.
+2. **Fight traffic pollution where it concentrates.** NO2 is local and responds
+   to traffic (findings 4 and 5). Targeted measures at Anand Vihar and the
+   other hotspots would make a measurable difference to the people living
+   there, even if the city-wide PM2.5 number barely moves.
+3. **Trigger winter restrictions on the forecast, not the headline.**
+   December–January pollution is mostly trapped by weather (finding 1), and
+   mixing height and wind can be forecast days ahead. Curbs timed to forecast
+   stagnation would act before the worst days instead of during them.
+4. **Give late October to mid-November its own plan.** That's the one window
+   where pollution far outruns the weather (finding 2), so the lever is
+   upstream: crop-residue management in Punjab and Haryana, in place before the
+   window opens.
+
+---
+
+## What I'm less sure about
+
+- **The early years are thin.** Only 8 stations reported in 2015–16 and 17 in
+  2017; all 37 report only from 2018. So trends compare only stations present
+  in both years, rankings use 2018–19, and a "city-wide" day needs at least 5
+  stations reporting. The data can't support claims like "Delhi got
+  better/worse since 2015".
+- **The lockdown result is a range, not a single number.** It uses one baseline
+  year (2019). The lower bound is cautious: early March 2020 was already
+  cleaner than its weather explains, possibly because COVID closures began
+  around 12–13 March, before the official lockdown.
+- **The weather is one point on a map.** It comes from a single ~25 km grid
+  cell over central Delhi, and the matching uses only mixing height and wind.
+  It misses things like where the air is arriving from: monsoon days come out
+  cleaner than their mixing height and wind predict. Compare the ratios with
+  each other rather than reading them as exact multipliers.
+- **The data stops in July 2020,** before later measures such as the revised
+  Graded Response Action Plan.
+
+## Things the data got wrong (and how I caught them)
+
+Government sensor data is messy, and two faults would have quietly distorted
+the results:
+
+- **A station whose PM10 was a copy of its PM2.5.** Punjabi Bagh's average
+  PM2.5 exactly equalled its average PM10. That's physically impossible,
+  because PM2.5 is a subset of PM10. On closer inspection, the PM10 column
+  repeated the PM2.5 values on 95% of days, so its PM10 is excluded.
+- **Carbon monoxide readings ten times too high.** Three CPCB stations reported
+  CO of 10–20 mg/m³ from January to June 2015, against a normal 1–2, and two
+  more spiked in April 2018. Any station-month with a median above 5 mg/m³ is
+  blanked: 314 readings, under 1% of the CO data.
+
+Both are detected by rules in `fetch_data.py` rather than hard-coded, so they
+would correct themselves if the source data were ever fixed.
+
+---
+
+## How it was done
 
 | Finding | Query | Technique |
 |---|---|---|
-| 1 | [`04_event_clustering.sql`](queries/04_event_clustering.sql), [`12_weather_by_month.sql`](queries/12_weather_by_month.sql), [`13`](queries/13_weather_adjusted_excess.sql) | City-day roll-up with CPCB thresholds; monthly weather profile |
-| 2 | [`13_weather_adjusted_excess.sql`](queries/13_weather_adjusted_excess.sql) | Actual vs expected PM2.5 from same-weather baseline days (mixing height × wind buckets) |
-| 3 | [`11_health_limits.sql`](queries/11_health_limits.sql) | City-day PM2.5 vs NAAQS / WHO limits, complete years flagged |
-| 4 | [`10_station_fingerprint.sql`](queries/10_station_fingerprint.sql) | Station mean / city median (window-function median), common 2018–19 window |
-| 5 | [`09_lockdown_pollutants.sql`](queries/09_lockdown_pollutants.sql), [`15_lockdown_weather_adjusted.sql`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |
-| 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's Diwali date |
-| 7 | [`06_pipeline_summary.sql`](queries/06_pipeline_summary.sql), `10`, [`16_persistent_hotspots.sql`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
-| Caveats | [`08_coverage.sql`](queries/08_coverage.sql), [`03_yoy_comparison.sql`](queries/03_yoy_comparison.sql) | Coverage audit, like-for-like YoY |
+| 1 | [`04`](queries/04_event_clustering.sql), [`12`](queries/12_weather_by_month.sql), [`13`](queries/13_weather_adjusted_excess.sql) | Station readings rolled up to city-days with CPCB thresholds; monthly weather profile |
+| 2 | [`13_weather_adjusted_excess.sql`](queries/13_weather_adjusted_excess.sql) | Actual vs expected PM2.5 from same-weather days (mixing height × wind buckets) |
+| 3 | [`11_health_limits.sql`](queries/11_health_limits.sql) | City-day PM2.5 against India's and WHO's limits, complete years flagged |
+| 4 | [`10_station_fingerprint.sql`](queries/10_station_fingerprint.sql) | Each station vs the city median (window-function median), common 2018–19 window |
+| 5 | [`09`](queries/09_lockdown_pollutants.sql), [`15`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |
+| 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's actual Diwali date |
+| 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
+| Caveats | [`08`](queries/08_coverage.sql), [`03`](queries/03_yoy_comparison.sql) | Coverage audit; like-for-like year-over-year comparison |
 
-Interactive charts for every finding: **[aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**
+Every chart behind these findings is on the live dashboard:
+**[aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**

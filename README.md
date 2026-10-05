@@ -1,228 +1,176 @@
 # aqi-sql
 
-**Live demo: [aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**
+### Delhi's air, read through 36,000 days of sensor data
 
-An analysis of Delhi's air quality from 37 government monitoring stations,
-2015–2020, done entirely in SQL, with an interactive dashboard and a live
-station map. **The full write-up is in [FINDINGS.md](FINDINGS.md).**
+[![CI](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml/badge.svg)](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml)
 
-## Key findings
+**[Live dashboard](https://aqi-sql.onrender.com/)** · **[Read the findings](FINDINGS.md)** · [The SQL](queries/)
 
-- **Winter is worst because of the weather.** City-wide AQI was "Very Poor"
-  or worse on 81% of December days, against 14% of March–September days.
-  Shallow winter air traps pollution: compared with days of the same weather,
-  December is only 9–15% above what its weather predicts.
-- **Stubble season is the exception.** From late October to mid-November,
-  PM2.5 runs up to 2.2× what the weather predicts, the one window where
-  something extra is being emitted.
-- **PM2.5 exceeded India's 24-hour limit on 70% of days** in 2018–19, and the
-  WHO guideline on all but two.
-- **PM2.5 is regional, NO2 is local.** The dirtiest station has 1.8× the PM2.5
-  of the cleanest, but 4.8× the NO2. Fine particles blanket the city, while
-  traffic pollution concentrates at hotspots like Anand Vihar.
-- **The 2020 lockdown confirms it.** Two methods bracket the drop: NO2 fell
-  41–57%, PM10 37–53%, PM2.5 20–47%. Weather didn't cause it, and about half
-  the PM2.5 remained with most local activity stopped.
-- **Diwali adds a spike of 1.2–2.2× on top of the season**, and Anand Vihar is
-  the worst station for AQI, PM2.5, PM10, NO2 and CO.
+Every winter, Delhi's air turns grey and the arguments start: is it the stubble
+fires, the traffic, the crackers, the cold? This project takes five years of
+government monitoring data, joins it to the weather, and tries to work out
+how much each of those really contributes, using SQL for all of the
+analysis.
 
-Every number above comes from a query in [`queries/`](queries/) with tests in
-[`tests/`](tests/). Coverage gaps and sensor faults (see below) are handled
-explicitly, not ignored.
+---
 
-## Data
+## What I found
 
-Real CPCB station-level air quality data for Delhi, 2015–2020, sourced via
-the public [`Kaggle dataset`](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india),
-joined to daily Delhi weather (ERA5 reanalysis via the free
-[Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api):
-mixing height, wind, rain, temperature; `fetch_weather.py`, saved to
-`data/seed/weather_daily.csv`).
+**Winter smog is mostly the weather.** In winter, the layer of air pollution
+can spread into shrinks to about a third of its summer depth, like a lid
+pressing down on the city. On **81% of December days** the AQI was "Very Poor"
+or worse, yet December is only 9–15% above what its weather alone predicts.
 
-- **37 of 38 registered Delhi monitoring stations reported usable AQI data**
-  (DPCC, CPCB, and IMD operated) — the 38th, East Arjun Nagar, has 1,553
-  logged readings but every one has a null AQI value, so `fetch_data.py`
-  drops it entirely
-- **~36,000 daily readings** across PM2.5, PM10, NO2, SO2, CO, and AQI
-- **Coverage is uneven, and the analysis accounts for it.** Only 8 stations
-  reported in 2015-16 and 17 in 2017; the full network of 37 only exists
-  from 2018 (`08_coverage.sql`, and the heatmap in the Full Data tab).
-  Year-over-year changes therefore compare matched stations only, and
-  city-wide day counts require at least 5 reporting stations; station
-  rankings use 2018–2019, the common window
-- **Two sensor faults, handled at load time.** Punjabi Bagh's PM10 column is
-  a copy of its PM2.5 column on 95% of days, and some station-months report
-  CO at 10–20 mg/m³ (a 2015 calibration shift at three CPCB stations, plus
-  an April 2018 spike), against a normal 1–2. `fetch_data.py` detects both
-  with data-driven rules and blanks the affected values
-- Not synthetic, not scraped — official government monitoring data
-- All 37 stations geocoded to real coordinates (34 automatically via
-  OpenStreetMap Nominatim, 3 patched manually) for the live station map
+**Crop burning is a four-week burst.** From late October to mid-November,
+PM2.5 runs up to **2.2× what the weather predicts**. No other part of the year
+comes close.
 
-## Architecture
+**The haze never really leaves.** PM2.5 broke India's own 24-hour limit on
+**70% of days** in 2018–19, and the WHO guideline on all but two.
 
-Two layers, deliberately kept separate:
+**PM2.5 is regional; traffic pollution is local.** The dirtiest station has
+1.8× the PM2.5 of the cleanest, but **4.8× the NO2**. The 2020 lockdown
+confirms it: NO2 fell 41–57%, PM2.5 only 20–47%, and about half the PM2.5
+stayed with the city switched off.
 
-- **The analysis is 100% SQL, statically generated.** `fetch_data.py` loads
-  the raw CSVs into SQLite; the sixteen `.sql` queries do all the actual
-  aggregation, ranking, and trend computation; `build_dashboard.py` renders
-  the results into a single static `dashboard.html` — no per-request
-  computation, no framework doing the analytical work.
-- **One live FastAPI service** (`api/`) serves that static dashboard *and*
-  a small set of live JSON endpoints (`/api/stations`, `/api/queries/{name}`,
-  etc.) that back the interactive station map. The historical dataset
-  (2015–2020) never changes, so the database is baked into the Docker image
-  at build time — no persistent volume, no live database connection needed
-  in production. See `render.yaml` / `api/Dockerfile` for the deploy setup.
+**Anand Vihar is the worst on average** (never one "Good" day in 1,583), but
+Wazirpur, Mundka and Punjabi Bagh are the most persistent, in the city's worst
+5 about two months in three.
 
-## Setup
+What this means for policy, and what I'm less sure about, is in
+**[FINDINGS.md](FINDINGS.md)**.
 
-1. Download the dataset from Kaggle (`rohanrao/air-quality-data-in-india`)
-   and unzip it into `data/raw/` — you'll need `stations.csv` and
-   `station_day.csv`.
-2. Install dependencies:
-```bash
-   pip install -r requirements.txt
+---
+
+## How it works
+
 ```
-3. (Optional, for the station map) Geocode station coordinates. This needs
-   `requests`, which is deliberately *not* in `requirements.txt` — it's
-   only used by this one-time script and never runs inside the deployed
-   image, so it's kept out of the runtime dependency list:
-```bash
-   pip install requests
-   python3 geocode_stations.py
-   # review any misses it prints, patch them manually if needed
+ Kaggle CPCB data ──┐
+                    ├─► fetch_data.py ──► SQLite ──► 16 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+ Open-Meteo weather ┘    (clean +                                     └─► FastAPI ──► /api/* (map, raw query results)
+                          load)
 ```
-4. (Optional, already checked in) Re-download the weather data:
+
+- **The SQL does the thinking.** Every aggregation, ranking, comparison and
+  weather adjustment is a `.sql` file in [`queries/`](queries/). Python only
+  loads data and draws charts.
+- **Each query answers one question**, explains its choices in a header
+  comment, and has tests built on small hand-made databases where the right
+  answer is known in advance.
+- **The dashboard is static.** The history never changes, so the database and
+  charts are built once, at Docker build time. A small FastAPI service serves
+  the page, the station map, and every query as JSON.
+
+## The data, and what was wrong with it
+
+**Sources:** CPCB station readings via
+[Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india)
+(official government data, 2015–2020), and daily Delhi weather from the
+[Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api)
+(ERA5 reanalysis: mixing height, wind, rain, temperature).
+
+Real sensor data is messy. Here's what the project found and how it handles it:
+
+| Problem | What I did |
+|---|---|
+| The network grew from 8 stations (2015) to 37 (2018), so a "city average" meant different things in different years | City-wide days need ≥5 stations; trends compare only stations present in both years; rankings use 2018–19, when all stations report |
+| Punjabi Bagh's PM10 column was a copy of its PM2.5 on 95% of days (caught because the two averages matched, which is physically impossible) | Detected by a rule in `fetch_data.py`; that station's PM10 is excluded |
+| Three stations reported CO 10× too high in early 2015, and two spiked in April 2018 | Station-months with a median above 5 mg/m³ are blanked (314 readings, <1%) |
+| East Arjun Nagar logged 1,553 readings, all with no AQI | Dropped |
+| Counting each station's reading separately let one bad day count up to 37 times | Every "share of days" counts city-days |
+
+## The queries
+
+| # | Question | Technique |
+|---|---|---|
+| 01 | What's each station's 7- and 30-day trend? | `AVG() OVER (ROWS BETWEEN …)` |
+| 02 | Which stations are worst each month? *(API only)* | `RANK()` vs `DENSE_RANK()` |
+| 03 | Is this month better than a year ago, for the same stations? | Self-join on station + year − 1, gap check |
+| 04 | How often is the city Very Poor or Severe, by season? | Station-days rolled up to city-days |
+| 05 | What share of each station's days fall in each AQI category? | `CASE` buckets + window totals |
+| 06 | How do stations rank over a fair, common window? | Layered CTEs, `ROW_NUMBER()` |
+| 07 | What happens to AQI around each year's actual Diwali? | `VALUES` CTE of dates, `julianday()` offsets |
+| 08 | How complete is the record, per station and year? | Coverage audit |
+| 09 | What did the 2020 lockdown remove, pollutant by pollutant? | Unpivot + difference-in-differences |
+| 10 | Is each pollutant regional or local? | Median via `ROW_NUMBER()` / `COUNT() OVER` |
+| 11 | How often does PM2.5 break India's and WHO's limits? | City-day threshold counts |
+| 12 | Why is winter worst? | Pollution joined to weather by month |
+| 13 | Which weeks are dirtier than their weather explains? | Same-weather baseline from `CASE` buckets |
+| 14 | Was the lockdown's weather unusual? | Windowed weather comparison |
+| 15 | The lockdown effect, adjusted for weather | Weather-matched expected values |
+| 16 | Which stations are *consistently* among the worst? | Monthly `RANK()` with eligibility rules |
+
+## The dashboard
+
+**[aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**. It's on a free
+tier, so the first visit after a quiet spell can take 30–60 seconds to wake
+up.
+
+- **Summary:** headline numbers and three takeaways
+- **Seasons & Weather:** why winter is worst, and the weeks the weather can't explain
+- **Pollution Sources:** the lockdown test, local vs regional pollutants, Diwali
+- **Stations:** map, station detail, and side-by-side comparison
+- **Data & Methods:** the full station table and data coverage
+- **Live Now:** current readings from CPCB's live API (only when data.gov.in is up)
+
+## Run it yourself
+
 ```bash
-   python3 fetch_weather.py
+pip install -r requirements.txt
+
+# 1. Build the database from the committed Delhi data (same as the Docker build)
+mkdir -p data/raw && cp data/seed/*.csv data/raw/
+python3 fetch_data.py         # clean + load into data/aqi.db
+python3 build_dashboard.py    # writes dashboard.html
+
+# 2. Serve it with the API (needed for the station map)
+python3 -m uvicorn api.main:app --reload --port 8000
+
+# Optional
+python3 fetch_weather.py      # re-download weather (already in data/seed/)
+python3 export_bi.py          # tidy CSVs for Tableau / Power BI, see exports/README.md
+pytest tests/                 # the test suite
 ```
-5. Build the SQLite database:
-```bash
-   python3 fetch_data.py
-```
-6. Build the dashboard:
-```bash
-   python3 build_dashboard.py
-```
-7. (Optional) Export tidy CSVs for Tableau / Power BI: `python3 export_bi.py`,
-   then see [exports/README.md](exports/README.md).
-8. Open `dashboard.html` in your browser — or run the live API locally
-   (`python3 -m uvicorn api.main:app --reload --port 8000` and open
-   `http://localhost:8000/`) to also get the live station map.
 
-## The sixteen queries
+`data/seed/` holds the Delhi subset of the Kaggle data, station coordinates
+and weather. To start from the full Kaggle download instead, put its
+`stations.csv` and `station_day.csv` in `data/raw/`, and run
+`geocode_stations.py` (needs `pip install requests`) to rebuild the
+coordinates.
 
-| # | File | SQL techniques | Question answered |
-|---|---|---|---|
-| 1 | `01_rolling_average.sql` | Window functions (`AVG() OVER ... ROWS BETWEEN`) | What's the 7-day/30-day AQI trend per station? |
-| 2 | `02_station_ranking.sql` | CTEs, `RANK()`/`DENSE_RANK()` | Which stations are worst each month? (API only) |
-| 3 | `03_yoy_comparison.sql` | Self-join on station + year-1, `LAG()` gap check | Is the same month better or worse than a year earlier, for the same stations? |
-| 4 | `04_event_clustering.sql` | Two-level aggregation (station-day to city-day), `HAVING` | What share of days is the city Very Poor / Severe, by season? |
-| 5 | `05_severity_breakdown.sql` | `CASE` bucketing, window functions | What % of days per station fall into each CPCB AQI category? |
-| 6 | `06_pipeline_summary.sql` | Layered CTEs, joins, `ROW_NUMBER()` | Station ranking on the common 2018–19 window, plus each station's worst month |
-| 7 | `07_diwali_effect.sql` | `VALUES` CTE of festival dates, `julianday()` offsets | How does AQI move in the weeks around each year's actual Diwali date? |
-| 8 | `08_coverage.sql` | Per-station/year completeness, null vs missing rows | How complete is the record, and which stations joined late? |
-| 9 | `09_lockdown_pollutants.sql` | Unpivot via `UNION ALL`, difference-in-differences | Which pollutants did the 2020 lockdown actually remove? |
-| 10 | `10_station_fingerprint.sql` | Median via `ROW_NUMBER()`/`COUNT() OVER`, indexing | Is each pollutant regional or local, and where are the hotspots? |
-| 11 | `11_health_limits.sql` | City-day roll-up, threshold counts | How often does PM2.5 exceed India's and WHO's limits? |
-| 12 | `12_weather_by_month.sql` | Join to weather, monthly profile | Why is winter worst? PM2.5 next to mixing height, wind, rain |
-| 13 | `13_weather_adjusted_excess.sql` | `CASE` weather buckets, same-weather baseline | Which weeks are more polluted than their weather explains? |
-| 14 | `14_lockdown_weather.sql` | Windowed weather comparison | Was the weather different during the 2020 lockdown? |
-| 15 | `15_lockdown_weather_adjusted.sql` | Unpivot + weather-matched expected values | The lockdown effect per pollutant, adjusted for weather |
-| 16 | `16_persistent_hotspots.sql` | Monthly `RANK()` with eligibility rules | Which stations are consistently among the month's worst? |
+## Project layout
 
-Every query except 2, 11 and 14 is wired into the dashboard (11 and 14 are quoted in the write-up), and all sixteen are served by the API.
-
-## Dashboard
-
-An interactive, tabbed dashboard built with Plotly and Leaflet:
-
-- **Overview**: KPI cards (worst/best station, peak severity period, sharpest YoY drop) + worst-stations chart with a Top 10/15/20/All toggle
-- **Trends**: city-wide AQI over time (low-coverage months greyed out) with a range slider, and the share of Very Poor / Severe days by season
-- **What Moves AQI**: weather vs PM2.5 by month, pollution beyond what the weather explains, lockdown effect by pollutant (two methods), local-vs-regional spread across stations, and AQI around each year's Diwali
-- **Station Explorer**: rolling 7-day/30-day average per station (dropdown-selectable) + severity category breakdown, worst/best toggle + persistent hotspots (how often each station is among the month's 5 worst)
-- **Compare Stations**: pick any two stations and overlay their rolling averages, with side-by-side stats
-- **Full Data**: sortable, searchable table of all 37 stations, plus a station × year data-coverage heatmap
-- **Station Map**: live Leaflet map of all 37 stations, color-coded by AQI severity, fetched in real time from the deployed API — click a marker for station details
-
-## Structure
 ```
 aqi-sql/
-├── fetch_data.py          # Kaggle CSVs → data/aqi.db (with geocoded lat/lon)
-├── export_bi.py           # tidy CSVs for Tableau / Power BI → exports/ (see exports/README.md)
-├── fetch_weather.py       # one-time: daily Delhi weather (Open-Meteo) → data/seed/
-├── geocode_stations.py    # one-time: station names → coordinates (OpenStreetMap Nominatim)
-├── build_dashboard.py     # orchestrator → dashboard.html
-├── render.yaml             # Render deployment config
-├── FINDINGS.md             # the write-up: findings, implications, caveats
-│
-├── queries/                # 01_ ... 16_*.sql, one question each (table above)
-│
-├── dashboard/               # chart builders, KPIs, table (Python package)
-│   ├── data.py
-│   ├── kpi.py
-│   ├── table.py
-│   ├── theme.py
-│   └── charts/
-│       ├── worst_stations.py
-│       ├── yoy_trends.py
-│       ├── event_clustering.py
-│       ├── rolling_average.py
-│       ├── severity_breakdown.py
-│       ├── hotspots.py
-│       ├── comparison.py
-│       ├── lockdown.py
-│       ├── fingerprint.py
-│       ├── diwali.py
-│       ├── coverage.py
-│       └── weather.py
-│
-├── templates/               # HTML skeleton
-│   └── dashboard.html
-│
-├── static/                  # CSS/JS (incl. the Leaflet map)
-│   ├── style.css
-│   ├── tabs.js
-│   ├── dashboard.js
-│   ├── compare.js
-│   └── map.js
-│
-├── api/                     # FastAPI service: serves the dashboard + live /api/* endpoints
-│   ├── main.py
-│   ├── Dockerfile
-│   └── requirements.txt
-│
-└── data/
-    └── seed/                # small committed CSV copy for the Docker build
-        ├── stations.csv
-        ├── station_day.csv
-        └── station_coords.csv
+├── FINDINGS.md           the write-up
+├── queries/              16 SQL files, one question each
+├── fetch_data.py         load + clean (sensor-fault rules live here)
+├── fetch_weather.py      one-time weather download
+├── build_dashboard.py    renders dashboard.html from the queries
+├── export_bi.py          CSVs for Tableau / Power BI
+├── dashboard/            chart builders (Plotly), KPIs, table
+├── templates/, static/   page skeleton, CSS, JS (tabs, Leaflet maps, live data)
+├── api/                  FastAPI service + Dockerfile
+├── data/seed/            committed Delhi data + weather, used by the Docker build
+├── tests/                query, API, cleaning and live-parsing tests
+└── exports/README.md     BI data dictionary
 ```
 
+## Known limitations
 
-## Deployment
+- **The data ends in July 2020.** Anything after that, including later
+  pollution-control measures, isn't covered yet.
+- **Weather is one grid point** over central Delhi. That's fine for
+  city-wide patterns, but too coarse for street-level effects.
+- **Rolling averages count rows, not calendar days.** Where a station has gaps,
+  its "7-day" window can stretch over more than 7 days (tested and documented
+  in `01_rolling_average.sql`).
+- **Live readings depend on data.gov.in**, which is sometimes unreachable.
+  The historical analysis doesn't depend on it.
 
-Deployed on Render as a single Docker-based web service (`render.yaml`).
-The image generates `aqi.db` and `dashboard.html` at build time from
-`data/seed/` — see `api/Dockerfile` for details. Free tier, so the first
-request after a period of inactivity may take 30–60s to wake the service.
+## Credits
 
-## Note on data quality
-CPCB monitoring data has real-world gaps (missing dates, occasional
-partial months) — these are preserved as-is rather than artificially
-smoothed, since that's the honest state of the underlying government data.
-
-Two known, documented consequences of this (see comments in the relevant
-`.sql` files for details and verification):
-
-- **`01_rolling_average.sql`'s "7-day"/"30-day" windows are row-based, not
-  calendar-based.** Where a station has a data gap, the window can silently
-  span more calendar days than its name implies.
-- **`03_yoy_comparison.sql`'s `LAG()`-based year-over-year comparison can
-  span more than one year** if an entire year is missing for a given month
-  — it compares against the nearest prior year with data, not necessarily
-  the immediately preceding one.
-
-## Data source
-CPCB via [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
+Air-quality data: Central Pollution Control Board (CPCB), via
+[Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
+Weather: ERA5 reanalysis via [Open-Meteo](https://open-meteo.com/). Map tiles:
+© OpenStreetMap contributors.
