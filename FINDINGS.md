@@ -60,8 +60,12 @@ averaged 1.55× the AQI of the three weeks before, ranging from 1.2× (2015,
 2018) to 2.1× (2017, 2019). Five festivals, overlapping with stubble smoke, is
 too few to isolate firecrackers precisely.
 
-**7. Anand Vihar is consistently the worst site.** It ranks first for AQI,
-PM2.5, PM10, NO2 and CO, and recorded zero "Good" days in 1,583 days of data.
+**7. Anand Vihar is the worst on average; the north-west industrial belt is
+the most persistent.** Anand Vihar ranks first for average AQI, PM2.5, PM10,
+NO2 and CO, with zero "Good" days in 1,583 days of data. But month by month,
+Wazirpur, Mundka and Punjabi Bagh are in the city's 5 worst stations about
+two months in three, against 57% for Anand Vihar, which spikes rather than
+staying on top.
 
 ## What this suggests
 
@@ -89,8 +93,11 @@ PM2.5, PM10, NO2 and CO, and recorded zero "Good" days in 1,583 days of data.
   2018–2019, and city-wide day counts require at least 5 reporting stations.
   Long-run "Delhi got better/worse since 2015" claims are not supportable from
   this data.
-- **One station's PM10 is unusable.** Punjabi Bagh's PM10 column is a copy of
-  its PM2.5 column on 95% of days; it is excluded from all PM10 analysis.
+- **Two sensor faults are removed at load time.** Punjabi Bagh's PM10 column
+  is a copy of its PM2.5 column on 95% of days, so its PM10 is excluded. CO
+  from three CPCB stations in January–June 2015 (10–20 mg/m³, a calibration
+  shift) and from two stations in April 2018 is also excluded: 314 readings,
+  under 1% of CO data.
 - **The lockdown comparison uses one baseline year** (2019). The two methods
   give a range rather than a point estimate. The lower bound is conservative:
   early March 2020 was already cleaner than its weather explains, possibly
@@ -113,7 +120,7 @@ PM2.5, PM10, NO2 and CO, and recorded zero "Good" days in 1,583 days of data.
 | 4 | [`10_station_fingerprint.sql`](queries/10_station_fingerprint.sql) | Station mean / city median (window-function median), common 2018–19 window |
 | 5 | [`09_lockdown_pollutants.sql`](queries/09_lockdown_pollutants.sql), [`15_lockdown_weather_adjusted.sql`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |
 | 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's Diwali date |
-| 7 | [`06_pipeline_summary.sql`](queries/06_pipeline_summary.sql), `10` | Ranking on a common window |
+| 7 | [`06_pipeline_summary.sql`](queries/06_pipeline_summary.sql), `10`, [`16_persistent_hotspots.sql`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
 | Caveats | [`08_coverage.sql`](queries/08_coverage.sql), [`03_yoy_comparison.sql`](queries/03_yoy_comparison.sql) | Coverage audit, like-for-like YoY |
 
 Interactive charts for every finding: **[aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**

@@ -27,7 +27,7 @@
       <div class="badges">
         <span class="badge">37 Delhi stations</span>
         <span class="badge">5.5 years of daily data</span>
-        <span class="badge">15 SQL queries</span>
+        <span class="badge">16 SQL queries</span>
       </div>
     </header>
 
@@ -115,7 +115,7 @@
           <div class="chart-filter-menu" id="chart-filter-menu" hidden>
             <label><input type="checkbox" class="chart-toggle" value="rolling" checked> Rolling AQI Average</label>
             <label><input type="checkbox" class="chart-toggle" value="severity" checked> Severity Breakdown</label>
-            <label><input type="checkbox" class="chart-toggle" value="ranking" checked> Monthly Rankings</label>
+            <label><input type="checkbox" class="chart-toggle" value="ranking" checked> Persistent Hotspots</label>
           </div>
         </div>
 
@@ -131,9 +131,9 @@
           $severity
         </div>
         <div class="card" data-chart="ranking">
-          <h3>Monthly Station Rankings: RANK() vs DENSE_RANK()</h3>
-          <p class="hint">Pick a month &middot; tied stations share a DENSE_RANK() but diverge under RANK()</p>
-          $monthly_ranking
+          <h3>Persistent Hotspots: How Often Each Station Is Among the Month's 5 Worst</h3>
+          <p class="hint">Months with &ge;20 reporting stations (Feb 2018 &ndash; Jun 2020). Wazirpur, Mundka and Punjabi Bagh, the north-west industrial belt, are in the top 5 about two months in three. Anand Vihar has the worst average but spikes rather than staying top: 57% of months</p>
+          $hotspots
         </div>
       </div>
 

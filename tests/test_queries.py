@@ -179,3 +179,26 @@ def test_pipeline_summary_ranks_on_2018_19_only(db_builder):
     assert df.loc["NEW", "worst_overall_rank"] == 1
     assert df.loc["OLD", "avg_aqi_2018_19"] == 150.0
     assert df.loc["OLD", "worst_month"] == "2016-01"   # peak still searches all years
+
+
+def test_persistent_hotspots_counts_top5_in_eligible_months_only(db_builder):
+    """
+    20 stations in Jan 2019 (eligible month) with distinct AQI: the 5 worst get
+    a top-5 month. Feb 2019 has only 3 stations, so it must not count at all,
+    and a station with < 15 days in a month doesn't qualify for that month.
+    """
+    stations = [(f"S{i:02d}", f"Station {i}", "Delhi", 28.6, 77.2) for i in range(21)]
+    readings = []
+    for i in range(20):
+        readings += [(f"S{i:02d}", f"2019-01-{d:02d}", 100 + i) for d in range(1, 16)]
+    readings += [("S20", f"2019-01-{d:02d}", 999) for d in range(1, 15)]   # 14 days: not eligible
+    readings += [(f"S{i:02d}", f"2019-02-{d:02d}", 500) for i in range(3) for d in range(1, 16)]
+    db = db_builder("hotspots", stations, readings)
+    df = run_query(db, "16_persistent_hotspots.sql").set_index("station_id")
+
+    assert "S20" not in df.index
+    assert df.loc["S19", "n_months_eligible"] == 1         # Feb didn't count
+    assert df.loc["S19", "n_months_worst"] == 1
+    assert df.loc["S15", "n_months_top5"] == 1              # 5th worst
+    assert df.loc["S14", "n_months_top5"] == 0              # 6th worst
+    assert df.loc["S00", "n_months_top5"] == 0              # top-5 in Feb, but Feb is ineligible

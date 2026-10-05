@@ -36,6 +36,30 @@ def drop_copied_pm10(readings):
     return readings
 
 
+# Real Delhi CO rarely averages above 2-3 mg/m3 for a month (2018-19 city
+# mean: 1.4). Three CPCB stations report 10-20 mg/m3 for Jan-Jun 2015 (a
+# calibration shift that ends abruptly), and DTU/Sirifort spike to 8-10 in
+# April 2018. A whole station-month above this median is treated as a sensor
+# fault and its CO set to NULL. Absolute rather than relative to other
+# stations: early 2015 has so few stations that the faulty ones ARE the
+# network median, and a relative rule would also flag real traffic hotspots
+# like ITO during the lockdown.
+CO_MONTHLY_MEDIAN_CEILING = 5.0
+
+
+def drop_implausible_co(readings):
+    month = readings["date"].str[:7]
+    medians = readings.groupby([readings["station_id"], month])["co"].transform("median")
+    bad = (medians > CO_MONTHLY_MEDIAN_CEILING) & readings["co"].notna()
+    if bad.any():
+        n_months = readings.loc[bad, ["station_id"]].assign(m=month[bad]).drop_duplicates().shape[0]
+        print(f"WARNING: CO monthly median above {CO_MONTHLY_MEDIAN_CEILING} mg/m3 for "
+              f"{n_months} station-month(s); setting {int(bad.sum())} CO readings to NULL")
+        readings = readings.copy()
+        readings.loc[bad, "co"] = None
+    return readings
+
+
 def main():
     if not STATIONS_CSV.exists() or not READINGS_CSV.exists():
         raise FileNotFoundError(
@@ -93,6 +117,8 @@ def main():
     delhi_readings=delhi_readings.dropna(subset=["aqi"])
     if {"pm25", "pm10"}.issubset(delhi_readings.columns):
         delhi_readings = drop_copied_pm10(delhi_readings)
+    if "co" in delhi_readings.columns:
+        delhi_readings = drop_implausible_co(delhi_readings)
 
     # Drop stations with zero valid AQI readings (e.g. registered but never
     # reported data in this dataset) — keeping them around just produces a

@@ -1,7 +1,7 @@
 """Tests for the data-cleaning steps in fetch_data.py."""
 import pandas as pd
 
-from fetch_data import drop_copied_pm10
+from fetch_data import drop_copied_pm10, drop_implausible_co
 
 
 def test_copied_pm10_is_nulled_for_that_station_only():
@@ -24,3 +24,23 @@ def test_an_occasional_equal_day_is_kept():
         "pm10": [100.0, 240.0, 180.0, 160.0],   # 1 of 4 equal: coincidence, keep
     })
     assert drop_copied_pm10(df)["pm10"].notna().all()
+
+
+def test_implausible_co_month_is_nulled_only_for_that_station_month():
+    df = pd.DataFrame({
+        "station_id": ["BAD"] * 4 + ["OK"] * 2,
+        "date": ["2015-04-01", "2015-04-02", "2015-04-03", "2015-05-01",
+                 "2015-04-01", "2015-04-02"],
+        "co": [12.0, 15.0, 1.0, 1.2, 1.5, 1.8],
+    })
+    out = drop_implausible_co(df)
+    bad_april = (out["station_id"] == "BAD") & out["date"].str.startswith("2015-04")
+    assert out.loc[bad_april, "co"].isna().all()            # median 12 -> whole month dropped
+    assert out.loc[~bad_april, "co"].tolist() == [1.2, 1.5, 1.8]   # May and other station kept
+
+
+def test_a_single_high_co_day_is_kept():
+    df = pd.DataFrame({"station_id": ["S"] * 3,
+                       "date": ["2018-01-01", "2018-01-02", "2018-01-03"],
+                       "co": [1.0, 11.0, 1.2]})                # one spike, median 1.2
+    assert drop_implausible_co(df)["co"].notna().all()

@@ -27,7 +27,7 @@ station map. **The full write-up is in [FINDINGS.md](FINDINGS.md).**
   the worst station for AQI, PM2.5, PM10, NO2 and CO.
 
 Every number above comes from a query in [`queries/`](queries/) with tests in
-[`tests/`](tests/). Coverage gaps and a data defect (see below) are handled
+[`tests/`](tests/). Coverage gaps and sensor faults (see below) are handled
 explicitly, not ignored.
 
 ## Data
@@ -41,9 +41,8 @@ mixing height, wind, rain, temperature; `fetch_weather.py`, saved to
 
 - **37 of 38 registered Delhi monitoring stations reported usable AQI data**
   (DPCC, CPCB, and IMD operated) — the 38th, East Arjun Nagar, has 1,553
-  logged readings but every one has a null AQI value, so it's excluded from
-  every ranking/KPI/chart (though it still appears on the Station Map,
-  shown in gray since it has no AQI to color by)
+  logged readings but every one has a null AQI value, so `fetch_data.py`
+  drops it entirely
 - **~36,000 daily readings** across PM2.5, PM10, NO2, SO2, CO, and AQI
 - **Coverage is uneven, and the analysis accounts for it.** Only 8 stations
   reported in 2015-16 and 17 in 2017; the full network of 37 only exists
@@ -51,9 +50,11 @@ mixing height, wind, rain, temperature; `fetch_weather.py`, saved to
   Year-over-year changes therefore compare matched stations only, and
   city-wide day counts require at least 5 reporting stations; station
   rankings use 2018–2019, the common window
-- **One data defect, handled at load time.** Punjabi Bagh's PM10 column is a
-  copy of its PM2.5 column on 95% of days; `fetch_data.py` detects this and
-  nulls that station's PM10 so it can't distort any PM10 analysis
+- **Two sensor faults, handled at load time.** Punjabi Bagh's PM10 column is
+  a copy of its PM2.5 column on 95% of days, and some station-months report
+  CO at 10–20 mg/m³ (a 2015 calibration shift at three CPCB stations, plus
+  an April 2018 spike), against a normal 1–2. `fetch_data.py` detects both
+  with data-driven rules and blanks the affected values
 - Not synthetic, not scraped — official government monitoring data
 - All 37 stations geocoded to real coordinates (34 automatically via
   OpenStreetMap Nominatim, 3 patched manually) for the live station map
@@ -63,7 +64,7 @@ mixing height, wind, rain, temperature; `fetch_weather.py`, saved to
 Two layers, deliberately kept separate:
 
 - **The analysis is 100% SQL, statically generated.** `fetch_data.py` loads
-  the raw CSVs into SQLite; the fifteen `.sql` queries do all the actual
+  the raw CSVs into SQLite; the sixteen `.sql` queries do all the actual
   aggregation, ranking, and trend computation; `build_dashboard.py` renders
   the results into a single static `dashboard.html` — no per-request
   computation, no framework doing the analytical work.
@@ -104,16 +105,18 @@ Two layers, deliberately kept separate:
 ```bash
    python3 build_dashboard.py
 ```
-7. Open `dashboard.html` in your browser — or run the live API locally
+7. (Optional) Export tidy CSVs for Tableau / Power BI: `python3 export_bi.py`,
+   then see [exports/README.md](exports/README.md).
+8. Open `dashboard.html` in your browser — or run the live API locally
    (`python3 -m uvicorn api.main:app --reload --port 8000` and open
    `http://localhost:8000/`) to also get the live station map.
 
-## The fifteen queries
+## The sixteen queries
 
 | # | File | SQL techniques | Question answered |
 |---|---|---|---|
 | 1 | `01_rolling_average.sql` | Window functions (`AVG() OVER ... ROWS BETWEEN`) | What's the 7-day/30-day AQI trend per station? |
-| 2 | `02_station_ranking.sql` | CTEs, `RANK()`/`DENSE_RANK()` | Which stations are worst each month? |
+| 2 | `02_station_ranking.sql` | CTEs, `RANK()`/`DENSE_RANK()` | Which stations are worst each month? (API only) |
 | 3 | `03_yoy_comparison.sql` | Self-join on station + year-1, `LAG()` gap check | Is the same month better or worse than a year earlier, for the same stations? |
 | 4 | `04_event_clustering.sql` | Two-level aggregation (station-day to city-day), `HAVING` | What share of days is the city Very Poor / Severe, by season? |
 | 5 | `05_severity_breakdown.sql` | `CASE` bucketing, window functions | What % of days per station fall into each CPCB AQI category? |
@@ -127,11 +130,9 @@ Two layers, deliberately kept separate:
 | 13 | `13_weather_adjusted_excess.sql` | `CASE` weather buckets, same-weather baseline | Which weeks are more polluted than their weather explains? |
 | 14 | `14_lockdown_weather.sql` | Windowed weather comparison | Was the weather different during the 2020 lockdown? |
 | 15 | `15_lockdown_weather_adjusted.sql` | Unpivot + weather-matched expected values | The lockdown effect per pollutant, adjusted for weather |
+| 16 | `16_persistent_hotspots.sql` | Monthly `RANK()` with eligibility rules | Which stations are consistently among the month's worst? |
 
-Every query except 11 and 14 (whose figures are quoted in the write-up) is wired into the dashboard, and all fifteen are served by the API — query 2 powers the **Monthly Station
-Rankings** chart in the Station Explorer tab, a month-picker bar chart
-comparing `RANK()` vs. `DENSE_RANK()` side by side so tied stations visibly
-diverge after the tie.
+Every query except 2, 11 and 14 is wired into the dashboard (11 and 14 are quoted in the write-up), and all sixteen are served by the API.
 
 ## Dashboard
 
@@ -140,7 +141,7 @@ An interactive, tabbed dashboard built with Plotly and Leaflet:
 - **Overview**: KPI cards (worst/best station, peak severity period, sharpest YoY drop) + worst-stations chart with a Top 10/15/20/All toggle
 - **Trends**: city-wide AQI over time (low-coverage months greyed out) with a range slider, and the share of Very Poor / Severe days by season
 - **What Moves AQI**: weather vs PM2.5 by month, pollution beyond what the weather explains, lockdown effect by pollutant (two methods), local-vs-regional spread across stations, and AQI around each year's Diwali
-- **Station Explorer**: rolling 7-day/30-day average per station (dropdown-selectable) + severity category breakdown, worst/best toggle + monthly RANK() vs DENSE_RANK() station rankings (month-picker)
+- **Station Explorer**: rolling 7-day/30-day average per station (dropdown-selectable) + severity category breakdown, worst/best toggle + persistent hotspots (how often each station is among the month's 5 worst)
 - **Compare Stations**: pick any two stations and overlay their rolling averages, with side-by-side stats
 - **Full Data**: sortable, searchable table of all 37 stations, plus a station × year data-coverage heatmap
 - **Station Map**: live Leaflet map of all 37 stations, color-coded by AQI severity, fetched in real time from the deployed API — click a marker for station details
@@ -149,13 +150,14 @@ An interactive, tabbed dashboard built with Plotly and Leaflet:
 ```
 aqi-sql/
 ├── fetch_data.py          # Kaggle CSVs → data/aqi.db (with geocoded lat/lon)
+├── export_bi.py           # tidy CSVs for Tableau / Power BI → exports/ (see exports/README.md)
 ├── fetch_weather.py       # one-time: daily Delhi weather (Open-Meteo) → data/seed/
 ├── geocode_stations.py    # one-time: station names → coordinates (OpenStreetMap Nominatim)
 ├── build_dashboard.py     # orchestrator → dashboard.html
 ├── render.yaml             # Render deployment config
 ├── FINDINGS.md             # the write-up: findings, implications, caveats
 │
-├── queries/                # 01_ ... 15_*.sql, one question each (table above)
+├── queries/                # 01_ ... 16_*.sql, one question each (table above)
 │
 ├── dashboard/               # chart builders, KPIs, table (Python package)
 │   ├── data.py
@@ -168,7 +170,7 @@ aqi-sql/
 │       ├── event_clustering.py
 │       ├── rolling_average.py
 │       ├── severity_breakdown.py
-│       ├── monthly_ranking.py
+│       ├── hotspots.py
 │       ├── comparison.py
 │       ├── lockdown.py
 │       ├── fingerprint.py
