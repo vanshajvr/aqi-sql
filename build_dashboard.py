@@ -16,6 +16,7 @@ from dashboard.charts import (
     diwali,
     coverage,
     lockdown,
+    fingerprint,
 )
 
 ROOT = Path(__file__).parent
@@ -52,6 +53,7 @@ def main():
         diwali=to_div(diwali.build(data["df07"])),
         coverage=to_div(coverage.build(data["df08"], station_names)),
         lockdown=to_div(lockdown.build(data["df09"])),
+        fingerprint=to_div(fingerprint.build(data["df10"])),
         table=build_station_table(df06, df05, station_names),
         compare_data_json=compare_json,
         station_options_a=options_a,

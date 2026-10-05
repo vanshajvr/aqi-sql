@@ -63,7 +63,7 @@ async function initMap() {
         missingCoords += 1;
         return;
       }
-      const bucket = bucketForAqi(s.overall_avg_aqi);
+      const bucket = bucketForAqi(s.avg_aqi_2018_19);
       const color = SEVERITY_COLORS[bucket] || "#8b949e";
 
       const marker = L.circleMarker([s.latitude, s.longitude], {
@@ -75,11 +75,11 @@ async function initMap() {
       }).addTo(mapInstance);
 
       const rankText = s.worst_overall_rank ? `#${s.worst_overall_rank} worst overall` : "";
-      const avgAqiText = s.overall_avg_aqi != null ? s.overall_avg_aqi.toFixed(1) : "N/A";
+      const avgAqiText = s.avg_aqi_2018_19 != null ? s.avg_aqi_2018_19.toFixed(1) : "N/A";
       const worstMonthAqiText = s.worst_month_avg_aqi != null ? s.worst_month_avg_aqi.toFixed(1) : "N/A";
       marker.bindPopup(`
         <b>${s.station_name}</b><br>
-        Avg AQI: <span class="popup-stat">${avgAqiText}</span> (${bucket || "N/A"})<br>
+        Avg AQI 2018&ndash;19: <span class="popup-stat">${avgAqiText}</span> (${bucket || "N/A"})<br>
         ${rankText}<br>
         Worst month: ${s.worst_month || "N/A"} (<span class="popup-stat">${worstMonthAqiText}</span>)
       `);

@@ -27,7 +27,7 @@
       <div class="badges">
         <span class="badge">37 Delhi stations</span>
         <span class="badge">5.5 years of daily data</span>
-        <span class="badge">9 SQL queries</span>
+        <span class="badge">10 SQL queries</span>
       </div>
     </header>
 
@@ -49,7 +49,7 @@
     <div id="tab-overview" class="tab-content active" role="tabpanel" aria-labelledby="tabbtn-overview" tabindex="0">
       <div class="kpi-grid">$kpi_cards</div>
       <div class="card">
-        <h3>Worst Delhi Stations by Overall Average AQI</h3>
+        <h3>Worst Delhi Stations by Average AQI, 2018&ndash;2019</h3>
         <p class="hint">Toggle station count with the buttons in the chart</p>
         $worst_stations
       </div>
@@ -75,6 +75,11 @@
         <h3>What the 2020 Lockdown Removed, by Pollutant</h3>
         <p class="hint">25 Mar &ndash; 3 May 2020 vs the same dates in 2019, same stations. Grey: how much lower 2020 already was in early March, before the lockdown. Blue: the extra drop during the lockdown. Traffic (NO<sub>2</sub>) and dust (PM10) fell most; PM2.5 fell least.</p>
         $lockdown
+      </div>
+      <div class="card">
+        <h3>Local or Regional? How Much Each Pollutant Varies Across Stations</h3>
+        <p class="hint">One dot per station, 2018&ndash;2019. Particulates (PM2.5, PM10) sit close to the city median everywhere: a regional blanket that local action at one site barely moves. NO<sub>2</sub> and CO swing several-fold between sites: local hotspots, mostly traffic. SO<sub>2</sub> is low everywhere, so its spread matters little. Hover a dot for the station</p>
+        $fingerprint
       </div>
       <div class="card">
         <h3>Diwali: City-wide AQI Around the Festival, by Year</h3>

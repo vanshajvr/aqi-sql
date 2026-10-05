@@ -2,7 +2,7 @@ import json
 import pandas as pd
 
 def build_comparison_payload(df01, df05, df06, station_names, top_n=20):
-    ids = df06.sort_values("overall_avg_aqi", ascending=False).head(top_n)["station_id"].tolist()
+    ids = df06.sort_values("avg_aqi_2018_19", ascending=False).head(top_n)["station_id"].tolist()
     severe = df05[df05["computed_bucket"] == "Severe"].set_index("station_id")["pct_of_station_days"]
     df06_idx = df06.set_index("station_id")
  
@@ -14,7 +14,7 @@ def build_comparison_payload(df01, df05, df06, station_names, top_n=20):
             "name": station_names.get(sid, sid),
             "dates": d["date"].tolist(),
             "rolling_30": [None if pd.isna(v) else round(float(v), 1) for v in d["rolling_30day_avg"]],
-            "avg_aqi": round(float(row["overall_avg_aqi"]), 1),
+            "avg_aqi": round(float(row["avg_aqi_2018_19"]), 1),
             "severe_pct": round(float(severe.get(sid, 0)), 1),
             "worst_month": row["worst_month"],
         }

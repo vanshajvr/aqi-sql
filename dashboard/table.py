@@ -3,7 +3,7 @@ from html import escape
 
 def build(df06, df05, station_names):
     severe = df05[df05["computed_bucket"] == "Severe"].set_index("station_id")["pct_of_station_days"]
-    d = df06.sort_values("overall_avg_aqi", ascending=False).reset_index(drop=True)
+    d = df06.sort_values("avg_aqi_2018_19", ascending=False).reset_index(drop=True)
     d["severe_pct"] = d["station_id"].map(severe).fillna(0)
 
     rows = ""
@@ -17,7 +17,7 @@ def build(df06, df05, station_names):
         <tr>
           <td data-sort="{i + 1}">{i + 1}</td>
           <td data-sort="{name}">{name}</td>
-          <td data-sort="{r['overall_avg_aqi']}">{r['overall_avg_aqi']:.1f}</td>
+          <td data-sort="{r['avg_aqi_2018_19']}">{r['avg_aqi_2018_19']:.1f}</td>
           <td data-sort="{r['severe_pct']}">{r['severe_pct']:.1f}%</td>
           <td data-sort="{worst_month_sort}">{worst_month}</td>
           <td data-sort="{r['worst_month_avg_aqi']}">{r['worst_month_avg_aqi']:.1f}</td>
@@ -31,7 +31,7 @@ def build(df06, df05, station_names):
         <tr>
           <th onclick="sortTable(0)">Rank</th>
           <th onclick="sortTable(1)">Station</th>
-          <th onclick="sortTable(2)">Avg AQI</th>
+          <th onclick="sortTable(2)">Avg AQI (2018&ndash;19)</th>
           <th onclick="sortTable(3)">% Severe Days</th>
           <th onclick="sortTable(4)">Worst Month</th>
           <th onclick="sortTable(5)">Worst Month AQI</th>

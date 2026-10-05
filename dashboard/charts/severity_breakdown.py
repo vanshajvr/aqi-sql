@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from ..theme import SEVERITY_COLORS,SEVERITY_ORDER,GRID,TEXT,base_layout
 
 def build(df05, df06, station_names):
-    order_all = df06.sort_values("overall_avg_aqi", ascending=False)["station_id"].tolist()
+    order_all = df06.sort_values("avg_aqi_2018_19", ascending=False)["station_id"].tolist()
     d = df05.copy()
     d["station_name"] = d["station_id"].map(station_names)
  

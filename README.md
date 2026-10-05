@@ -2,19 +2,36 @@
 
 **Live demo: [aqi-sql.onrender.com](https://aqi-sql.onrender.com/)**
 
-Delhi's winters aren't just "bad": the city spends 81% of December days at
-"Very Poor" AQI or worse, against 14% of days from March to September, and CPCB has been measuring exactly how bad since 2015. This
-project pulls that story out of the raw data using nothing but SQL: window
-functions, CTEs, and date logic, no pandas doing the real analytical work.
-Real government readings, an interactive dashboard, a live station map, and
-receipts.
+An analysis of Delhi's air quality from 37 government monitoring stations,
+2015–2020, done entirely in SQL, with an interactive dashboard and a live
+station map. **The full write-up is in [FINDINGS.md](FINDINGS.md).**
+
+## Key findings
+
+- **Winter, not stubble season, is the peak.** City-wide AQI was "Very Poor"
+  or worse on 81% of December days, against 14% of March–September days.
+  October–November, the stubble-burning months, comes second at 68%.
+- **PM2.5 exceeded India's 24-hour limit on 70% of days** in 2018–19, and the
+  WHO guideline on all but two.
+- **PM2.5 is regional, NO2 is local.** The dirtiest station has 1.8× the PM2.5
+  of the cleanest, but 4.8× the NO2. Fine particles blanket the city, while
+  traffic pollution concentrates at hotspots like Anand Vihar.
+- **The 2020 lockdown confirms it.** Netting out how much cleaner early March
+  2020 already was, NO2 fell an extra 41 points and PM10 37, but PM2.5 only
+  20. With most local activity stopped, more than half the PM2.5 remained.
+- **Diwali adds a spike of 1.2–2.2× on top of the season**, and Anand Vihar is
+  the worst station for AQI, PM2.5, PM10, NO2 and CO.
+
+Every number above comes from a query in [`queries/`](queries/) with tests in
+[`tests/`](tests/). Coverage gaps and a data defect (see below) are handled
+explicitly, not ignored.
 
 ## Data
 
 Real CPCB station-level air quality data for Delhi, 2015–2020, sourced via
 the public [`Kaggle dataset`](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india).
 
-- - **37 of 38 registered Delhi monitoring stations reported usable AQI data**
+- **37 of 38 registered Delhi monitoring stations reported usable AQI data**
   (DPCC, CPCB, and IMD operated) — the 38th, East Arjun Nagar, has 1,553
   logged readings but every one has a null AQI value, so it's excluded from
   every ranking/KPI/chart (though it still appears on the Station Map,
@@ -24,7 +41,11 @@ the public [`Kaggle dataset`](https://www.kaggle.com/datasets/rohanrao/air-quali
   reported in 2015-16 and 17 in 2017; the full network of 37 only exists
   from 2018 (`08_coverage.sql`, and the heatmap in the Full Data tab).
   Year-over-year changes therefore compare matched stations only, and
-  city-wide day counts require at least 5 reporting stations
+  city-wide day counts require at least 5 reporting stations; station
+  rankings use 2018–2019, the common window
+- **One data defect, handled at load time.** Punjabi Bagh's PM10 column is a
+  copy of its PM2.5 column on 95% of days; `fetch_data.py` detects this and
+  nulls that station's PM10 so it can't distort any PM10 analysis
 - Not synthetic, not scraped — official government monitoring data
 - All 37 stations geocoded to real coordinates (34 automatically via
   OpenStreetMap Nominatim, 3 patched manually) for the live station map
@@ -34,7 +55,7 @@ the public [`Kaggle dataset`](https://www.kaggle.com/datasets/rohanrao/air-quali
 Two layers, deliberately kept separate:
 
 - **The analysis is 100% SQL, statically generated.** `fetch_data.py` loads
-  the raw CSVs into SQLite; the six `.sql` queries do all the actual
+  the raw CSVs into SQLite; the eleven `.sql` queries do all the actual
   aggregation, ranking, and trend computation; `build_dashboard.py` renders
   the results into a single static `dashboard.html` — no per-request
   computation, no framework doing the analytical work.
@@ -75,7 +96,7 @@ Two layers, deliberately kept separate:
    (`python3 -m uvicorn api.main:app --reload --port 8000` and open
    `http://localhost:8000/`) to also get the live station map.
 
-## The nine queries
+## The eleven queries
 
 | # | File | SQL techniques | Question answered |
 |---|---|---|---|
@@ -84,34 +105,28 @@ Two layers, deliberately kept separate:
 | 3 | `03_yoy_comparison.sql` | Self-join on station + year-1, `LAG()` gap check | Is the same month better or worse than a year earlier, for the same stations? |
 | 4 | `04_event_clustering.sql` | Two-level aggregation (station-day to city-day), `HAVING` | What share of days is the city Very Poor / Severe, by season? |
 | 5 | `05_severity_breakdown.sql` | `CASE` bucketing, window functions | What % of days per station fall into each CPCB AQI category? |
-| 6 | `06_pipeline_summary.sql` | Layered CTEs, joins, `ROW_NUMBER()` | Combined view: worst stations, worst month, year-over-year trend |
+| 6 | `06_pipeline_summary.sql` | Layered CTEs, joins, `ROW_NUMBER()` | Station ranking on the common 2018–19 window, plus each station's worst month |
 | 7 | `07_diwali_effect.sql` | `VALUES` CTE of festival dates, `julianday()` offsets | How does AQI move in the weeks around each year's actual Diwali date? |
 | 8 | `08_coverage.sql` | Per-station/year completeness, null vs missing rows | How complete is the record, and which stations joined late? |
 | 9 | `09_lockdown_pollutants.sql` | Unpivot via `UNION ALL`, difference-in-differences | Which pollutants did the 2020 lockdown actually remove? |
+| 10 | `10_station_fingerprint.sql` | Median via `ROW_NUMBER()`/`COUNT() OVER`, indexing | Is each pollutant regional or local, and where are the hotspots? |
+| 11 | `11_health_limits.sql` | City-day roll-up, threshold counts | How often does PM2.5 exceed India's and WHO's limits? |
 
-All nine are wired into the dashboard — query 2 powers the **Monthly Station
+Queries 1–10 are wired into the dashboard and all eleven are served by the API — query 2 powers the **Monthly Station
 Rankings** chart in the Station Explorer tab, a month-picker bar chart
 comparing `RANK()` vs. `DENSE_RANK()` side by side so tied stations visibly
 diverge after the tie.
-
-## What the data actually says
-
-- **Anand Vihar is Delhi's worst station, no contest** — avg AQI 355.8, one December reading averaging 614.5, zero "Good" days in 5.5 years.
-- **Winter is about 6x worse than the rest of the year.** The city-wide mean AQI was "Very Poor" or worse (above 300) on 81% of December days, against 13.9% of March–September days; for "Severe" (above 400) it is 33.6% against 1.4%. December beats even peak stubble-burning season (67.8% of Oct–Nov days), so winter inversion trapping smoke seems to matter more than the burning itself. (Counts are days, not station-readings, and exclude the 2020 lockdown.)
-- **April 2020 is the sharpest one-month drop in the dataset**: −103.5 AQI against April 2019, measured on the same 36 stations. That's the COVID lockdown, not a trend.
-- **The lockdown removed traffic and dust pollution, much less of PM2.5.** Comparing 25 Mar–3 May 2020 with the same dates in 2019, and netting out how much cleaner early March 2020 already was: NO2 fell an extra 41 points and PM10 36, but PM2.5 only 20. With cars and construction stopped, roughly half of Delhi's PM2.5 stayed, which points to sources a city lockdown doesn't touch (regional smoke, household fuel, power plants).
-- **Diwali raises AQI, but the effect varies by year.** The week after Diwali averaged 1.55x the AQI of the three weeks before (421 vs 272), from 1.2x in 2015/2018 to 2.1x in 2017/2019. With five festivals and stubble smoke rising at the same time, treat it as a pattern, not a precise firecracker effect.
-- **Geography is destiny.** Industrial/traffic belt (Anand Vihar, Wazirpur, Mundka) vs. green IMD stations (Aya Nagar, Pusa) — the gap holds every single year.
 
 ## Dashboard
 
 An interactive, tabbed dashboard built with Plotly and Leaflet:
 
 - **Overview**: KPI cards (worst/best station, peak severity period, sharpest YoY drop) + worst-stations chart with a Top 10/15/20/All toggle
-- **Trends**: city-wide AQI over time with a range slider, and the winter-vs-rest-of-year severity comparison
+- **Trends**: city-wide AQI over time (low-coverage months greyed out) with a range slider, and the share of Very Poor / Severe days by season
+- **What Moves AQI**: lockdown effect by pollutant, local-vs-regional spread across stations, and AQI around each year's Diwali
 - **Station Explorer**: rolling 7-day/30-day average per station (dropdown-selectable) + severity category breakdown, worst/best toggle + monthly RANK() vs DENSE_RANK() station rankings (month-picker)
 - **Compare Stations**: pick any two stations and overlay their rolling averages, with side-by-side stats
-- **Full Data**: sortable, searchable table of all 37 stations
+- **Full Data**: sortable, searchable table of all 37 stations, plus a station × year data-coverage heatmap
 - **Station Map**: live Leaflet map of all 37 stations, color-coded by AQI severity, fetched in real time from the deployed API — click a marker for station details
 
 ## Structure
@@ -121,14 +136,9 @@ aqi-sql/
 ├── geocode_stations.py    # one-time: station names → coordinates (OpenStreetMap Nominatim)
 ├── build_dashboard.py     # orchestrator → dashboard.html
 ├── render.yaml             # Render deployment config
+├── FINDINGS.md             # the write-up: findings, implications, caveats
 │
-├── queries/                # the nine .sql files
-│   ├── 01_rolling_average.sql
-│   ├── 02_station_ranking.sql
-│   ├── 03_yoy_comparison.sql
-│   ├── 04_event_clustering.sql
-│   ├── 05_severity_breakdown.sql
-│   └── 06_pipeline_summary.sql
+├── queries/                # 01_ ... 11_*.sql, one question each (table above)
 │
 ├── dashboard/               # chart builders, KPIs, table (Python package)
 │   ├── data.py
@@ -142,7 +152,11 @@ aqi-sql/
 │       ├── rolling_average.py
 │       ├── severity_breakdown.py
 │       ├── monthly_ranking.py
-│       └── comparison.py
+│       ├── comparison.py
+│       ├── lockdown.py
+│       ├── fingerprint.py
+│       ├── diwali.py
+│       └── coverage.py
 │
 ├── templates/               # HTML skeleton
 │   └── dashboard.html

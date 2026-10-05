@@ -9,6 +9,26 @@ STATIONS_CSV=RAW_DIR / "stations.csv"
 READINGS_CSV=RAW_DIR / "station_day.csv"
 COORDS_CSV = RAW_DIR / "station_coords.csv"
 
+# A real station's PM2.5 (a subset of PM10) essentially never equals its PM10
+# to two decimals. Punjabi Bagh's PM10 column in the Kaggle data is a copy of
+# its PM2.5 column on ~95% of days, so any PM10 analysis would read it as
+# pure fine-particle pollution. Computed per station rather than hardcoded,
+# so it self-corrects if the source data is ever fixed.
+PM10_COPY_THRESHOLD = 0.5
+
+
+def drop_copied_pm10(readings):
+    both = readings.dropna(subset=["pm25", "pm10"])
+    share_equal = (both["pm25"] == both["pm10"]).groupby(both["station_id"]).mean()
+    bad = sorted(share_equal[share_equal > PM10_COPY_THRESHOLD].index)
+    if bad:
+        print(f"WARNING: PM10 duplicates PM2.5 for {len(bad)} station(s), "
+              f"setting their PM10 to NULL: {', '.join(bad)}")
+        readings = readings.copy()
+        readings.loc[readings["station_id"].isin(bad), "pm10"] = None
+    return readings
+
+
 def main():
     if not STATIONS_CSV.exists() or not READINGS_CSV.exists():
         raise FileNotFoundError(
@@ -64,6 +84,8 @@ def main():
 
     delhi_readings = delhi_readings[[c for c in EXPECTED_READING_COLS if c in delhi_readings.columns]]
     delhi_readings=delhi_readings.dropna(subset=["aqi"])
+    if {"pm25", "pm10"}.issubset(delhi_readings.columns):
+        delhi_readings = drop_copied_pm10(delhi_readings)
 
     # Drop stations with zero valid AQI readings (e.g. registered but never
     # reported data in this dataset) — keeping them around just produces a

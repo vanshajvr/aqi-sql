@@ -163,3 +163,19 @@ def test_pipeline_summary_ranks_match_manual_calculation(db_builder):
     assert df.loc["S1", "worst_overall_rank"] == 1
     assert df.loc["S2", "worst_overall_rank"] == 2
     assert df.loc["S3", "worst_overall_rank"] == 3
+
+def test_pipeline_summary_ranks_on_2018_19_only(db_builder):
+    """
+    A station with a filthy 2016 but clean 2018-19 must not outrank one that
+    was worse in the common window: stations joined in different years, so
+    only 2018-2019 compares them over the same days.
+    """
+    stations = [("OLD", "Old", "Delhi", 28.6, 77.2), ("NEW", "New", "Delhi", 28.6, 77.2)]
+    readings = [("OLD", "2016-01-01", 900), ("OLD", "2018-06-01", 150),
+                ("NEW", "2018-06-01", 250), ("NEW", "2020-03-01", 50)]
+    db = db_builder("pipeline_window", stations, readings)
+    df = run_query(db, "06_pipeline_summary.sql").set_index("station_id")
+
+    assert df.loc["NEW", "worst_overall_rank"] == 1
+    assert df.loc["OLD", "avg_aqi_2018_19"] == 150.0
+    assert df.loc["OLD", "worst_month"] == "2016-01"   # peak still searches all years

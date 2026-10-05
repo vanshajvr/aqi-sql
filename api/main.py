@@ -26,6 +26,8 @@ QUERY_FILES = {
     "diwali-effect": "07_diwali_effect.sql",
     "coverage": "08_coverage.sql",
     "lockdown-pollutants": "09_lockdown_pollutants.sql",
+    "station-fingerprint": "10_station_fingerprint.sql",
+    "health-limits": "11_health_limits.sql",
 }
 
 # Read the .sql files once at startup, not on every request.
@@ -104,7 +106,7 @@ def health():
 def list_stations():
     """
     Station-level summary for the map: one row per station with its
-    coordinates (if geocoded), overall average AQI, and worst-month info
+    coordinates (if geocoded), 2018-2019 average AQI, and worst-month info
     — everything a marker/popup needs, in one call.
 
     Reuses 06_pipeline_summary.sql (already covered by the dashboard) for
@@ -130,7 +132,7 @@ def list_stations():
             "station_name": row["station_name"],
             "latitude": row["latitude"],
             "longitude": row["longitude"],
-            "overall_avg_aqi": stats.get("overall_avg_aqi"),
+            "avg_aqi_2018_19": stats.get("avg_aqi_2018_19"),
             "worst_overall_rank": stats.get("worst_overall_rank"),
             "worst_month": stats.get("worst_month"),
             "worst_month_avg_aqi": stats.get("worst_month_avg_aqi"),

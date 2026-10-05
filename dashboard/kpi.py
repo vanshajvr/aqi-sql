@@ -19,14 +19,14 @@ ICON_TREND_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
  
  
 def build(df06, df04, df03):
-    worst = df06.sort_values("overall_avg_aqi", ascending=False).iloc[0]
-    best = df06.sort_values("overall_avg_aqi", ascending=True).iloc[0]
+    worst = df06.sort_values("avg_aqi_2018_19", ascending=False).iloc[0]
+    best = df06.sort_values("avg_aqi_2018_19", ascending=True).iloc[0]
     peak_period = df04.sort_values("pct_days_very_poor_plus", ascending=False).iloc[0]
     biggest_drop = df03.dropna(subset=["yoy_change"]).sort_values("yoy_change").iloc[0]
  
     cards = [
-        ("Worst Station", worst["station_name"], f"Avg AQI {worst['overall_avg_aqi']:.1f}", NEGATIVE, ICON_WARNING),
-        ("Best Station", best["station_name"], f"Avg AQI {best['overall_avg_aqi']:.1f}", POSITIVE, ICON_LEAF),
+        ("Worst Station", worst["station_name"], f"Avg AQI {worst['avg_aqi_2018_19']:.1f} (2018-19)", NEGATIVE, ICON_WARNING),
+        ("Best Station", best["station_name"], f"Avg AQI {best['avg_aqi_2018_19']:.1f} (2018-19)", POSITIVE, ICON_LEAF),
         ("Peak Severity Period", PERIOD_LABELS.get(peak_period["period"], peak_period["period"]),
          f"{peak_period['pct_days_very_poor_plus']:.0f}% of days Very Poor or worse", WARNING, ICON_FLAME),
         ("Sharpest YoY Drop",

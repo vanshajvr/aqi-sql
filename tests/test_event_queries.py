@@ -187,3 +187,55 @@ def test_lockdown_ignores_stations_missing_a_window(pollutant_conn):
     no2 = run_query(pollutant_conn, "09_lockdown_pollutants.sql")[0]
     assert no2["n_stations"] == 3
     assert no2["lockdown_2020"] == 25.0
+
+
+# ---------- 10_station_fingerprint.sql ----------
+
+def test_fingerprint_index_is_relative_to_city_median():
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE stations (station_id TEXT, station_name TEXT)")
+    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, "
+              "pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL)")
+    no2_by_station = {"A": 20, "B": 40, "C": 40, "D": 80}   # median of 4 = 40
+    start = date(2018, 1, 1)
+    for sid, no2 in no2_by_station.items():
+        c.execute("INSERT INTO stations VALUES (?, ?)", (sid, f"Station {sid}"))
+        c.executemany("INSERT INTO readings (station_id, date, no2, pm25) VALUES (?, ?, ?, 100)",
+                      [(sid, (start + timedelta(days=i)).isoformat(), no2) for i in range(300)])
+    # E has too few days to be indexed; F's readings fall outside 2018-2019
+    c.executemany("INSERT INTO readings (station_id, date, no2) VALUES ('E', ?, 999)",
+                  [((start + timedelta(days=i)).isoformat(),) for i in range(299)])
+    c.executemany("INSERT INTO readings (station_id, date, no2) VALUES ('F', ?, 999)",
+                  [((date(2017, 1, 1) + timedelta(days=i)).isoformat(),) for i in range(300)])
+    c.executemany("INSERT INTO stations VALUES (?, ?)", [("E", "E"), ("F", "F")])
+
+    rows = run_query(c, "10_station_fingerprint.sql")
+    no2 = {r["station_id"]: r for r in rows if r["pollutant"] == "NO2"}
+    assert set(no2) == {"A", "B", "C", "D"}
+    assert no2["D"]["index_vs_city_median"] == 2.0
+    assert no2["A"]["index_vs_city_median"] == 0.5
+    assert no2["D"]["pollutant_max_to_min"] == 4.0
+    assert no2["D"]["rank_in_pollutant"] == 1
+    pm25 = [r for r in rows if r["pollutant"] == "PM2.5"]
+    assert all(r["index_vs_city_median"] == 1.0 for r in pm25)
+    assert rows[0]["pollutant"] == "NO2"            # widest spread sorts first
+    c.close()
+
+
+# ---------- 11_health_limits.sql ----------
+
+def test_health_limits_use_strict_thresholds_on_city_days():
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, pm25 REAL)")
+    def day(d, pm25, n=5):
+        c.executemany("INSERT INTO readings VALUES (?, ?, ?)", [(f"S{i}", d, pm25) for i in range(n)])
+    day("2019-01-01", 60)      # exactly at the Indian limit: not over
+    day("2019-01-02", 61)      # over both
+    day("2019-01-03", 15)      # exactly at WHO: not over
+    day("2019-01-04", 999, n=4)  # too few stations: ignored
+    r = run_query(c, "11_health_limits.sql")[0]
+    assert r["n_days"] == 3
+    assert r["n_days_over_naaqs"] == 1
+    assert r["pct_days_over_who"] == pytest.approx(66.7)
+    assert r["is_complete_year"] == 0
+    c.close()

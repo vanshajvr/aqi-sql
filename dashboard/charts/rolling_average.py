@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from ..theme import ACCENT,ACCENT_2,GRID,TEXT,base_layout
 
 def build(df01, df06, station_names):
-    worst_ids = df06.sort_values("overall_avg_aqi", ascending=False).head(10)["station_id"].tolist()
+    worst_ids = df06.sort_values("avg_aqi_2018_19", ascending=False).head(10)["station_id"].tolist()
  
     fig = go.Figure()
     for i, sid in enumerate(worst_ids):
