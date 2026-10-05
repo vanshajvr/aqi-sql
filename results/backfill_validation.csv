@@ -1,0 +1,6 @@
+test,check,value,threshold,passed,n_station_days,kind
+A,PM2.5 Pearson r,0.972,>= 0.95,True,4795,criterion
+A,PM10 Pearson r,0.978,>= 0.90,True,4102,criterion
+A,PM2.5 median absolute difference (%),3.865,<= 15,True,4795,criterion
+A,Computed AQI mean absolute error (baseline on Kaggle's own data: 28.5),28.51,info,,4827,info
+A,Computed AQI same category % (baseline: 74.4),70.106,info,,4827,info

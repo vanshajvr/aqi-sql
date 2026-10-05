@@ -24,6 +24,10 @@ CREATE TABLE readings (
     pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL,
     aqi REAL, aqi_bucket TEXT
 );
+CREATE TABLE readings_openaq (
+    station_id TEXT NOT NULL, date TEXT NOT NULL,
+    pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL, o3 REAL
+);
 CREATE TABLE fires (
     date TEXT PRIMARY KEY, n_fires INTEGER, frp_sum_mw REAL
 );

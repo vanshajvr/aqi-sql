@@ -15,6 +15,13 @@ WEATHER_CSV = next(
                  Path(__file__).parent / "data" / "seed" / "weather_daily.csv") if p.exists()),
     None,
 )
+# Written by prepare_openaq.py: the post-2020 backfill, kept in its own table so
+# nothing in the published 2015-2020 analysis (which reads `readings`) changes
+OPENAQ_CSV = next(
+    (p for p in (RAW_DIR / "openaq_daily.csv",
+                 Path(__file__).parent / "data" / "seed" / "openaq_daily.csv") if p.exists()),
+    None,
+)
 # Written by fetch_fires.py (NASA FIRMS); same raw/ then seed/ lookup as weather
 FIRES_CSV = next(
     (p for p in (RAW_DIR / "fires_daily.csv",
@@ -188,6 +195,14 @@ def main():
         """)
 
         conn.execute("""
+            CREATE TABLE readings_openaq(
+                station_id TEXT NOT NULL REFERENCES stations(station_id),
+                date TEXT NOT NULL,
+                pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL, o3 REAL,
+                PRIMARY KEY (station_id, date)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE fires(
                 date TEXT PRIMARY KEY,
                 n_fires INTEGER,
@@ -196,6 +211,12 @@ def main():
         """)
 
         delhi_stations.to_sql("stations", conn, if_exists="append", index=False)
+        if OPENAQ_CSV is not None:
+            openaq = pd.read_csv(OPENAQ_CSV)
+            # same station set and the same sensor-fault rules as the Kaggle data
+            openaq = openaq[openaq["station_id"].isin(delhi_stations["station_id"])]
+            openaq = drop_implausible_co(drop_copied_pm10(openaq))
+            openaq.to_sql("readings_openaq", conn, if_exists="append", index=False)
         if FIRES_CSV is not None:
             pd.read_csv(FIRES_CSV).to_sql("fires", conn, if_exists="append", index=False)
         else:
