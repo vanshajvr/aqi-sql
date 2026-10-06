@@ -40,6 +40,7 @@ QUERY_FILES = {
     "station-then-vs-now": "21_station_then_vs_now.sql",
     "monthly-pm25": "22_monthly_pm25.sql",
     "rolling-pm25": "23_rolling_pm25.sql",
+    "alert-rules-future": "24_alert_rules_future.sql",
 }
 
 # Read the .sql files once at startup, not on every request.

@@ -1,0 +1,10 @@
+split,rule,onsets_warned,onsets,onset_recall,onset_recall_ci_low,onset_recall_ci_high,false_alerts_per_30d,rule_e_pass
+check 2018-20,A calendar Nov-Jan,17,44,0.39,0.257,0.534,1.3,
+check 2018-20,B today > 300,0,44,0.0,0.0,0.08,1.7,
+check 2018-20,E today > 200 AND weather,25,44,0.57,0.422,0.703,2.4,True
+future 2020-22,A calendar Nov-Jan,10,25,0.4,0.234,0.593,1.9,
+future 2020-22,B today > 300,0,25,0.0,0.0,0.133,1.5,
+future 2020-22,E today > 200 AND weather,16,25,0.64,0.445,0.798,2.4,True
+future 2025-26,A calendar Nov-Jan,5,10,0.5,0.237,0.763,0.3,
+future 2025-26,B today > 300,0,10,0.0,0.0,0.278,0.6,
+future 2025-26,E today > 200 AND weather,4,10,0.4,0.168,0.687,0.8,False

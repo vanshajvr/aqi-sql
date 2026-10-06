@@ -22,6 +22,13 @@ the pre-registered rule (drop PM2.5 <= 0 or > 999, or < 16 observations).
   * every winter month (Nov-Feb) with paired data: embassy x 1.04 within
     +/-15% of the city-wide monthly mean (means over the paired days)
 
+Alert future test (analysis_plans/alert_future_preregistration.md): rule E
+from query 17, translated to PM2.5, scored by query 24 on Jul 2020 - Oct 2022
+and Feb 2025 - Oct 2026. Rule E passes only if, in BOTH periods, it stays
+within the false-alert guardrail, warns >= 50% of first bad days, and beats
+rules A and B on that. Written to results/alert_future_test.csv with Wilson
+intervals.
+
 Usage (after fetch_data.py has built data/aqi.db with readings_openaq):
     python3 validate_backfill.py
 """
@@ -119,6 +126,24 @@ def test_b(conn):
     return rows, m
 
 
+def alert_future(conn):
+    from uncertainty import wilson_ci
+    q = (ROOT / "queries" / "24_alert_rules_future.sql").read_text()
+    df = pd.read_sql_query(q, conn)
+    rows = []
+    for r in df[df["rule"].str[0].isin(["A", "B", "E"])].itertuples():
+        lo, hi = wilson_ci(int(r.n_onsets_warned), int(r.n_onsets))
+        rows.append({"split": r.split, "rule": r.rule, "onsets_warned": int(r.n_onsets_warned),
+                     "onsets": int(r.n_onsets), "onset_recall": r.onset_recall,
+                     "onset_recall_ci_low": round(lo, 3), "onset_recall_ci_high": round(hi, 3),
+                     "false_alerts_per_30d": r.false_alerts_per_30d,
+                     "rule_e_pass": None if pd.isna(r.rule_e_pass) else bool(r.rule_e_pass)})
+    out = pd.DataFrame(rows)
+    out.to_csv(OUT_PATH.with_name("alert_future_test.csv"), index=False)
+    future = out[out["split"].str.startswith("future") & out["rule"].str.startswith("E")]
+    return out, bool(future["rule_e_pass"].all())
+
+
 def main():
     conn = sqlite3.connect(DB_PATH)
     rows, pm25 = test_a(conn)
@@ -135,6 +160,12 @@ def main():
         criteria = out[(out["kind"] == "criterion") & (out["test"] == test)]
         verdict = "PASS" if criteria["passed"].all() else "FAIL"
         print(f"Test {test}: {verdict}")
+
+    conn = sqlite3.connect(DB_PATH)
+    alerts, passed = alert_future(conn)
+    conn.close()
+    print("\n" + alerts.to_string(index=False))
+    print(f"Alert future test (rule E): {'PASS' if passed else 'FAIL'}")
 
 
 if __name__ == "__main__":

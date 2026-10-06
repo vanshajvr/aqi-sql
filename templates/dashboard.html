@@ -30,7 +30,7 @@
       <div class="badges">
         <span class="badge">37 stations</span>
         <span class="badge" data-no-animate>2015&ndash;2026</span>
-        <span class="badge">23 SQL queries</span>
+        <span class="badge">24 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
@@ -194,6 +194,20 @@
         </div>
         <details class="method"><summary>How this is measured</summary>
           Each rule decides in the evening whether to alert for tomorrow; a hit is a city-wide AQI above 300. "First bad days" are the start of each bad spell (today fine, tomorrow bad): the warning that changes what people do. Rules and the choice criterion were fixed in advance: on 2015&ndash;17, pick the best first-bad-day rate with at most 4 false alerts a month. Scores shown are 2018&ndash;20, which played no part in the choice. The forecast is the actual next-day weather, so real-world scores would be somewhat lower. Rule E: 34 of 49 first bad days (95% interval 55&ndash;80%); rule B: 0 of 49 (at most 7%).
+        </details>
+      </div>
+      <div class="card">
+        <h3>The future test: half passed</h3>
+        <p class="hint">Rule E, translated to PM2.5, on years it never saw, against criteria written down before scoring. It must pass in both periods, so overall it fails.</p>
+        <div class="table-scroll"><table class="alert-table">
+          <thead><tr><th>Period</th><th>Rule E: first bad days warned</th><th>Calendar rule</th><th>False alerts / month</th><th>Verdict</th></tr></thead>
+          <tbody>
+            <tr><td>Jul 2020 &ndash; Oct 2022</td><td>64% (16 of 25)</td><td>40%</td><td>2.4</td><td class="verdict-pass">Pass</td></tr>
+            <tr><td>Feb 2025 &ndash; Oct 2026</td><td>40% (4 of 10)</td><td>50%</td><td>0.8</td><td class="verdict-fail">Fail</td></tr>
+          </tbody>
+        </table></div>
+        <details class="method"><summary>How this is measured</summary>
+          Bad day: city-wide PM2.5 above 120 &micro;g/m&sup3; (the CPCB Very Poor boundary), since the new data has no official AQI. The translation alone lowers rule E from 69% to 57% on 2018&ndash;20. 2025&ndash;26 had only 10 first bad days: 95% intervals 17&ndash;69% for rule E and 24&ndash;76% for the calendar rule. <a href="https://github.com/vanshajvr/aqi-sql/blob/main/analysis_plans/alert_future_preregistration.md" target="_blank" rel="noopener">The pre-registered plan</a>.
         </details>
       </div>
       <div class="card">

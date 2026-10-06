@@ -251,7 +251,28 @@ The winning rule combines both halves of the story: pollution already
 building, plus a lid about to drop. It warns before about 7 in 10 first bad
 days (34 of 49; 95% interval 55–80%) and stays just inside the false-alarm
 budget. The obvious rule's 0 of 49 has an upper bound of 7%, so the gap isn't
-luck. One honest caveat: the
+luck.
+
+**Then I tested it on the future, and it half-failed.** With the backfill, the
+rule could face years it had never seen. I [wrote down the test
+first](analysis_plans/alert_future_preregistration.md): translate the rule to
+PM2.5 (the new data has no official AQI), and require it to pass in *both*
+later periods, with at most 4 false alerts a month, at least 50% of first bad
+days warned, and a better score than the calendar and persistence rules.
+
+| Period (never seen by the rule) | First bad days warned | Calendar rule | Verdict |
+|---|---|---|---|
+| July 2020 – October 2022 | **64%** (16 of 25) | 40% | Pass |
+| February 2025 – October 2026 | **40%** (4 of 10) | 50% | **Fail** |
+
+So it fails, as specified. Two things temper that without excusing it. The
+PM2.5 translation alone costs something: on 2018–20 the translated rule scores
+57% instead of 69%. And 2025–26 had only 10 onsets, so 4 against 5 is one day,
+with intervals that overlap almost entirely (17–69% against 24–76%). The
+honest summary: it worked on 2020–22, and 2025–26 is too thin to say either
+way. A simpler rule ("today above 90 µg/m³") did better in 2025–26, but
+picking it after seeing that would be exactly the overfitting the test exists
+to prevent, so it's a hypothesis for the next winter, not a result. One honest caveat: the
 "forecast" here is the actual next-day weather, a perfect forecast, so a real
 app would score somewhat lower. All seven rules are in
 [`17_alert_rules.sql`](queries/17_alert_rules.sql) and on the dashboard's
@@ -333,6 +354,7 @@ would correct themselves if the source data were ever fixed.
 | 5 | [`09`](queries/09_lockdown_pollutants.sql), [`15`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |
 | 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's actual Diwali date |
 | 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
+| Alert (future test) | [`24_alert_rules_future.sql`](queries/24_alert_rules_future.sql), [`validate_backfill.py`](validate_backfill.py) | Same rules translated to PM2.5, scored on two unseen periods against [pre-registered criteria](analysis_plans/alert_future_preregistration.md) ([results](results/alert_future_test.csv)) |
 | Alert | [`17_alert_rules.sql`](queries/17_alert_rules.sql) | Next-day pairs via `LEAD()`; precision, recall and first-bad-day recall per rule; train/test split with the choice made in SQL |
 | 8 | [`19_then_vs_now.sql`](queries/19_then_vs_now.sql), [`20_stubble_then_vs_now.sql`](queries/20_stubble_then_vs_now.sql), [`validate_backfill.py`](validate_backfill.py) | Fixed 12-station panel across winters; weather-adjusted ratio; pre-registered validation of the OpenAQ data ([plan](analysis_plans/backfill_preregistration.md), [results](results/backfill_validation.csv)) |
 | Intervals | [`uncertainty.py`](uncertainty.py) | Week-block bootstrap (daily figures); station bootstrap re-running `09` and `10`; Wilson interval (alert) |

@@ -118,6 +118,8 @@ a.badge-link:hover { background: rgba(88,166,255,0.1); }
 .table-scroll { overflow-x: auto; }
 .alert-table td:not(:first-child), .alert-table th:not(:first-child) { text-align: right; font-family: 'JetBrains Mono', monospace; }
 .alert-table tr.selected-rule td { color: #3fb950; font-weight: 600; }
+.alert-table td.verdict-pass { color: #3fb950; font-weight: 600; }
+.alert-table td.verdict-fail { color: #f85149; font-weight: 600; }
 
 details.method { margin-top: 12px; font-size: 12px; color: #8b949e; line-height: 1.6; }
 details.method summary { cursor: pointer; color: #6e7681; list-style: none; width: fit-content; }

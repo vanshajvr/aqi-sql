@@ -61,7 +61,7 @@ def wilson_ci(successes, n, z=1.96):
     denom = 1 + z ** 2 / n
     centre = (p + z ** 2 / (2 * n)) / denom
     half = z * math.sqrt(p * (1 - p) / n + z ** 2 / (4 * n ** 2)) / denom
-    return centre - half, centre + half
+    return max(0.0, centre - half), min(1.0, centre + half)
 
 
 def week_bootstrap(df, stat, n, rng):

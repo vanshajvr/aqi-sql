@@ -45,6 +45,8 @@ Wazirpur, Mundka and Punjabi Bagh are the most persistent, in the city's worst
 ("today was bad") never warns before the first bad day of a spell. A rule
 combining "pollution building" with "low lid forecast" warned before **69% of
 them** with under 4 false alerts a month, scored on years it wasn't tuned on.
+On data from after 2020, it passed one pre-registered test period (64%) and
+failed the other (40% of just 10 onsets), so the write-up reports a failure.
 
 **And it isn't measurably better yet.** Bringing the data forward to 2026
 (OpenAQ, validated against the official record first), severe winter days fell
@@ -69,7 +71,7 @@ What this means for policy, and what I'm less sure about, is in
 ```
  Kaggle CPCB data ───┐
  OpenAQ (2020-26) ───┤
- Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 23 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+ Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 24 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
  NASA FIRMS fires ───┘    (clean + load)                               └─► FastAPI ──► /api/* (map, raw query results)
 ```
 
@@ -134,6 +136,7 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | 21 | How did each station change, 2018–19 to 2025–26? | Equal 12-month windows, coverage rule, both sources unioned |
 | 22 | What's the long-run monthly trend, 2015–2026? | Station-month roll-up across both sources, coverage flagged |
 | 23 | Each station's 7- and 30-day rolling PM2.5, 2015–2026 | **Calendar** windows (`RANGE` over `julianday`) with minimum readings, weekly sampling |
+| 24 | Does the alert rule still work on years it never saw? | Rules translated to PM2.5, scored on two unseen periods against pre-registered criteria |
 
 ## The dashboard
 
@@ -185,7 +188,7 @@ coordinates.
 ```
 aqi-sql/
 ├── FINDINGS.md           the write-up
-├── queries/              23 SQL files, one question each
+├── queries/              24 SQL files, one question each
 ├── analysis_plans/       pre-registered tests, committed before the results
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
 ├── fetch_weather.py      one-time weather download
