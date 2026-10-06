@@ -30,7 +30,7 @@
       <div class="badges">
         <span class="badge">37 stations</span>
         <span class="badge" data-no-animate>2015&ndash;2026</span>
-        <span class="badge">21 SQL queries</span>
+        <span class="badge">23 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
@@ -75,8 +75,8 @@
         </ol>
       </div>
       <div class="card">
-        <h3>Worst stations, 2018&ndash;19 average AQI</h3>
-        <p class="hint">Use the buttons to show more stations.</p>
+        <h3>Worst stations, then and now</h3>
+        <p class="hint">Mean PM2.5 in Oct 2018 &ndash; Sep 2019 (grey) and Oct 2025 &ndash; Sep 2026 (blue), worst now at the top. Raw change, not weather-adjusted: see Then vs Now.</p>
         $worst_stations
       </div>
     </div>
@@ -84,8 +84,8 @@
     <div id="tab-seasons" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-seasons" tabindex="0">
       <div class="grid-2">
         <div class="card">
-          <h3>AQI peaks every winter</h3>
-          <p class="hint">Monthly city-wide average. Grey points: fewer than 10 stations reporting.</p>
+          <h3>PM2.5 peaks every winter, 2015&ndash;2026</h3>
+          <p class="hint">Monthly city-wide average. Grey points: fewer than 10 stations reporting. Shaded: no data.</p>
           $yoy
         </div>
         <div class="card">
@@ -262,7 +262,7 @@
         </div>
         <div class="card" data-chart="rolling">
           <h3>Rolling average by station</h3>
-          <p class="hint">Pick a station from the dropdown in the chart.</p>
+          <p class="hint">7- and 30-day PM2.5, 2015&ndash;2026, over true calendar windows. Pick a station from the dropdown in the chart.</p>
           $rolling
         </div>
         <div class="card" data-chart="severity">
@@ -275,7 +275,7 @@
       <div id="subtab-compare" class="subtab-content" role="tabpanel" aria-labelledby="subtabbtn-compare">
         <div class="card">
           <h3>Compare two stations</h3>
-          <p class="hint">30-day rolling average AQI.</p>
+          <p class="hint">30-day rolling PM2.5, 2015&ndash;2026.</p>
           <div class="compare-controls">
             <select id="compare-a" class="compare-select">$station_options_a</select>
             <button type="button" id="compare-swap" class="swap-btn" aria-label="Swap stations" title="Swap stations">
@@ -301,7 +301,7 @@
       </div>
       <div class="card">
         <h3>All stations</h3>
-        <p class="hint">Click a column to sort, or search by name.</p>
+        <p class="hint">Click a column to sort, or search by name. Rank is by official AQI, 2018&ndash;19; the change is raw PM2.5, not weather-adjusted.</p>
         $table
       </div>
       <div class="card">

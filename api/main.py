@@ -38,6 +38,8 @@ QUERY_FILES = {
     "then-vs-now": "19_then_vs_now.sql",
     "stubble-then-vs-now": "20_stubble_then_vs_now.sql",
     "station-then-vs-now": "21_station_then_vs_now.sql",
+    "monthly-pm25": "22_monthly_pm25.sql",
+    "rolling-pm25": "23_rolling_pm25.sql",
 }
 
 # Read the .sql files once at startup, not on every request.

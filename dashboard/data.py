@@ -36,6 +36,9 @@ def load_all(db_path, queries_dir):
         "df18": run_query(conn, queries_dir, "18_fires_and_wind.sql"),
         "df19": run_query(conn, queries_dir, "19_then_vs_now.sql"),
         "df20": run_query(conn, queries_dir, "20_stubble_then_vs_now.sql"),
+        "df21": run_query(conn, queries_dir, "21_station_then_vs_now.sql"),
+        "df22": run_query(conn, queries_dir, "22_monthly_pm25.sql"),
+        "df23": run_query(conn, queries_dir, "23_rolling_pm25.sql"),
     }
 
     stations_df = pd.read_sql_query("SELECT station_id, station_name FROM stations", conn)

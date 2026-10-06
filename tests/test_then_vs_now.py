@@ -106,3 +106,35 @@ def test_station_then_vs_now_coverage_and_change():
     assert (rows["A"]["pm25_2018_19"], rows["A"]["pm25_2025_26"], rows["A"]["change_pct"]) == (100.0, 80.0, -20.0)
     assert rows["B"]["days_2025_26"] == 199 and rows["B"]["pm25_2025_26"] is None and rows["B"]["change_pct"] is None
     assert rows["C"]["pm25_2018_19"] is None and rows["C"]["days_2018_19"] == 0
+
+
+def test_monthly_pm25_month_rule_and_sources():
+    """22: a station-month needs >= 10 days; Kaggle before Jul 2020, OpenAQ after."""
+    c = sqlite3.connect(":memory:")
+    for table in ("readings", "readings_openaq"):
+        c.execute(f"CREATE TABLE {table} (station_id TEXT, date TEXT, pm25 REAL)")
+    c.executemany("INSERT INTO readings VALUES ('A', ?, 100)", [(f"2019-01-{d:02d}",) for d in range(1, 11)])
+    c.executemany("INSERT INTO readings VALUES ('B', ?, 300)", [(f"2019-01-{d:02d}",) for d in range(1, 10)])  # 9 days
+    c.executemany("INSERT INTO readings_openaq VALUES ('A', ?, 50)", [(f"2025-03-{d:02d}",) for d in range(1, 11)])
+    rows = {r["year_month"]: r for r in run_query(c, "22_monthly_pm25.sql")}
+    assert rows["2019-01"]["pm25"] == 100.0 and rows["2019-01"]["n_stations"] == 1   # B excluded
+    assert rows["2019-01"]["source"] == "Kaggle" and rows["2025-03"]["source"] == "OpenAQ"
+
+
+def test_rolling_pm25_uses_calendar_windows_and_never_bridges_gaps():
+    """23: a 30-day window covers 30 calendar days, needs >= 15 readings, and
+    output is sampled on Sundays only."""
+    c = sqlite3.connect(":memory:")
+    for table in ("readings", "readings_openaq"):
+        c.execute(f"CREATE TABLE {table} (station_id TEXT, date TEXT, pm25 REAL)")
+    # 20 daily readings of 100 (Jan 1-20 2019), then nothing until Mar 3 (a Sunday)
+    c.executemany("INSERT INTO readings VALUES ('A', ?, 100)", [(f"2019-01-{d:02d}",) for d in range(1, 21)])
+    c.execute("INSERT INTO readings VALUES ('A', '2019-03-03', 500)")
+    rows = {r["date"]: r for r in run_query(c, "23_rolling_pm25.sql")}
+    assert set(rows) == {"2019-01-06", "2019-01-13", "2019-01-20", "2019-03-03"}   # Sundays only
+    assert rows["2019-01-20"]["rolling_30day_pm25"] == 100.0       # 20 readings in window
+    assert rows["2019-01-06"]["rolling_30day_pm25"] is None        # only 6 readings yet
+    assert rows["2019-01-06"]["rolling_7day_pm25"] == 100.0        # 6 >= 4
+    # Mar 3: its 30-day window (Feb 2 - Mar 3) holds 1 reading, so no value -
+    # a row window would have averaged it with January across the gap
+    assert rows["2019-03-03"]["rolling_30day_pm25"] is None

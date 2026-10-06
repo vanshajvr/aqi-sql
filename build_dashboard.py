@@ -7,7 +7,7 @@ from dashboard.table import build as build_station_table
 from dashboard.theme import to_div
 from dashboard.charts import (
     worst_stations,
-    yoy_trends,
+    trend,
     event_clustering,
     rolling_average,
     severity_breakdown,
@@ -37,7 +37,7 @@ def main():
     )
     station_names = data["station_names"]
 
-    compare_json, compare_ids = comparison.build_comparison_payload(df01, df05, df06, station_names)
+    compare_json, compare_ids = comparison.build_comparison_payload(data["df23"], data["df21"], df06, station_names)
     options_a = comparison.build_station_options(compare_ids, station_names, compare_ids[0])
     options_b = comparison.build_station_options(compare_ids, station_names, compare_ids[1])
 
@@ -48,10 +48,10 @@ def main():
     template = Template(TEMPLATE_PATH.read_text())
     html = template.substitute(
         kpi_cards=build_kpi_cards(df06, df04, df03),
-        worst_stations=to_div(worst_stations.build(df06)),
-        yoy=to_div(yoy_trends.build(df03)),
+        worst_stations=to_div(worst_stations.build(data["df21"])),
+        yoy=to_div(trend.build(data["df22"])),
         event=to_div(event_clustering.build(df04)),
-        rolling=to_div(rolling_average.build(df01, df06, station_names)),
+        rolling=to_div(rolling_average.build(data["df23"], data["df21"], station_names)),
         severity=to_div(severity_breakdown.build(df05, df06, station_names)),
         hotspots=to_div(hotspots.build(data["df16"])),
         alert_tradeoff=to_div(alerts.build_tradeoff(data["df17"])),
@@ -66,7 +66,7 @@ def main():
         weather_monthly=to_div(weather.build_monthly(data["df12"])),
         weather_excess=to_div(weather.build_excess(data["df13"])),
         fingerprint=to_div(fingerprint.build(data["df10"])),
-        table=build_station_table(df06, df05, station_names),
+        table=build_station_table(df06, data["df21"], station_names),
         compare_data_json=compare_json,
         station_options_a=options_a,
         station_options_b=options_b

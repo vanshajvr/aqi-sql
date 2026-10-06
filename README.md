@@ -69,7 +69,7 @@ What this means for policy, and what I'm less sure about, is in
 ```
  Kaggle CPCB data ───┐
  OpenAQ (2020-26) ───┤
- Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 21 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+ Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 23 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
  NASA FIRMS fires ───┘    (clean + load)                               └─► FastAPI ──► /api/* (map, raw query results)
 ```
 
@@ -132,6 +132,8 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | 19 | Is Delhi's winter air better than before 2020? | Two sources unioned, fixed 12-station panel, weather-adjusted ratio |
 | 20 | Did burning fall, and did the smoke window clear? | Fire counts next to weather-adjusted smoke-window PM2.5, by year |
 | 21 | How did each station change, 2018–19 to 2025–26? | Equal 12-month windows, coverage rule, both sources unioned |
+| 22 | What's the long-run monthly trend, 2015–2026? | Station-month roll-up across both sources, coverage flagged |
+| 23 | Each station's 7- and 30-day rolling PM2.5, 2015–2026 | **Calendar** windows (`RANGE` over `julianday`) with minimum readings, weekly sampling |
 
 ## The dashboard
 
@@ -139,13 +141,13 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 tier, so the first visit after a quiet spell can take 30–60 seconds to wake
 up.
 
-- **Summary:** headline numbers and three takeaways
-- **Seasons & Weather:** why winter is worst, and the weeks the weather can't explain
+- **Summary:** headline numbers, three takeaways, and every station's PM2.5 then and now
+- **Seasons & Weather:** the 2015–2026 PM2.5 trend, why winter is worst, and the weeks the weather can't explain
 - **Pollution Sources:** crop-fire smoke and the wind, the lockdown test, local vs regional pollutants, Diwali
 - **Then vs Now:** winters before and after 2020, and fires against the smoke window
 - **Early Warning:** which alert rule to ship, as a cost vs value trade-off
 - **Stations:** a map with five views (PM2.5 2018–19 and 2025–26, change, NO2 hotspots, persistence), station detail, and side-by-side comparison
-- **Data & Methods:** the full station table and data coverage
+- **Data & Methods:** the full station table (AQI rank, PM2.5 then and now) and data coverage
 - **Live Now:** current readings from CPCB's live API (only when data.gov.in is up)
 
 ## Run it yourself
@@ -183,7 +185,7 @@ coordinates.
 ```
 aqi-sql/
 ├── FINDINGS.md           the write-up
-├── queries/              21 SQL files, one question each
+├── queries/              23 SQL files, one question each
 ├── analysis_plans/       pre-registered tests, committed before the results
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
 ├── fetch_weather.py      one-time weather download
@@ -212,9 +214,10 @@ aqi-sql/
   isn't the official record itself.
 - **Weather is one grid point** over central Delhi. That's fine for
   city-wide patterns, but too coarse for street-level effects.
-- **Rolling averages count rows, not calendar days.** Where a station has gaps,
-  its "7-day" window can stretch over more than 7 days (tested and documented
-  in `01_rolling_average.sql`).
+- **Query 01's rolling averages count rows, not calendar days**, so across a
+  gap its "7-day" window can stretch further (tested and documented). It's
+  kept for the API; the dashboard uses query 23, which uses true calendar
+  windows and never bridges a gap.
 - **Live readings depend on data.gov.in**, which is sometimes unreachable.
   The historical analysis doesn't depend on it.
 

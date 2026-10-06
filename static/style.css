@@ -153,14 +153,17 @@ thead th:hover { color: #58a6ff; }
 tbody td { padding: 9px 12px; border-bottom: 1px solid #1c2128; }
 tbody tr:hover { background: #1c2128; }
 tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
-/* Rank, Avg AQI, % Severe Days, Worst Month AQI columns are numeric
-   (Station and Worst Month columns stay in Inter - they're text/dates) */
+/* Rank and the four value columns are numeric (Station and Worst month stay
+   in Inter - they're text/dates) */
 #station-table td:nth-child(1),
 #station-table td:nth-child(3),
 #station-table td:nth-child(4),
+#station-table td:nth-child(5),
 #station-table td:nth-child(6) {
   font-family: 'JetBrains Mono', monospace;
 }
+#station-table td.better { color: #3fb950; }
+#station-table td.worse { color: #f85149; }
 
 .mode-switch { display: flex; gap: 24px; margin-bottom: 8px; border-bottom: 1px solid #21262d; }
 .mode-btn {
