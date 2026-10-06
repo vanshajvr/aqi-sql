@@ -29,6 +29,11 @@ within the false-alert guardrail, warns >= 50% of first bad days, and beats
 rules A and B on that. Written to results/alert_future_test.csv with Wilson
 intervals.
 
+Test C (analysis_plans/cpcb_gap_preregistration.md): the CPCB daily data
+(readings_cpcb) vs OpenAQ on every station-day both have, with Test A's
+criteria. Not blind (the agreement was seen before the plan was written); a
+documented gate. Written to results/cpcb_validation.csv.
+
 Usage (after fetch_data.py has built data/aqi.db with readings_openaq):
     python3 validate_backfill.py
 """
@@ -82,6 +87,31 @@ def test_a(conn):
     add("Computed AQI mean absolute error (baseline on Kaggle's own data: 28.5)", mae, "info", "", int(ok.sum()), "info")
     add("Computed AQI same category % (baseline: 74.4)", same, "info", "", int(ok.sum()), "info")
     return rows, pm25
+
+
+def test_c(conn):
+    pairs = pd.read_sql_query("""
+        SELECT c.pm25 AS c_pm25, o.pm25 AS o_pm25, c.pm10 AS c_pm10, o.pm10 AS o_pm10
+        FROM readings_cpcb c
+        JOIN readings_openaq o ON o.station_id = c.station_id AND o.date = c.date
+    """, conn)
+    rows = []
+
+    def add(check, value, threshold, passed, n):
+        rows.append({"test": "C", "check": check, "value": round(value, 3), "threshold": threshold,
+                     "passed": passed, "n_station_days": n, "kind": "criterion"})
+
+    pm25 = pairs.dropna(subset=["c_pm25", "o_pm25"])
+    r25 = np.corrcoef(pm25["c_pm25"], pm25["o_pm25"])[0, 1]
+    add("PM2.5 Pearson r", r25, ">= 0.95", bool(r25 >= 0.95), len(pm25))
+    pm10 = pairs.dropna(subset=["c_pm10", "o_pm10"])
+    r10 = np.corrcoef(pm10["c_pm10"], pm10["o_pm10"])[0, 1]
+    add("PM10 Pearson r", r10, ">= 0.90", bool(r10 >= 0.90), len(pm10))
+    rel = ((pm25["c_pm25"] - pm25["o_pm25"]).abs() / pm25["o_pm25"]).median() * 100
+    add("PM2.5 median absolute difference (%)", rel, "<= 15", bool(rel <= 15), len(pm25))
+    out = pd.DataFrame(rows)
+    out.to_csv(OUT_PATH.with_name("cpcb_validation.csv"), index=False)
+    return out
 
 
 WINTER_SCALE = 1.04       # pre-registered: city / embassy winter median, Oct 2018 - Jun 2020
@@ -160,6 +190,12 @@ def main():
         criteria = out[(out["kind"] == "criterion") & (out["test"] == test)]
         verdict = "PASS" if criteria["passed"].all() else "FAIL"
         print(f"Test {test}: {verdict}")
+
+    conn = sqlite3.connect(DB_PATH)
+    test_c_rows = test_c(conn)
+    conn.close()
+    print("\n" + test_c_rows.to_string(index=False))
+    print(f"Test C (CPCB data): {'PASS' if test_c_rows['passed'].all() else 'FAIL'}")
 
     conn = sqlite3.connect(DB_PATH)
     alerts, passed = alert_future(conn)

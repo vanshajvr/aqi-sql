@@ -22,6 +22,13 @@ OPENAQ_CSV = next(
                  Path(__file__).parent / "data" / "seed" / "openaq_daily.csv") if p.exists()),
     None,
 )
+# Written by prepare_cpcb.py: CPCB's own daily data for 2022-2026, the only
+# source for Nov 2022 - Feb 2025. Its own table, like the OpenAQ backfill.
+CPCB_CSV = next(
+    (p for p in (RAW_DIR / "cpcb_daily.csv",
+                 Path(__file__).parent / "data" / "seed" / "cpcb_daily.csv") if p.exists()),
+    None,
+)
 # Written by fetch_openaq.py --embassy: US Embassy PM2.5, raw (cleaned where used)
 EMBASSY_CSV = next(
     (p for p in (RAW_DIR / "embassy_pm25_daily.csv",
@@ -209,6 +216,14 @@ def main():
             )
         """)
         conn.execute("""
+            CREATE TABLE readings_cpcb(
+                station_id TEXT NOT NULL REFERENCES stations(station_id),
+                date TEXT NOT NULL,
+                pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL, o3 REAL,
+                PRIMARY KEY (station_id, date)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE embassy_pm25(
                 date TEXT PRIMARY KEY,
                 pm25 REAL,
@@ -230,6 +245,11 @@ def main():
             openaq = openaq[openaq["station_id"].isin(delhi_stations["station_id"])]
             openaq = drop_implausible_co(drop_copied_pm10(openaq))
             openaq.to_sql("readings_openaq", conn, if_exists="append", index=False)
+        if CPCB_CSV is not None:
+            cpcb = pd.read_csv(CPCB_CSV)
+            cpcb = cpcb[cpcb["station_id"].isin(delhi_stations["station_id"])]
+            cpcb = drop_implausible_co(drop_copied_pm10(cpcb))
+            cpcb.to_sql("readings_cpcb", conn, if_exists="append", index=False)
         if EMBASSY_CSV is not None:
             pd.read_csv(EMBASSY_CSV).to_sql("embassy_pm25", conn, if_exists="append", index=False)
         if FIRES_CSV is not None:

@@ -1,0 +1,4 @@
+test,check,value,threshold,passed,n_station_days,kind
+C,PM2.5 Pearson r,0.958,>= 0.95,True,22230,criterion
+C,PM10 Pearson r,0.986,>= 0.90,True,22344,criterion
+C,PM2.5 median absolute difference (%),1.144,<= 15,True,22230,criterion
