@@ -138,3 +138,35 @@ def test_rolling_pm25_uses_calendar_windows_and_never_bridges_gaps():
     # Mar 3: its 30-day window (Feb 2 - Mar 3) holds 1 reading, so no value -
     # a row window would have averaged it with January across the gap
     assert rows["2019-03-03"]["rolling_30day_pm25"] is None
+
+
+def test_alert_future_translation_onsets_and_pass_rule():
+    """
+    24 on hand-built data. Each sequence: PM2.5 100 (Poor) -> 130 (onset, low
+    lid that day) -> 130 -> 50. Rule E warns the onset in both periods.
+      Nov 2025: the calendar rule (A) also warns it, so E doesn't BEAT A -> fail
+      Mar 2021: A is silent in March, B can't see onsets -> E passes
+    """
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, pm25 REAL)")
+    c.execute("CREATE TABLE readings_openaq (station_id TEXT, date TEXT, pm25 REAL)")
+    c.execute("CREATE TABLE weather (date TEXT, mixing_height_mean_m REAL, rain_mm REAL)")
+
+    def sequence(start):
+        for i, (pm, low_lid) in enumerate([(100, False), (130, True), (130, False), (50, False)]):
+            d = (start + timedelta(days=i)).isoformat()
+            c.executemany("INSERT INTO readings_openaq VALUES (?, ?, ?)", [(f"S{s}", d, pm) for s in range(5)])
+            c.execute("INSERT INTO weather VALUES (?, ?, 0)", (d, 300 if low_lid else 900))
+    sequence(date(2025, 11, 1))
+    sequence(date(2021, 3, 1))
+
+    rows = {(r["split"], r["rule"][0]): r for r in run_query(c, "24_alert_rules_future.sql")}
+    e25, e21 = rows[("future 2025-26", "E")], rows[("future 2020-22", "E")]
+    assert (e25["n_days"], e25["n_onsets"], e25["n_onsets_warned"]) == (3, 1, 1)
+    assert e25["onset_recall"] == 1.0 and e25["false_alerts_per_30d"] == 0.0
+    assert rows[("future 2025-26", "A")]["onset_recall"] == 1.0
+    assert e25["rule_e_pass"] == 0                       # ties A, doesn't beat it
+    assert rows[("future 2020-22", "A")]["n_alerts"] == 0
+    assert rows[("future 2020-22", "B")]["onset_recall"] == 0.0
+    assert e21["rule_e_pass"] == 1
+    assert rows[("future 2025-26", "B")]["rule_e_pass"] is None   # verdict only on rule E
