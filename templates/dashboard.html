@@ -34,12 +34,12 @@
       </div>
     </header>
 
-    <div class="mode-switch" role="tablist" aria-label="Historical or live data">
-      <button class="mode-btn active" id="modebtn-historical" role="tab" aria-selected="true" aria-controls="mode-historical" data-mode="historical">Analysis</button>
-      <button class="mode-btn" id="modebtn-live" role="tab" aria-selected="false" aria-controls="mode-live" data-mode="live">Latest Readings</button>
+    <div class="mode-switch" role="tablist" aria-label="Latest readings or analysis">
+      <button class="mode-btn active" id="modebtn-live" role="tab" aria-selected="true" aria-controls="mode-live" data-mode="live">Latest Readings</button>
+      <button class="mode-btn" id="modebtn-historical" role="tab" aria-selected="false" aria-controls="mode-historical" data-mode="historical">Analysis</button>
     </div>
 
-    <div id="mode-historical" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-historical">
+    <div id="mode-historical" class="mode-content" role="tabpanel" aria-labelledby="modebtn-historical">
     <div class="tabs" role="tablist">
       <button class="tab-btn active" id="tabbtn-summary" role="tab" aria-selected="true" aria-controls="tab-summary" data-tab="summary">Summary</button>
       <button class="tab-btn" id="tabbtn-seasons" role="tab" aria-selected="false" aria-controls="tab-seasons" data-tab="seasons">Seasons &amp; Weather</button>
@@ -324,7 +324,7 @@
     </div>
     </div>
 
-    <div id="mode-live" class="mode-content" role="tabpanel" aria-labelledby="modebtn-live">
+    <div id="mode-live" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-live">
       <p class="live-disclaimer">
         <strong>The latest readings</strong> from the same 37 stations, via OpenAQ. CPCB's own live feed (data.gov.in) has been unreachable since October 2026, and OpenAQ usually lags a few days, so the board shows when its readings were taken.
       </p>
