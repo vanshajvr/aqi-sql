@@ -125,3 +125,36 @@ has seen: **1 November 2022 – 31 January 2025** (CPCB).
   PM10, and station-months with a CO median above 5 mg/m³). The CO rule removes
   one station-month.
 - **Daily values:** used as CPCB published them.
+
+## Amendment 1: missing weather for January – June 2024
+
+Made **2026-10-06, after running the eight-winter query (25) and before
+computing the trend verdict or looking at any alert score from query 26.**
+
+**What was found:** the weather source has no mixing height for
+1 January – 30 June 2024. ERA5 on Open-Meteo is empty for those months. Four
+other models were checked (ERA5 seamless, ECMWF IFS, IFS analysis, and the
+historical-forecast API with its default, IFS 0.25° and GFS), and all are
+empty too. Rain and wind are complete.
+
+**What had been seen:** the eight-winter table from query 25 (each winter's
+mean PM2.5, % of days over 120 and 250, and weather-adjusted ratio). Query 19's
+method drops days without weather from every measure, so 2023–24 in that table
+rests on November–December only (61 days, against about 120 for other
+winters).
+
+**Changes:**
+
+1. **Then vs now.** The analysis is reported exactly as pre-registered, as the
+   primary result. Three checks are added, **labelled post hoc** because the
+   table had been seen:
+   - 2023–24's mean PM2.5 and % of days over 120 / 250 on all its days (these
+     measures don't need weather)
+   - the trend re-fitted on November–December only, for all eight winters, so
+     every winter covers the same months as 2023–24
+   - the trend re-fitted without 2023–24
+2. **Alert rules.** Without mixing height, the weather flag can't fire, so
+   rules D–G would be scored on days they couldn't see. Day-pairs whose
+   next-day mixing height is missing are excluded from every rule's scoring
+   (query 26). This changes nothing in query 24's periods, where the weather is
+   complete. No alert score had been looked at when this was decided.
