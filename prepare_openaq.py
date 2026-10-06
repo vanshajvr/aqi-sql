@@ -39,6 +39,10 @@ import pandas as pd
 ROOT = Path(__file__).parent
 RAW_PATH = ROOT / "data" / "raw" / "openaq_raw.csv"
 OUT_PATH = ROOT / "data" / "seed" / "openaq_daily.csv"
+# The live tab's /api/latest needs to know which OpenAQ sensor is which
+# pollutant at which station; this lists each station's current sensors.
+SENSORS_PATH = ROOT / "data" / "seed" / "openaq_sensors.csv"
+CURRENT_FROM = "2025-06-01"
 POLLUTANTS = ["pm25", "pm10", "no2", "so2", "co", "o3"]
 MIN_OBSERVATIONS = 16
 PM_MAX = 999
@@ -72,8 +76,20 @@ def prepare(raw):
     return stitch(clean(normalise_units(raw)))
 
 
+def current_sensors(raw):
+    """Sensors that reported since CURRENT_FROM, one row per sensor."""
+    cur = raw[(raw["date"] >= CURRENT_FROM) & raw["parameter"].isin(POLLUTANTS)]
+    return (cur.groupby(["station_id", "location_id", "sensor_id", "parameter", "units"])
+               .size().reset_index(name="n_days")
+               .drop(columns="n_days")
+               .sort_values(["station_id", "parameter"]))
+
+
 def main():
     raw = pd.read_csv(RAW_PATH)
+    sensors = current_sensors(raw)
+    sensors.to_csv(SENSORS_PATH, index=False)
+    print(f"Wrote {len(sensors)} current sensors at {sensors['station_id'].nunique()} stations to {SENSORS_PATH}")
     out = prepare(raw)
     out.to_csv(OUT_PATH, index=False, float_format="%.3f")
     print(f"{len(raw):,} raw sensor-days -> {len(out):,} station-days "

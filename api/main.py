@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from api.latest import fetch_latest
+
 ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "aqi.db"
 QUERIES_DIR = ROOT / "queries"
@@ -203,6 +205,28 @@ def run_named_query(name: str):
             detail=f"Unknown query '{name}'. Available: {list(QUERY_SQL)}",
         )
     return run_query_cached(name)
+
+
+@app.get("/api/latest")
+def latest_readings():
+    """
+    Latest reading per station and pollutant, from OpenAQ (see api/latest.py),
+    cached for 30 minutes. Powers the Live tab now that CPCB's own live API
+    (data.gov.in) refuses connections. Each reading carries its timestamp:
+    OpenAQ usually lags real time by a few days.
+    """
+    conn = get_conn()
+    try:
+        rows = conn.execute("SELECT station_id, station_name, latitude, longitude FROM stations").fetchall()
+    finally:
+        conn.close()
+    stations = {r["station_id"]: dict(r) for r in rows}
+    try:
+        return fetch_latest(stations)
+    except RuntimeError as err:          # not configured on this server
+        raise HTTPException(status_code=503, detail=str(err))
+    except Exception as err:             # OpenAQ unreachable or erroring
+        raise HTTPException(status_code=502, detail=f"OpenAQ request failed: {type(err).__name__}")
 
 
 @app.get("/api/config")

@@ -405,6 +405,12 @@ tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
   .aqi-legend-row { grid-template-columns: 12px 1fr 18px; }
 }
 
+.live-dot-stale { background: #d29922; animation: none; }
+.live-unit { font-size: 11px; color: #8b949e; margin-top: 2px; }
+.live-reading-hero .live-dot-row { margin-top: 10px; }
+.pollutant-chip-unit { font-size: 10px; color: #6e7681; }
+.live-caveat { margin: 12px 0 0; }
+
 .live-retry-btn { margin-left: 8px; padding: 4px 12px; background: transparent; color: inherit;
   border: 1px solid currentColor; border-radius: 6px; font: inherit; cursor: pointer; }
 .live-retry-btn:disabled { opacity: .6; cursor: default; }

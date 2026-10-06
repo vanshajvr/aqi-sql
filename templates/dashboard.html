@@ -38,7 +38,7 @@
 
     <div class="mode-switch" role="tablist" aria-label="Historical or live data">
       <button class="mode-btn active" id="modebtn-historical" role="tab" aria-selected="true" aria-controls="mode-historical" data-mode="historical">Analysis</button>
-      <button class="mode-btn" id="modebtn-live" role="tab" aria-selected="false" aria-controls="mode-live" data-mode="live">Live Now</button>
+      <button class="mode-btn" id="modebtn-live" role="tab" aria-selected="false" aria-controls="mode-live" data-mode="live">Latest Readings</button>
     </div>
 
     <div id="mode-historical" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-historical">
@@ -328,18 +328,18 @@
 
     <div id="mode-live" class="mode-content" role="tabpanel" aria-labelledby="modebtn-live">
       <p class="live-disclaimer">
-        <strong>Current readings</strong> from CPCB's live API (data.gov.in). Separate from the 2015&ndash;2020 analysis.
+        <strong>The latest readings</strong> from the same 37 stations, via OpenAQ. CPCB's own live feed (data.gov.in) has been unreachable since October 2026, and OpenAQ usually lags a few days, so each reading shows when it was taken.
       </p>
 
       <div class="subtabs" role="tablist" aria-label="Live view">
         <button class="subtab-btn active" id="subtabbtn-live-picker" role="tab" aria-selected="true" aria-controls="subtab-live-picker" data-subtab="live-picker">Station Picker</button>
-        <button class="subtab-btn" id="subtabbtn-live-map" role="tab" aria-selected="false" aria-controls="subtab-live-map" data-subtab="live-map">Live Map</button>
+        <button class="subtab-btn" id="subtabbtn-live-map" role="tab" aria-selected="false" aria-controls="subtab-live-map" data-subtab="live-map">Map</button>
       </div>
 
       <div id="subtab-live-picker" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-live-picker">
         <div class="card live-picker-card">
-          <h3>Live station reading</h3>
-          <p class="hint">Pick a station for its current reading.</p>
+          <h3>Latest station reading</h3>
+          <p class="hint">Starts on the station with the highest PM2.5 right now. Pick another from the list.</p>
           <select id="live-station-select" class="compare-select"></select>
           <div id="live-reading-panel" class="live-reading-panel">
             <p class="map-status" id="live-picker-status">Loading…</p>
@@ -349,8 +349,8 @@
 
       <div id="subtab-live-map" class="subtab-content" role="tabpanel" aria-labelledby="subtabbtn-live-map">
         <div class="card">
-          <h3>Live map</h3>
-          <p class="hint">Colour shows the current AQI.</p>
+          <h3>Latest readings map</h3>
+          <p class="hint">Colour shows each station's latest hourly PM2.5 band; size grows with the value.</p>
           <div id="live-map"></div>
           <p class="map-status" id="live-map-status">Loading…</p>
         </div>

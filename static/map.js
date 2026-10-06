@@ -37,12 +37,12 @@ const AQI_LEGEND_ROWS = [
 // live.js, which loads after this file. counts is {bucket: n}; buckets with
 // no stations are dimmed rather than hidden so the full scale stays readable.
 // noData is the number of stations with no AQI (drawn grey on the map).
-window.addAqiLegend = function (map, title, counts, noData) {
+window.addAqiLegend = function (map, title, counts, noData, rows = AQI_LEGEND_ROWS) {
   if (map._aqiLegend) map.removeControl(map._aqiLegend);
   const legend = L.control({ position: "bottomright" });
   legend.onAdd = () => {
     const div = L.DomUtil.create("div", "aqi-legend");
-    const rows = AQI_LEGEND_ROWS.map(([bucket, range]) => {
+    const items = rows.map(([bucket, range]) => {
       const n = (counts && counts[bucket]) || 0;
       return `<div class="aqi-legend-row${n ? "" : " is-empty"}">
         <span class="aqi-legend-swatch" style="background:${SEVERITY_COLORS[bucket]}"></span>
@@ -52,14 +52,14 @@ window.addAqiLegend = function (map, title, counts, noData) {
       </div>`;
     });
     if (noData) {
-      rows.push(`<div class="aqi-legend-row">
+      items.push(`<div class="aqi-legend-row">
         <span class="aqi-legend-swatch" style="background:#8b949e"></span>
         <span class="aqi-legend-name">No data</span>
         <span class="aqi-legend-range"></span>
         <span class="aqi-legend-count">${noData}</span>
       </div>`);
     }
-    div.innerHTML = `<div class="aqi-legend-title">${title}</div>${rows.join("")}`;
+    div.innerHTML = `<div class="aqi-legend-title">${title}</div>${items.join("")}`;
     L.DomEvent.disableClickPropagation(div);
     return div;
   };

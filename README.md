@@ -151,7 +151,7 @@ up.
 - **Early Warning:** which alert rule to ship, as a cost vs value trade-off
 - **Stations:** a map with five views (PM2.5 2018–19 and 2025–26, change, NO2 hotspots, persistence), station detail, and side-by-side comparison
 - **Data & Methods:** the full station table (AQI rank, PM2.5 then and now) and data coverage
-- **Live Now:** current readings from CPCB's live API (only when data.gov.in is up)
+- **Latest Readings:** each station's newest PM2.5 and other pollutants, via OpenAQ, with the time of each reading (CPCB's own live feed has been unreachable since October 2026)
 
 ## Run it yourself
 
@@ -203,7 +203,7 @@ aqi-sql/
 ├── results/              confidence intervals, backfill validation (pass and fail)
 ├── dashboard/            chart builders (Plotly), KPIs, table
 ├── templates/, static/   page skeleton, CSS, JS (tabs, Leaflet maps, live data)
-├── api/                  FastAPI service + Dockerfile
+├── api/                  FastAPI service + Dockerfile (latest.py: the Latest Readings feed)
 ├── data/seed/            committed Delhi data, OpenAQ backfill, weather, fires (Docker build input)
 ├── tests/                query, API, cleaning and live-parsing tests
 └── exports/README.md     BI data dictionary
@@ -221,8 +221,10 @@ aqi-sql/
   gap its "7-day" window can stretch further (tested and documented). It's
   kept for the API; the dashboard uses query 23, which uses true calendar
   windows and never bridges a gap.
-- **Live readings depend on data.gov.in**, which is sometimes unreachable.
-  The historical analysis doesn't depend on it.
+- **"Latest readings" are a few days old.** CPCB's live API (data.gov.in)
+  stopped accepting connections, so the tab uses OpenAQ, which lags real
+  time. The server fetches it (`api/latest.py`, key in `OPENAQ_API_KEY`),
+  caches it for 30 minutes, and every reading shows when it was taken.
 
 ## Future scope
 
