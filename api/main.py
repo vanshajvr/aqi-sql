@@ -248,8 +248,4 @@ def get_config():
     """
     return {
         "cpcb_api_key": os.environ.get("CPCB_PUBLIC_API_KEY"),
-        # CARTO basemap tiles load in the browser, so this key is necessarily
-        # public; it's restricted to this site's domains in the CARTO dashboard.
-        # When unset, the maps fall back to darkened OpenStreetMap tiles.
-        "carto_api_key": os.environ.get("CARTO_API_KEY"),
     }

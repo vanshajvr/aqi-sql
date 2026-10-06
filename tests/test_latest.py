@@ -26,7 +26,8 @@ def test_assembles_latest_per_station_and_pollutant():
     ]
     out = {s["station_id"]: s for s in build_latest(SENSORS, responses, STATIONS)}
     assert out["S1"]["pm25"] == 135.0 and out["S1"]["pm25_band"] == "Very Poor"
-    assert out["S1"]["readings"]["co"] == {"value": 1.1, "unit": "mg/m³", "datetime": "2026-10-02T14:00:00+05:30"}
+    assert out["S1"]["readings"]["co"] == {"value": 1.1, "unit": "mg/m³", "datetime": "2026-10-02T14:00:00+05:30",
+                                           "band": "Satisfactory"}
     assert "no2" not in out["S1"]["readings"]
     assert out["S2"]["pm25"] == 95.0 and out["S2"]["last_update"] == "2026-10-02T09:00:00+05:30"
     assert out["S3"]["readings"] == {} and out["S3"]["pm25"] is None and out["S3"]["last_update"] is None
@@ -36,3 +37,28 @@ def test_pm25_bands_match_cpcb_boundaries():
     assert [pm25_band(v) for v in (30, 31, 60, 90, 120, 121, 250, 251)] == [
         "Good", "Satisfactory", "Satisfactory", "Moderate", "Poor", "Very Poor", "Very Poor", "Severe"]
     assert pm25_band(None) is None
+
+
+def test_pollutant_bands_use_each_pollutants_cpcb_edges():
+    from api.latest import band
+    assert band("pm10", 100) == "Satisfactory" and band("pm10", 101) == "Moderate"
+    assert band("co", 2.0) == "Satisfactory" and band("co", 2.1) == "Moderate"
+    assert band("o3", 749) == "Severe" and band("no2", None) is None
+
+
+def test_city_summary_uses_only_current_readings():
+    from api.latest import summarise_city
+    def st(sid, pm, when, no2=None):
+        r = {"pm25": {"value": pm, "datetime": when}}
+        if no2 is not None:
+            r["no2"] = {"value": no2, "datetime": when}
+        return {"station_id": sid, "station_name": sid, "readings": r}
+    now, older, stale = "2026-10-02T14:00:00+05:30", "2026-10-02T12:00:00+05:30", "2026-09-28T10:00:00+05:30"
+    city = summarise_city([st("A", 40, now, 30), st("B", 100, older, 90), st("C", 130, now), st("D", 999, stale)])
+    assert city["as_of"] == "2026-10-02T14:00:00+05:30"
+    assert city["n_stations"] == 3                    # D's reading is days old: left out
+    assert city["pm25_median"] == 100.0 and city["pm25_band"] == "Poor"
+    assert city["band_counts"]["Satisfactory"] == 1 and city["band_counts"]["Very Poor"] == 1
+    assert city["pollutants"]["no2"] == {"median": 60.0, "band": "Satisfactory", "n_stations": 2, "unit": "µg/m³"}
+    assert [s["station_id"] for s in city["most_polluted"]] == ["C", "B", "A"]
+    assert city["cleanest"][0]["station_id"] == "A"

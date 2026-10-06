@@ -11,9 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrainsMono:wght@400;500;600&family=SpaceGrotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/style.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- MapLibre GL JS draws the historical station map; Leaflet still draws the live map -->
+<!-- MapLibre GL JS draws both maps (station map and latest readings) -->
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
 <script defer src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
@@ -328,31 +326,43 @@
 
     <div id="mode-live" class="mode-content" role="tabpanel" aria-labelledby="modebtn-live">
       <p class="live-disclaimer">
-        <strong>The latest readings</strong> from the same 37 stations, via OpenAQ. CPCB's own live feed (data.gov.in) has been unreachable since October 2026, and OpenAQ usually lags a few days, so each reading shows when it was taken.
+        <strong>The latest readings</strong> from the same 37 stations, via OpenAQ. CPCB's own live feed (data.gov.in) has been unreachable since October 2026, and OpenAQ usually lags a few days, so the board shows when its readings were taken.
       </p>
+      <p class="map-status" id="live-status">Loading the latest readings…</p>
 
-      <div class="subtabs" role="tablist" aria-label="Live view">
-        <button class="subtab-btn active" id="subtabbtn-live-picker" role="tab" aria-selected="true" aria-controls="subtab-live-picker" data-subtab="live-picker">Station Picker</button>
-        <button class="subtab-btn" id="subtabbtn-live-map" role="tab" aria-selected="false" aria-controls="subtab-live-map" data-subtab="live-map">Map</button>
-      </div>
-
-      <div id="subtab-live-picker" class="subtab-content active" role="tabpanel" aria-labelledby="subtabbtn-live-picker">
-        <div class="card live-picker-card">
-          <h3>Latest station reading</h3>
-          <p class="hint">Starts on the station with the highest PM2.5 right now. Pick another from the list.</p>
-          <select id="live-station-select" class="compare-select"></select>
-          <div id="live-reading-panel" class="live-reading-panel">
-            <p class="map-status" id="live-picker-status">Loading…</p>
-          </div>
+      <div id="live-board" class="live-board" hidden>
+        <div class="grid-2 live-top">
+          <div class="card live-hero" id="live-hero"></div>
+          <div class="card live-health" id="live-health"></div>
         </div>
-      </div>
 
-      <div id="subtab-live-map" class="subtab-content" role="tabpanel" aria-labelledby="subtabbtn-live-map">
+        <div class="live-pollutants" id="live-pollutants"></div>
+
         <div class="card">
-          <h3>Latest readings map</h3>
-          <p class="hint">Colour shows each station's latest hourly PM2.5 band; size grows with the value.</p>
-          <div id="live-map"></div>
-          <p class="map-status" id="live-map-status">Loading…</p>
+          <h3>Station by station</h3>
+          <p class="hint">Colour and size show each station's latest hourly PM2.5. Hover a station, or click it for all its readings.</p>
+          <div class="gl-controls">
+            <span></span>
+            <div class="gl-tools"><select id="live-search" class="gl-search" aria-label="Find a station"></select></div>
+          </div>
+          <div class="gl-wrap">
+            <div id="live-map" class="gl-map"></div>
+            <aside id="live-detail" class="gl-detail" aria-live="polite"></aside>
+          </div>
+          <p class="map-status" id="live-map-status">Loading the map…</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Most polluted in this snapshot</h3>
+            <p class="hint">Latest hourly PM2.5, µg/m³. Click a station to find it on the map.</p>
+            <div id="live-most" class="rank-list"></div>
+          </div>
+          <div class="card">
+            <h3>Cleanest in this snapshot</h3>
+            <p class="hint">Latest hourly PM2.5, µg/m³. Bars share one scale with the list beside.</p>
+            <div id="live-clean" class="rank-list"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -370,6 +380,7 @@
   <script src="static/animate.js"></script>
   <!-- defer: keep this after the deferred Leaflet script so L is defined -->
   <script defer src="static/map.js"></script>
+  <script defer src="static/gl_base.js"></script>
   <script defer src="static/live.js"></script>
   <script defer src="static/station_map.js"></script>
 </body>

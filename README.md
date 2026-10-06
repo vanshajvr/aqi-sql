@@ -151,7 +151,7 @@ up.
 - **Early Warning:** which alert rule to ship, as a cost vs value trade-off
 - **Stations:** a map with five views (PM2.5 2018–19 and 2025–26, change, NO2 hotspots, persistence), station detail, and side-by-side comparison
 - **Data & Methods:** the full station table (AQI rank, PM2.5 then and now) and data coverage
-- **Latest Readings:** each station's newest PM2.5 and other pollutants, via OpenAQ, with the time of each reading (CPCB's own live feed has been unreachable since October 2026)
+- **Latest Readings:** a board built from each station's newest readings (via OpenAQ, since CPCB's own live feed has been unreachable since October 2026): the city's median PM2.5 on CPCB's scale, what that level means for health, six pollutant tiles, a station map, and the most and least polluted stations, all dated, because the readings lag by a few days
 
 ## Run it yourself
 
@@ -202,7 +202,7 @@ aqi-sql/
 ├── uncertainty.py        bootstrap / Wilson intervals → results/
 ├── results/              confidence intervals, backfill validation (pass and fail)
 ├── dashboard/            chart builders (Plotly), KPIs, table
-├── templates/, static/   page skeleton, CSS, JS (tabs, Leaflet maps, live data)
+├── templates/, static/   page skeleton, CSS, JS (tabs, MapLibre maps, the Latest Readings board)
 ├── api/                  FastAPI service + Dockerfile (latest.py: the Latest Readings feed)
 ├── data/seed/            committed Delhi data, OpenAQ backfill, weather, fires (Docker build input)
 ├── tests/                query, API, cleaning and live-parsing tests

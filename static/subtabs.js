@@ -33,9 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (btn.dataset.subtab === "compare" && window.renderCompareChart) {
         requestAnimationFrame(() => window.renderCompareChart());
       }
-      if (btn.dataset.subtab === "live-map" && window.initLiveMap) {
-        requestAnimationFrame(() => window.initLiveMap());
-      }
     }
 
     buttons.forEach((btn, i) => {
