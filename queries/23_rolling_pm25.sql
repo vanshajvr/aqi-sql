@@ -4,8 +4,7 @@
 -- Unlike 01 (row windows), these are CALENDAR windows: SQLite's RANGE frame
 -- over the day number (julianday) covers exactly the last 7 / 30 days,
 -- however many readings that is. A window needs >= 4 / >= 15 readings to
--- count, so a rolling value never silently stretches across a data gap,
--- including the Nov 2022 - Feb 2025 gap in the backfill.
+-- count, so a rolling value never silently stretches across a data gap.
 --
 -- Sources and PM2.5-not-AQI as in 22. Only one point per station per week
 -- (Sundays) is returned, to keep the dashboard page light; the windows
@@ -15,7 +14,10 @@ WITH all_pm AS (
     WHERE pm25 IS NOT NULL AND date < '2020-07-01'
     UNION ALL
     SELECT station_id, date, pm25 FROM readings_openaq
-    WHERE pm25 IS NOT NULL AND date >= '2020-07-01'
+    WHERE pm25 IS NOT NULL AND date BETWEEN '2020-07-01' AND '2021-12-31'
+    UNION ALL
+    SELECT station_id, date, pm25 FROM readings_cpcb
+    WHERE pm25 IS NOT NULL AND date >= '2022-01-01'
 ),
 rolled AS (
     SELECT

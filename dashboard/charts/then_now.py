@@ -3,50 +3,41 @@ from plotly.subplots import make_subplots
 
 from ..theme import ACCENT, CARD_BG, GRID, WARNING, base_layout
 
-GAP = "2022–25"          # placeholder category for the missing winters
 MUTED = "#6e7681"
 BEFORE = ["2018-19", "2019-20"]
+# The weather source has no mixing height for Jan - Jun 2024, so 2023-24 rests
+# on November - December only (cpcb_gap_preregistration.md, Amendment 1)
+PARTIAL = "2023-24"
 
 
-def _winter_axis(df19):
-    """Winters in order, with the data gap inserted before 2025-26."""
-    labels = [w.replace("-", "–") for w in df19["winter"]]
-    i = labels.index("2025–26")
-    return labels[:i] + [GAP] + labels[i:]
-
-
-def _gap_note(fig, y):
-    fig.add_annotation(x=GAP, y=y, text="no data<br>(Nov 2022 –<br>Feb 2025)", showarrow=False,
-                       font=dict(color=MUTED, size=11))
-
-
-def build_winters(df19):
+def build_winters(df25):
     """Two small charts: severe days, and weather-adjusted pollution, per winter."""
-    order = _winter_axis(df19)
-    d = df19.assign(label=[w.replace("-", "–") for w in df19["winter"]])
-    colors = [MUTED if w in BEFORE else ACCENT for w in df19["winter"]]
+    d = df25.assign(label=[w[2:].replace("-", "–") for w in df25["winter"]])   # "18–19": eight fit
+    colors = [MUTED if w in BEFORE else ACCENT for w in df25["winter"]]
+    opacity = [0.45 if w == PARTIAL else 1 for w in df25["winter"]]
 
     figs = []
-    for col, title, fmt, ref_label in (
-        ("pct_days_over_250", "Severe days (PM2.5 > 250)", "%{y:.1f}%", "pre-2020 average"),
-        ("weather_adjusted_ratio", "PM2.5 / weather-predicted", "%{y:.2f}×", "pre-2020 average"),
+    for col, title, fmt in (
+        ("pct_days_over_250", "Severe days (PM2.5 > 250)", "%{y:.1f}%"),
+        ("weather_adjusted_ratio", "PM2.5 / weather-predicted", "%{y:.2f}×"),
     ):
         fig = go.Figure(go.Bar(
-            x=d["label"], y=d[col], marker=dict(color=colors, cornerradius=4, line=dict(width=0)),
+            x=d["label"], y=d[col], marker=dict(color=colors, opacity=opacity, cornerradius=4, line=dict(width=0)),
             text=d[col].map((lambda v: f"{v:.1f}%") if col.startswith("pct") else (lambda v: f"{v:.2f}×")),
             textposition="outside",
             customdata=d[["n_days", "source", "mean_pm25"]].values,
-            hovertemplate="<b>Winter %{x}</b><br>" + title + ": " + fmt +
+            hovertemplate="<b>Winter 20%{x}</b><br>" + title + ": " + fmt +
                           "<br>Mean PM2.5 %{customdata[2]}<br>%{customdata[0]} days, %{customdata[1]} data"
                           "<extra></extra>",
         ))
         ref = d[d["winter"].isin(BEFORE)][col].mean()
         fig.add_hline(y=ref, line=dict(color=MUTED, width=1, dash="dot"))   # 2018-20 average
         top = d[col].max()
-        _gap_note(fig, top * 0.45)
+        fig.add_annotation(x=PARTIAL[2:].replace("-", "–"), y=0, yref="y", yanchor="bottom", text="Nov–Dec<br>only",
+                           showarrow=False, font=dict(color="#c9d1d9", size=10))
         fig.update_layout(
-            showlegend=False, bargap=0.35,
-            xaxis=dict(categoryorder="array", categoryarray=order, title=""),
+            showlegend=False, bargap=0.3,
+            xaxis=dict(title="", tickangle=0),
             yaxis=dict(title=title, gridcolor=GRID, rangemode="tozero", range=[0, top * 1.2],
                        ticksuffix="%" if col.startswith("pct") else "×"),
         )
@@ -73,9 +64,6 @@ def build_stubble(df20):
                       "<br>Mean PM2.5 %{customdata[1]}<br>%{customdata[0]} days<extra></extra>",
     ), row=2, col=1)
     fig.add_hline(y=1.0, line=dict(color=MUTED, width=1, dash="dot"), row=2, col=1)
-    fig.add_vrect(x0=2021.5, x1=2024.5, fillcolor="rgba(110,118,129,0.12)", line_width=0, row=2, col=1,
-                  annotation_text="no PM2.5 data", annotation_position="top",
-                  annotation_font=dict(color=MUTED, size=11))
     fig.update_layout(showlegend=False, bargap=0.3)
     fig.update_yaxes(title_text="Fires detected", gridcolor=GRID, row=1, col=1)
     fig.update_yaxes(title_text="Smoke-window PM2.5 /<br>weather-predicted", gridcolor=GRID,

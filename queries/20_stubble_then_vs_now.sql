@@ -12,15 +12,29 @@
 -- PM2.5 is an independent check: if burning really fell, the window's excess
 -- over what the weather predicts (weather_adjusted_ratio) should fall too.
 --
--- PM2.5 is reported only for years with >= 20 panel days in the window
--- (2018-2021 and 2025); 2022 ends on 31 Oct and 2023-24 have no data.
+-- Sources, one per day: Kaggle to June 2020, OpenAQ for July 2020 - 2021,
+-- CPCB's own daily data from 2022 (cpcb_gap_preregistration.md), so every
+-- year from 2018 has PM2.5. The panel is still 19's 12 stations, picked with
+-- 19's rule on 19's data (panel_source), as in 25.
+--
+-- PM2.5 is reported only for years with >= 20 panel days in the window.
 -- Earlier years (2015-17) predate most panel stations.
-WITH all_pm AS (
+WITH panel_source AS (
     SELECT station_id, date, pm25 FROM readings
     WHERE pm25 IS NOT NULL AND date < '2020-07-01'
     UNION ALL
     SELECT station_id, date, pm25 FROM readings_openaq
     WHERE pm25 IS NOT NULL AND date >= '2020-07-01'
+),
+all_pm AS (
+    SELECT station_id, date, pm25 FROM readings
+    WHERE pm25 IS NOT NULL AND date < '2020-07-01'
+    UNION ALL
+    SELECT station_id, date, pm25 FROM readings_openaq
+    WHERE pm25 IS NOT NULL AND date BETWEEN '2020-07-01' AND '2021-12-31'
+    UNION ALL
+    SELECT station_id, date, pm25 FROM readings_cpcb
+    WHERE pm25 IS NOT NULL AND date >= '2022-01-01'
 ),
 labelled AS (
     SELECT
@@ -34,8 +48,12 @@ labelled AS (
 panel AS (
     SELECT station_id
     FROM (
-        SELECT station_id, season_start
-        FROM labelled
+        SELECT station_id,
+            CASE WHEN CAST(strftime('%m', date) AS INTEGER) >= 11
+                 THEN CAST(strftime('%Y', date) AS INTEGER)
+                 ELSE CAST(strftime('%Y', date) AS INTEGER) - 1 END AS season_start,
+            CAST(strftime('%m', date) AS INTEGER) AS month
+        FROM panel_source
         WHERE month IN (11, 12, 1, 2)
           AND season_start IN (2018, 2019, 2020, 2021, 2025)
         GROUP BY station_id, season_start

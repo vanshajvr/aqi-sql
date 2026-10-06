@@ -28,7 +28,7 @@
       <div class="badges">
         <span class="badge">37 stations</span>
         <span class="badge" data-no-animate>2015&ndash;2026</span>
-        <span class="badge">24 SQL queries</span>
+        <span class="badge">26 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
@@ -155,21 +155,21 @@
     <div id="tab-now" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-now" tabindex="0">
       <div class="card">
         <h3>Is Delhi's winter air better than before 2020?</h3>
-        <p class="hint">Not yet measurably. The worst days are rarer, but for the same weather, winter pollution is about where it was. Grey bars: 2018&ndash;20. Blue: after. Dotted line: the 2018&ndash;20 average.</p>
+        <p class="hint">Not measurably, across eight winters with no gaps. Severe days are rarer in most recent winters, but for the same weather, winter pollution has hovered around its 2018&ndash;20 level. Grey bars: 2018&ndash;20. Blue: after. Dotted line: the 2018&ndash;20 average.</p>
         <div class="grid-2 grid-tight">
           <div>$then_now_severe</div>
           <div>$then_now_ratio</div>
         </div>
         <details class="method"><summary>How this is measured</summary>
-          The same 12 stations in every winter (November&ndash;February), so a changing station mix can't fake a trend. Post-2020 data comes from OpenAQ and was checked against the official data on January&ndash;June 2020 before use (PM2.5 r = 0.97, median difference 3.9%). Severe days fell 11 points (95% interval &minus;19 to &minus;3); the weather-adjusted change is &minus;0.09 (&minus;0.32 to +0.16), not distinguishable from zero. Three winters (2022&ndash;23 to 2024&ndash;25) have no data: OpenAQ lost the feed, and a stand-in monitor failed its pre-registered test.
+          The same 12 stations in every winter (November&ndash;February), so a changing station mix can't fake a trend. Sources: the official Kaggle data to June 2020, OpenAQ to 2021 (checked against Kaggle: PM2.5 r = 0.97), and CPCB's own daily data from 2022 (checked against OpenAQ: r = 0.96, median difference 1.1%). The verdict rule was written down before the numbers were run: the trend in the weather-adjusted ratio is &minus;0.014 per winter (95% interval &minus;0.048 to +0.023), so &ldquo;no clear trend&rdquo;. 2023&ndash;24 (faded) covers November&ndash;December only, because the weather data has no mixing height for January&ndash;June 2024; on all its days it had 11.6% severe days. Leaving it out, or using November&ndash;December for every winter, gives the same verdict. <a href="https://github.com/vanshajvr/aqi-sql/blob/main/analysis_plans/cpcb_gap_preregistration.md" target="_blank" rel="noopener">The pre-registered plan</a>.
         </details>
       </div>
       <div class="card">
         <h3>Fires fell 90%. The smoke window didn't.</h3>
-        <p class="hint">Satellite-detected crop fires collapsed after 2021, but Delhi's pollution in the smoke window, relative to its weather, was the same in 2025 as in 2018&ndash;21.</p>
+        <p class="hint">Satellite-detected crop fires collapsed after 2021, but Delhi's pollution in the smoke window, relative to its weather, stayed inside its 2018&ndash;21 range in 2023, 2024 and 2025.</p>
         $then_now_stubble
         <details class="method"><summary>How this is measured</summary>
-          Top: fires detected by NASA's VIIRS satellite in Punjab and northern Haryana, 15 October &ndash; 30 November. Bottom: Delhi PM2.5 from 16 October to 15 November, divided by what the day's weather predicts, on the same 12-station panel. 2025 minus 2018&ndash;21: &minus;0.006 (95% interval &minus;0.36 to +0.29). No PM2.5 points for 2015&ndash;16 (too few panel stations yet) or 2022&ndash;24 (no data in the window). Satellites only see fires burning at overpass time, and burning has reportedly shifted later in the day, so falling counts may partly be fires going unseen.
+          Top: fires detected by NASA's VIIRS satellite in Punjab and northern Haryana, 15 October &ndash; 30 November. Bottom: Delhi PM2.5 from 16 October to 15 November, divided by what the day's weather predicts, on the same 12-station panel. 2025 minus 2018&ndash;21: &minus;0.10 (95% interval &minus;0.48 to +0.26). No PM2.5 points for 2015&ndash;16 (too few panel stations yet). From 2022 the PM2.5 is CPCB's own data. Satellites only see fires burning at overpass time, and burning has reportedly shifted later in the day, so falling counts may partly be fires going unseen.
         </details>
       </div>
     </div>
@@ -195,17 +195,18 @@
         </details>
       </div>
       <div class="card">
-        <h3>The future test: half passed</h3>
-        <p class="hint">Rule E, translated to PM2.5, on years it never saw, against criteria written down before scoring. It must pass in both periods, so overall it fails.</p>
+        <h3>The future test: two periods of three passed</h3>
+        <p class="hint">Rule E, translated to PM2.5, on years it never saw, against criteria written down before scoring. The original test needed both of its periods, so it formally fails. The gap years, scored later, passed comfortably.</p>
         <div class="table-scroll"><table class="alert-table">
           <thead><tr><th>Period</th><th>Rule E: first bad days warned</th><th>Calendar rule</th><th>False alerts / month</th><th>Verdict</th></tr></thead>
           <tbody>
             <tr><td>Jul 2020 &ndash; Oct 2022</td><td>64% (16 of 25)</td><td>40%</td><td>2.4</td><td class="verdict-pass">Pass</td></tr>
+            <tr><td>Nov 2022 &ndash; Jan 2025 <span class="table-note">CPCB, added later</span></td><td>81% (22 of 27)</td><td>56%</td><td>2.1</td><td class="verdict-pass">Pass</td></tr>
             <tr><td>Feb 2025 &ndash; Oct 2026</td><td>40% (4 of 10)</td><td>50%</td><td>0.8</td><td class="verdict-fail">Fail</td></tr>
           </tbody>
         </table></div>
         <details class="method"><summary>How this is measured</summary>
-          Bad day: city-wide PM2.5 above 120 &micro;g/m&sup3; (the CPCB Very Poor boundary), since the new data has no official AQI. The translation alone lowers rule E from 69% to 57% on 2018&ndash;20. 2025&ndash;26 had only 10 first bad days: 95% intervals 17&ndash;69% for rule E and 24&ndash;76% for the calendar rule. <a href="https://github.com/vanshajvr/aqi-sql/blob/main/analysis_plans/alert_future_preregistration.md" target="_blank" rel="noopener">The pre-registered plan</a>.
+          Bad day: city-wide PM2.5 above 120 &micro;g/m&sup3; (the CPCB Very Poor boundary), since the new data has no official AQI. The translation alone lowers rule E from 69% to 57% on 2018&ndash;20. 2025&ndash;26 had only 10 first bad days in the OpenAQ data: 95% intervals 17&ndash;69% for rule E and 24&ndash;76% for the calendar rule. On CPCB's more complete data for the same months it passes (8 of 15, 53%), so that failure rests on a handful of days. The gap period skips January&ndash;June 2024, where the weather data has no mixing height. Plans: <a href="https://github.com/vanshajvr/aqi-sql/blob/main/analysis_plans/alert_future_preregistration.md" target="_blank" rel="noopener">future test</a>, <a href="https://github.com/vanshajvr/aqi-sql/blob/main/analysis_plans/cpcb_gap_preregistration.md" target="_blank" rel="noopener">gap period</a>.
         </details>
       </div>
       <div class="card">

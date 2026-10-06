@@ -45,13 +45,15 @@ Wazirpur, Mundka and Punjabi Bagh are the most persistent, in the city's worst
 ("today was bad") never warns before the first bad day of a spell. A rule
 combining "pollution building" with "low lid forecast" warned before **69% of
 them** with under 4 false alerts a month, scored on years it wasn't tuned on.
-On data from after 2020, it passed one pre-registered test period (64%) and
-failed the other (40% of just 10 onsets), so the write-up reports a failure.
+On data from after 2020, it failed its pre-registered two-period test
+(64%, then 40% of just 10 onsets), so the write-up reports a failure, then
+passed a third unseen period added later (81% of 27).
 
 **And it isn't measurably better yet.** Bringing the data forward to 2026
-(OpenAQ, validated against the official record first), severe winter days fell
-from 12–17% to **3.9%**, a real drop. But for the same weather, winter
-pollution is about where it was before 2020. And while satellite-detected
+(OpenAQ for 2020–21, then CPCB's own records, each checked before use) gives
+eight winters with no gaps. Severe winter days are rarer in most recent
+winters, but by a trend rule fixed in advance, winter pollution for the same
+weather shows **no clear trend** since 2018. And while satellite-detected
 crop fires fell **about 90%**, Delhi's air in the smoke window didn't improve
 relative to its weather. Fire counts make the problem look more solved than
 the air does.
@@ -71,7 +73,8 @@ What this means for policy, and what I'm less sure about, is in
 ```
  Kaggle CPCB data ───┐
  OpenAQ (2020-26) ───┤
- Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 24 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+ CPCB (2022-26) ─────┤
+ Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 26 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
  NASA FIRMS fires ───┘    (clean + load)                               └─► FastAPI ──► /api/* (map, raw query results)
 ```
 
@@ -89,8 +92,9 @@ What this means for policy, and what I'm less sure about, is in
 
 **Sources:** CPCB station readings via
 [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india)
-(official government data, 2015–2020), the same stations from 2020 to 2026
-via [OpenAQ](https://openaq.org/), daily Delhi weather from the
+(official government data, 2015–2020), the same stations for 2020–21 via
+[OpenAQ](https://openaq.org/) and for 2022–2026 from CPCB's own portal
+(downloaded by hand: daily values per station), daily Delhi weather from the
 [Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api)
 (ERA5 reanalysis: mixing height, wind, rain, temperature), and daily crop-fire
 counts in Punjab and northern Haryana from
@@ -107,7 +111,8 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | East Arjun Nagar logged 1,553 readings, all with no AQI | Dropped |
 | Counting each station's reading separately let one bad day count up to 37 times | Every "share of days" counts city-days |
 | OpenAQ labels some CO, NO2 and SO2 feeds with the wrong units (e.g. "ppb" on values that are clearly mg/m³) | Units decided from magnitudes against the Kaggle era, rules documented in `prepare_openaq.py` |
-| OpenAQ has **no Delhi data from November 2022 to February 2025** | The backfill was validated against the official data before use ([pre-registered](analysis_plans/backfill_preregistration.md)); a stand-in monitor for the gap failed its test, so those winters stay unmeasured |
+| OpenAQ has **no Delhi data from November 2022 to February 2025**, and is missing most of February 2022 | CPCB's own daily records fill it; they match OpenAQ (PM2.5 r 0.96, median difference 1.1%) and are used for every day from 2022 ([pre-registered](analysis_plans/cpcb_gap_preregistration.md)). A stand-in monitor tried first failed its test ([plan](analysis_plans/backfill_preregistration.md)) |
+| The weather record has **no mixing height for January–June 2024** (ERA5 on Open-Meteo, and four other models checked) | 2023–24's weather adjustment covers November–December only, and alert days without a forecast are left out, both written down before the affected results were computed |
 
 ## The queries
 
@@ -134,9 +139,11 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | 19 | Is Delhi's winter air better than before 2020? | Two sources unioned, fixed 12-station panel, weather-adjusted ratio |
 | 20 | Did burning fall, and did the smoke window clear? | Fire counts next to weather-adjusted smoke-window PM2.5, by year |
 | 21 | How did each station change, 2018–19 to 2025–26? | Equal 12-month windows, coverage rule, both sources unioned |
-| 22 | What's the long-run monthly trend, 2015–2026? | Station-month roll-up across both sources, coverage flagged |
+| 22 | What's the long-run monthly trend, 2015–2026? | Station-month roll-up across three sources, coverage flagged |
 | 23 | Each station's 7- and 30-day rolling PM2.5, 2015–2026 | **Calendar** windows (`RANGE` over `julianday`) with minimum readings, weekly sampling |
 | 24 | Does the alert rule still work on years it never saw? | Rules translated to PM2.5, scored on two unseen periods against pre-registered criteria |
+| 25 | Is winter air better than before 2020, over eight winters? | Three sources, one per day; 19's panel picked from 19's own data; weather-adjusted ratio per winter |
+| 26 | Does the alert rule work in the gap years? | 24's rules on CPCB data for Nov 2022 – Jan 2025, days without a weather forecast excluded |
 
 ## The dashboard
 
@@ -189,7 +196,7 @@ coordinates.
 ```
 aqi-sql/
 ├── FINDINGS.md           the write-up
-├── queries/              24 SQL files, one question each
+├── queries/              26 SQL files, one question each
 ├── analysis_plans/       pre-registered tests, committed before the results
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
 ├── fetch_weather.py      one-time weather download
@@ -206,17 +213,17 @@ aqi-sql/
 ├── dashboard/            chart builders (Plotly), KPIs, table
 ├── templates/, static/   page skeleton, CSS, JS (tabs, MapLibre maps, the Latest Readings board)
 ├── api/                  FastAPI service + Dockerfile (latest.py: the Latest Readings feed)
-├── data/seed/            committed Delhi data, OpenAQ backfill, weather, fires (Docker build input)
+├── data/seed/            committed Delhi data, OpenAQ and CPCB backfills, weather, fires (Docker build input)
 ├── tests/                query, API, cleaning and live-parsing tests
 └── exports/README.md     BI data dictionary
 ```
 
 ## Known limitations
 
-- **Three winters are missing** (2022–23 to 2024–25), and only one post-2020
-  winter (2025–26) has full coverage, so "then vs now" rests on a thin slice.
-  Post-2020 data is from OpenAQ, which matched the official data closely but
-  isn't the official record itself.
+- **"Then vs now" is eight winters on 12 stations**, from three sources
+  stitched together (each checked against the previous one). That rules out a
+  large improvement, not a small one, and 2023–24's weather adjustment covers
+  only November–December.
 - **Weather is one grid point** over central Delhi. That's fine for
   city-wide patterns, but too coarse for street-level effects.
 - **Query 01's rolling averages count rows, not calendar days**, so across a
@@ -230,14 +237,13 @@ aqi-sql/
 
 ## Future scope
 
-### Filling the gap and watching the trend
+### Watching the trend
 
-- **The missing winters (2022–23 to 2024–25):** CPCB's own portal holds this
-  data, but has no API. A careful one-off download for the 12 panel stations
-  would close the gap.
-- **Re-run "then vs now" each winter.** With one strong post-2020 winter, the
-  trend is the weakest part of the analysis. The pipeline is incremental, so
-  each new winter is a short download plus a re-run.
+- **Re-run "then vs now" each winter.** Eight winters can't yet separate a
+  small improvement from none. The pipeline is incremental, so each new
+  winter is a short download plus a re-run.
+- **Fill 2024's missing mixing height** from a second reanalysis (e.g. NASA's
+  MERRA-2), so 2023–24 can be weather-adjusted over the whole winter.
 - **Test the satellite blind spot directly.** If burning moved to after the
   afternoon overpass, the night-time VIIRS pass should catch more of it. Comparing
   day and night detections by year would show whether the 90% drop is real.
@@ -252,8 +258,8 @@ aqi-sql/
 ## Credits
 
 Air-quality data: Central Pollution Control Board (CPCB), via
-[Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india)
-and [OpenAQ](https://openaq.org/).
+[Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india),
+[OpenAQ](https://openaq.org/) and CPCB's data portal.
 Weather: ERA5 reanalysis via [Open-Meteo](https://open-meteo.com/). Fires:
 NASA FIRMS VIIRS active-fire data. Map tiles:
 © OpenStreetMap contributors.

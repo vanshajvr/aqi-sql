@@ -9,8 +9,9 @@ contributes, and which of them a city could do anything about.
 
 **The data:** about 36,000 daily readings from 37 government monitoring
 stations (CPCB, DPCC and IMD), April 2015 to July 2020, covering PM2.5, PM10,
-NO2, SO2, CO and AQI, plus about 35,000 more station-days up to October 2026
-from OpenAQ (validated against the official data first; see finding 8). I
+NO2, SO2, CO and AQI, plus OpenAQ's archive of the same stations for
+2020–21 and CPCB's own daily records for 2022–2026 (both checked before use;
+see finding 8). I
 joined them to daily weather (ERA5 via Open-Meteo: mixing height, wind, rain
 and temperature) and to satellite fire counts for Punjab and Haryana (NASA
 FIRMS). All the
@@ -28,9 +29,10 @@ analysis is in SQL, every number below comes from a tested query in
   and satellites show its smoke reaching Delhi when the wind is right.
 - **PM2.5, the most harmful pollutant, is a regional problem.** Delhi can't
   fix it alone. Traffic pollution is local, and the city *can* act on that.
-- **It isn't measurably better yet.** The worst days are rarer than before
-  2020, but for the same weather, winter air is about as polluted, and the
-  smoke window hasn't cleared even though satellite-detected fires fell 90%.
+- **It isn't measurably better yet.** Across eight winters with no gaps, the
+  worst days are rarer than before 2020 in most years, but for the same
+  weather, winter air is about as polluted, and the smoke window hasn't
+  cleared even though satellite-detected fires fell 90%.
 
 ---
 
@@ -154,42 +156,57 @@ spikes higher, but it doesn't stay on top as reliably.
 ### 8. Not yet measurably better
 
 The obvious question after all this: has anything changed since 2020? The
-original data stops in July 2020, so I brought it forward with OpenAQ, an open
-archive of the same government stations. Before trusting it, I set the pass
-marks in advance ([written down and committed before the
-results](analysis_plans/backfill_preregistration.md)) and checked it against
-the official data on the six months where both exist. It agreed closely:
-PM2.5 correlation 0.97, median difference 3.9%.
+original data stops in July 2020, so I brought it forward in two steps.
 
-The catch: OpenAQ has **no Delhi data from November 2022 to February 2025**.
-I tried to bridge the gap with the US Embassy monitor, which kept running, but
-it failed its pre-set test by a single winter month (December 2020, 18% off
-against a 15% limit). I didn't move the goalposts, so three winters stay
-unmeasured.
+**First, OpenAQ,** an open archive of the same government stations. Before
+trusting it, I set the pass marks in advance ([written down and committed
+before the results](analysis_plans/backfill_preregistration.md)) and checked
+it against the official data on the six months where both exist: PM2.5
+correlation 0.97, median difference 3.9%. But OpenAQ has **no Delhi data from
+November 2022 to February 2025**. A stand-in, the US Embassy monitor, failed
+its pre-set test by a single winter month, and I didn't move the goalposts.
 
-Comparing the same 12 stations across the winters that remain:
+**Then, CPCB's own records** for 2022–2026, downloaded station by station
+from the board's portal. They agree with OpenAQ on the 22,000 station-days
+both have (correlation 0.96, median difference 1.1%), and they fill the gap.
+I [wrote down how they'd be used](analysis_plans/cpcb_gap_preregistration.md),
+including the rule for calling a trend, before running a single winter.
 
-| Winter | Mean PM2.5 | Severe days (PM2.5 > 250) | PM2.5 vs weather-predicted |
-|---|---|---|---|
-| 2018–19 | 180 | 16.7% | 1.20× |
-| 2019–20 | 157 | 13.2% | 1.08× |
-| 2020–21 | 179 | 15.9% | 1.25× |
-| 2021–22 | 179 | 11.7% | 1.09× |
-| 2025–26 | 158 | **3.9%** | 1.05× |
+The same 12 stations, eight winters, no gaps:
 
-- **The worst days really are rarer.** Severe days fell 11 points against
-  2018–20, with a 95% interval of −19 to −3. That isn't luck.
-- **But the typical winter hasn't measurably improved.** For the same weather,
-  2025–26 was 0.09 below 2018–20, with an interval of −0.32 to +0.16, which
-  includes no change at all. Part of the rarer peaks may simply be a kinder
-  winter.
+| Winter | Source | Mean PM2.5 | Severe days (PM2.5 > 250) | PM2.5 vs weather-predicted |
+|---|---|---|---|---|
+| 2018–19 | Official (Kaggle) | 180 | 16.7% | 1.20× |
+| 2019–20 | Official (Kaggle) | 157 | 13.2% | 1.08× |
+| 2020–21 | OpenAQ | 179 | 15.9% | 1.25× |
+| 2021–22 | OpenAQ, then CPCB | 158 | 8.3% | 1.04× |
+| 2022–23 | CPCB | 150 | 2.5% | 0.94× |
+| 2023–24 | CPCB | 168* | 11.6%* | 1.28×* |
+| 2024–25 | CPCB | 150 | 8.3% | 1.10× |
+| 2025–26 | CPCB | 156 | 5.0% | 1.02× |
+
+\*The weather data has no mixing height for January–June 2024, so 2023–24's
+weather ratio covers November–December only. Its mean and severe-day share
+don't need weather and use all its days.
+
+- **No clear trend, by the rule set in advance.** For the same weather, winter
+  pollution changes by −0.014 a winter (95% interval −0.048 to +0.023). That
+  interval includes no change, so the verdict is "no clear trend". It stays
+  the same without 2023–24, or using November–December for every winter.
+- **The worst days are rarer in most recent winters**, at 2.5–8.3% in four of
+  the last five against 13–17% in 2018–20. But 2023–24 shows they haven't
+  gone away.
+- **2025–26 wasn't special.** The earlier write-up leaned on it as the one good
+  post-2020 winter. With the gap filled, 2022–23 was the cleanest for its
+  weather, and 2025–26 is ordinary.
 - **The smoke window is the sharpest result.** Satellite-detected crop fires
-  fell about 90%, from 50,000–87,000 a season to 8,108 in 2025. Yet Delhi's
-  pollution from 16 October to 15 November, relative to its weather, was the
-  same in 2025 (1.78×) as in 2018–21 (the change is −0.006, interval −0.36 to
-  +0.29). Either burning has moved out of the satellites' view (there are
-  reports of fires being lit after the afternoon overpass), or other sources
-  fill the window.
+  fell from 50,000–87,000 a season in 2018–21 to 12,746 in 2024 and 8,108 in
+  2025. Yet Delhi's pollution from 16 October to 15 November, relative to its
+  weather, was 1.54×, 1.57× and 1.68× in 2023–25, inside the 2018–21 range
+  (1.40–2.33×). 2025 against 2018–21 is −0.10, with a 95% interval of −0.48
+  to +0.26, which includes no change at all. Either burning has moved out of the satellites'
+  view (there are reports of fires being lit after the afternoon overpass), or
+  other sources fill the window.
 
 **The lesson for anyone judging progress:** satellite fire counts make
 crop-burning policy look like a success that Delhi's air doesn't yet show.
@@ -253,7 +270,7 @@ days (34 of 49; 95% interval 55–80%) and stays just inside the false-alarm
 budget. The obvious rule's 0 of 49 has an upper bound of 7%, so the gap isn't
 luck.
 
-**Then I tested it on the future, and it half-failed.** With the backfill, the
+**Then I tested it on the future, and it formally failed.** With the backfill, the
 rule could face years it had never seen. I [wrote down the test
 first](analysis_plans/alert_future_preregistration.md): translate the rule to
 PM2.5 (the new data has no official AQI), and require it to pass in *both*
@@ -268,9 +285,19 @@ days warned, and a better score than the calendar and persistence rules.
 So it fails, as specified. Two things temper that without excusing it. The
 PM2.5 translation alone costs something: on 2018–20 the translated rule scores
 57% instead of 69%. And 2025–26 had only 10 onsets, so 4 against 5 is one day,
-with intervals that overlap almost entirely (17–69% against 24–76%). The
-honest summary: it worked on 2020–22, and 2025–26 is too thin to say either
-way. A simpler rule ("today above 90 µg/m³") did better in 2025–26, but
+with intervals that overlap almost entirely (17–69% against 24–76%). When CPCB's
+records filled the gap, I [added a third unseen
+period](analysis_plans/cpcb_gap_preregistration.md) with the same pass marks,
+without changing the original verdict:
+
+| Period | First bad days warned | Calendar rule | Verdict |
+|---|---|---|---|
+| November 2022 – January 2025 (CPCB) | **81%** (22 of 27) | 56% | Pass |
+
+And on CPCB's more complete data for 2025–26 itself, the rule passes (8 of 15
+first bad days, 53%); OpenAQ was missing days in that period. The honest
+summary: the test as written failed, but the rule passed on two of three
+unseen periods, and the failure rests on a handful of days. A simpler rule ("today above 90 µg/m³") did better in 2025–26, but
 picking it after seeing that would be exactly the overfitting the test exists
 to prevent, so it's a hypothesis for the next winter, not a result. One honest caveat: the
 "forecast" here is the actual next-day weather, a perfect forecast, so a real
@@ -319,14 +346,15 @@ softer than they look. December's 81% could plausibly be anywhere from 68% to
   It misses things like where the air is arriving from: monsoon days come out
   cleaner than their mixing height and wind predict. Compare the ratios with
   each other rather than reading them as exact multipliers.
-- **"Then vs now" rests on a thin slice.** It covers one post-2020 winter with
-  good coverage (2025–26), on 12 stations, with three winters missing. Its
-  post-2020 data comes from OpenAQ, which matched the official data closely
-  where they overlap, but isn't the official record itself.
+- **"Then vs now" is eight winters on 12 stations.** That's enough to rule out
+  a large improvement, not a small one: the trend's interval runs from a fall
+  of 0.05 to a rise of 0.02 in the weather ratio each winter. Three sources are stitched together (each
+  checked against the one before it), and 2023–24's weather adjustment covers
+  only November–December, because the weather record has a six-month hole.
 
 ## Things the data got wrong (and how I caught them)
 
-Government sensor data is messy, and two faults would have quietly distorted
+Government sensor data is messy, and three faults would have quietly distorted
 the results:
 
 - **A station whose PM10 was a copy of its PM2.5.** Punjabi Bagh's average
@@ -338,8 +366,15 @@ the results:
   more spiked in April 2018. Any station-month with a median above 5 mg/m³ is
   blanked: 314 readings, under 1% of the CO data.
 
-Both are detected by rules in `fetch_data.py` rather than hard-coded, so they
-would correct themselves if the source data were ever fixed.
+- **A winter missing its cleanest month.** The first write-up put 2021–22 at a
+  mean PM2.5 of 179, as bad as 2018–19. CPCB's records showed why: OpenAQ has
+  almost no February 2022, the cleanest month of that winter, so the average
+  leaned on November–January. On the days both sources have, they agree
+  within about 5%. The complete record puts that winter at 158.
+
+The first two are detected by rules in `fetch_data.py` rather than hard-coded,
+so they would correct themselves if the source data were ever fixed. The third
+is why every period now uses the most complete source available.
 
 ---
 
@@ -354,9 +389,9 @@ would correct themselves if the source data were ever fixed.
 | 5 | [`09`](queries/09_lockdown_pollutants.sql), [`15`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |
 | 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's actual Diwali date |
 | 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
-| Alert (future test) | [`24_alert_rules_future.sql`](queries/24_alert_rules_future.sql), [`validate_backfill.py`](validate_backfill.py) | Same rules translated to PM2.5, scored on two unseen periods against [pre-registered criteria](analysis_plans/alert_future_preregistration.md) ([results](results/alert_future_test.csv)) |
+| Alert (future test) | [`24_alert_rules_future.sql`](queries/24_alert_rules_future.sql), [`26_alert_rules_gap.sql`](queries/26_alert_rules_gap.sql), [`validate_backfill.py`](validate_backfill.py) | Same rules translated to PM2.5, scored on three unseen periods against [pre-registered criteria](analysis_plans/alert_future_preregistration.md) ([results](results/alert_future_test.csv), [gap period](results/alert_gap_test.csv)) |
 | Alert | [`17_alert_rules.sql`](queries/17_alert_rules.sql) | Next-day pairs via `LEAD()`; precision, recall and first-bad-day recall per rule; train/test split with the choice made in SQL |
-| 8 | [`19_then_vs_now.sql`](queries/19_then_vs_now.sql), [`20_stubble_then_vs_now.sql`](queries/20_stubble_then_vs_now.sql), [`validate_backfill.py`](validate_backfill.py) | Fixed 12-station panel across winters; weather-adjusted ratio; pre-registered validation of the OpenAQ data ([plan](analysis_plans/backfill_preregistration.md), [results](results/backfill_validation.csv)) |
+| 8 | [`25_then_vs_now_8_winters.sql`](queries/25_then_vs_now_8_winters.sql), [`20_stubble_then_vs_now.sql`](queries/20_stubble_then_vs_now.sql), [`validate_backfill.py`](validate_backfill.py) | Fixed 12-station panel across eight winters; weather-adjusted ratio; trend slope with a week-block bootstrap within each winter ([results](results/then_vs_now_trend.csv)); pre-registered checks of the OpenAQ and CPCB data ([plan](analysis_plans/backfill_preregistration.md), [plan](analysis_plans/cpcb_gap_preregistration.md), [results](results/backfill_validation.csv), [results](results/cpcb_validation.csv)) |
 | Intervals | [`uncertainty.py`](uncertainty.py) | Week-block bootstrap (daily figures); station bootstrap re-running `09` and `10`; Wilson interval (alert) |
 | Caveats | [`08`](queries/08_coverage.sql), [`03`](queries/03_yoy_comparison.sql) | Coverage audit; like-for-like year-over-year comparison |
 

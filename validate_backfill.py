@@ -34,6 +34,13 @@ Test C (analysis_plans/cpcb_gap_preregistration.md): the CPCB daily data
 criteria. Not blind (the agreement was seen before the plan was written); a
 documented gate. Written to results/cpcb_validation.csv.
 
+Eight-winter then vs now and the alert gap period
+(analysis_plans/cpcb_gap_preregistration.md): the trend in query 25's
+weather-adjusted ratio with a week-block bootstrap within each winter, the
+Amendment 1 post-hoc checks and the 2025-26 source sensitivity
+(results/then_vs_now_trend.csv); query 26's alert scores
+(results/alert_gap_test.csv).
+
 Usage (after fetch_data.py has built data/aqi.db with readings_openaq):
     python3 validate_backfill.py
 """
@@ -156,9 +163,9 @@ def test_b(conn):
     return rows, m
 
 
-def alert_future(conn):
+def alert_future(conn, query="24_alert_rules_future.sql", out_name="alert_future_test.csv"):
     from uncertainty import wilson_ci
-    q = (ROOT / "queries" / "24_alert_rules_future.sql").read_text()
+    q = (ROOT / "queries" / query).read_text()
     df = pd.read_sql_query(q, conn)
     rows = []
     for r in df[df["rule"].str[0].isin(["A", "B", "E"])].itertuples():
@@ -169,9 +176,84 @@ def alert_future(conn):
                      "false_alerts_per_30d": r.false_alerts_per_30d,
                      "rule_e_pass": None if pd.isna(r.rule_e_pass) else bool(r.rule_e_pass)})
     out = pd.DataFrame(rows)
-    out.to_csv(OUT_PATH.with_name("alert_future_test.csv"), index=False)
+    out.to_csv(OUT_PATH.with_name(out_name), index=False)
     future = out[out["split"].str.startswith("future") & out["rule"].str.startswith("E")]
     return out, bool(future["rule_e_pass"].all())
+
+
+TREND_SEED = 42
+TREND_RESAMPLES = 2000
+
+
+def slope(winters):
+    """OLS slope of weather-adjusted ratio on winter start year."""
+    from uncertainty import adjusted_ratio
+    pts = [(y, adjusted_ratio(g)) for y, g in winters.groupby("season_start")]
+    x, y = np.array(pts, dtype=float).T
+    return float(np.polyfit(x, y, 1)[0])
+
+
+def winter_bootstrap(days, stat, n, rng):
+    """Week-block bootstrap within each winter: every winter keeps its own
+    number of weeks, resampled from its own weeks."""
+    blocks = {y: [g.index.to_numpy() for _, g in w.groupby("week")] for y, w in days.groupby("season_start")}
+    out = np.empty(n)
+    for i in range(n):
+        idx = [b[j] for b in blocks.values() for j in rng.integers(0, len(b), len(b))]
+        out[i] = stat(days.loc[np.concatenate(idx)])
+    return out
+
+
+def then_vs_now_trend(conn):
+    """Pre-registered eight-winter trend (cpcb_gap_preregistration.md, 1) plus
+    Amendment 1's post-hoc checks and the 2025-26 source sensitivity."""
+    from uncertainty import query_rows
+    days = query_rows(conn, "25_then_vs_now_8_winters.sql",
+                      "SELECT date, month, season_start, pm25, rain_mm, expected_pm25 FROM winter")
+    rng = np.random.default_rng(TREND_SEED)
+    rows = []
+
+    def verdict(lo, hi):
+        return "improving" if hi < 0 else "worsening" if lo > 0 else "no clear trend"
+
+    variants = [("primary (pre-registered)", "8 winters, Nov-Feb", days),
+                ("post hoc", "8 winters, Nov-Dec only", days[days["month"].isin([11, 12])]),
+                ("post hoc", "7 winters, without 2023-24", days[days["season_start"] != 2023])]
+    for kind, label, d in variants:
+        d = d.reset_index(drop=True)
+        est = slope(d)
+        lo, hi = np.percentile(winter_bootstrap(d, slope, TREND_RESAMPLES, rng), [2.5, 97.5])
+        rows.append({"analysis": f"Trend in weather-adjusted ratio: {label}", "kind": kind,
+                     "value": round(est, 4), "ci_low": round(lo, 4), "ci_high": round(hi, 4),
+                     "unit": "ratio per winter", "result": verdict(lo, hi),
+                     "n_winters": d["season_start"].nunique(), "n_days": len(d)})
+
+    # Secondary: is 2025-26 the lowest weather-adjusted ratio of the eight?
+    t25 = pd.read_sql_query((ROOT / "queries" / "25_then_vs_now_8_winters.sql").read_text(), conn)
+    lowest = t25.loc[t25["weather_adjusted_ratio"].idxmin(), "winter"]
+    rows.append({"analysis": "Lowest weather-adjusted ratio of the eight winters", "kind": "secondary",
+                 "value": float(t25["weather_adjusted_ratio"].min()), "result": f"{lowest} "
+                 f"({'is' if lowest == '2025-26' else 'not'} 2025-26)", "n_winters": len(t25)})
+
+    # Post hoc (Amendment 1): 2023-24 on all its days, no weather needed
+    full = query_rows(conn, "25_then_vs_now_8_winters.sql", """
+        SELECT date, pm25 FROM city_daily
+        WHERE month IN (11, 12, 1, 2) AND season_start = 2023""")
+    for label, value in (("2023-24 mean PM2.5, all days", full["pm25"].mean()),
+                         ("2023-24 % of days over 120, all days", 100 * (full["pm25"] > 120).mean()),
+                         ("2023-24 % of days over 250, all days", 100 * (full["pm25"] > 250).mean())):
+        rows.append({"analysis": label, "kind": "post hoc", "value": round(value, 1),
+                     "n_days": len(full)})
+
+    # Sensitivity: 2025-26 on CPCB (25) vs OpenAQ (19), within 5% on mean PM2.5
+    t19 = pd.read_sql_query((ROOT / "queries" / "19_then_vs_now.sql").read_text(), conn).set_index("winter")
+    cp, oa = t25.set_index("winter").loc["2025-26", "mean_pm25"], t19.loc["2025-26", "mean_pm25"]
+    diff = 100 * (cp - oa) / oa
+    rows.append({"analysis": "2025-26 mean PM2.5, CPCB vs OpenAQ (% difference)", "kind": "sensitivity",
+                 "value": round(diff, 1), "result": "agree (within 5%)" if abs(diff) <= 5 else "differ (over 5%)"})
+    out = pd.DataFrame(rows)
+    out.to_csv(OUT_PATH.with_name("then_vs_now_trend.csv"), index=False)
+    return out, t25
 
 
 def main():
@@ -199,9 +281,18 @@ def main():
 
     conn = sqlite3.connect(DB_PATH)
     alerts, passed = alert_future(conn)
-    conn.close()
     print("\n" + alerts.to_string(index=False))
     print(f"Alert future test (rule E): {'PASS' if passed else 'FAIL'}")
+
+    gap, _ = alert_future(conn, "26_alert_rules_gap.sql", "alert_gap_test.csv")
+    print("\n" + gap.to_string(index=False))
+    e = gap[(gap["split"] == "future 2022-25") & gap["rule"].str.startswith("E")]
+    print(f"Alert rule E on Nov 2022 - Jan 2025: {'PASS' if e['rule_e_pass'].all() else 'FAIL'}")
+
+    trend, t25 = then_vs_now_trend(conn)
+    conn.close()
+    print("\n" + t25.to_string(index=False))
+    print("\n" + trend.to_string(index=False))
 
 
 if __name__ == "__main__":

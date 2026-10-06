@@ -1,0 +1,9 @@
+analysis,kind,value,ci_low,ci_high,unit,result,n_winters,n_days
+"Trend in weather-adjusted ratio: 8 winters, Nov-Feb",primary (pre-registered),-0.0141,-0.0477,0.0232,ratio per winter,no clear trend,8.0,859.0
+"Trend in weather-adjusted ratio: 8 winters, Nov-Dec only",post hoc,0.0058,-0.0465,0.0582,ratio per winter,no clear trend,8.0,468.0
+"Trend in weather-adjusted ratio: 7 winters, without 2023-24",post hoc,-0.0221,-0.0563,0.0145,ratio per winter,no clear trend,7.0,798.0
+Lowest weather-adjusted ratio of the eight winters,secondary,0.94,,,,2022-23 (not 2025-26),8.0,
+"2023-24 mean PM2.5, all days",post hoc,167.9,,,,,,121.0
+"2023-24 % of days over 120, all days",post hoc,76.0,,,,,,121.0
+"2023-24 % of days over 250, all days",post hoc,11.6,,,,,,121.0
+"2025-26 mean PM2.5, CPCB vs OpenAQ (% difference)",sensitivity,-1.0,,,,agree (within 5%),,

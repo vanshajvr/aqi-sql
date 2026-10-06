@@ -6,7 +6,7 @@ from ..theme import ACCENT, ACCENT_2, GRID, TEXT, base_layout
 
 def with_gaps(d, cols, max_days=14):
     """Insert an empty row wherever consecutive weekly points are far apart, so
-    the line breaks at data gaps (e.g. Nov 2022 - Feb 2025) instead of bridging them."""
+    the line breaks at data gaps instead of bridging them."""
     d = d.sort_values("date").reset_index(drop=True)
     rows = []
     for i, r in d.iterrows():
@@ -43,9 +43,6 @@ def build(df23, df21, station_names):
         name = station_names.get(sid, sid).replace(", Delhi - ", " · ")
         buttons.append(dict(label=name, method="update", args=[{"visible": vis}]))
 
-    fig.add_vrect(x0="2022-11-01", x1="2025-02-01", fillcolor="rgba(110,118,129,0.12)", line_width=0,
-                  annotation_text="no data", annotation_position="top",
-                  annotation_font=dict(color="#6e7681", size=11))
     fig.update_layout(
         xaxis_title="", yaxis_title="PM2.5 (µg/m³)",
         xaxis=dict(gridcolor=GRID, rangeslider=dict(visible=True, bgcolor="#21262d", thickness=0.06)),

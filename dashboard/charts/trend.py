@@ -7,11 +7,10 @@ from ..theme import ACCENT, GRID, TEXT, base_layout
 # "city-wide" mean rests on a handful of stations (see 08_coverage.sql).
 LOW_COVERAGE_STATIONS = 10
 MUTED = "#6e7681"
-GAP = ("2022-11-01", "2025-02-01")       # no data at all in the backfill
 
 
 def build(df22):
-    """Monthly city-wide PM2.5, 2015-2026, with the data gap left as a gap."""
+    """Monthly city-wide PM2.5, 2015-2026; the line breaks at any missing months."""
     d = df22.copy()
     d["date"] = pd.to_datetime(d["year_month"] + "-01")
     d = d.sort_values("date").reset_index(drop=True)
@@ -34,11 +33,11 @@ def build(df22):
         hovertemplate="<b>%{x|%b %Y}</b><br>PM2.5 %{y:.0f} µg/m³"
                       "<br>%{customdata[0]} stations, %{customdata[1]} data<extra></extra>",
     ))
-    fig.add_vrect(x0=GAP[0], x1=GAP[1], fillcolor="rgba(110,118,129,0.12)", line_width=0,
-                  annotation_text="no data", annotation_position="top",
-                  annotation_font=dict(color=MUTED, size=11))
     fig.add_vline(x="2020-07-01", line=dict(color=MUTED, width=1, dash="dot"))
-    fig.add_annotation(x="2020-07-01", y=1, yref="paper", text="OpenAQ data →", showarrow=False,
+    fig.add_annotation(x="2020-07-01", y=1, yref="paper", text="OpenAQ →", showarrow=False,
+                       xanchor="left", font=dict(color=MUTED, size=11))
+    fig.add_vline(x="2022-01-01", line=dict(color=MUTED, width=1, dash="dot"))
+    fig.add_annotation(x="2022-01-01", y=1, yref="paper", text="CPCB →", showarrow=False,
                        xanchor="left", font=dict(color=MUTED, size=11))
     fig.update_layout(
         showlegend=False,
