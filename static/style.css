@@ -89,6 +89,7 @@ p.subtitle { color: #8b949e; margin: 0; font-size: 16px; line-height: 1.6; font-
   border-color: #30363d;
 }
 .card h3 { font-size: 16px; font-weight: 600; color: #f0f6fc; margin: 0 0 6px; letter-spacing: -0.01em; }
+.card h4.subhead { font-size: 14px; font-weight: 600; color: #f0f6fc; margin: 22px 0 4px; }
 .card p.hint { font-size: 12px; color: #6e7681; margin: 0 0 16px; }
 /* minmax(0, 1fr), not 1fr: charts in a hidden tab render at Plotly's default
    700px, and a plain 1fr column won't shrink below its content, so the grid

@@ -14,7 +14,11 @@
 -- isn't mistaken for smoke.
 -- EXPOSURE: fires the PREVIOUS day (smoke takes ~a day to travel 200-400 km;
 -- lags 0-3 look alike because burning runs for weeks, so this isn't a
--- precise travel time). Split into thirds (NTILE) within the window.
+-- precise travel time). Split into thirds (NTILE) WITHIN EACH SEASON:
+-- detected fires fell ~90% after 2021, so thirds across all years would
+-- just separate old seasons from new ones instead of comparing high- and
+-- low-fire days of the same season.
+-- YEARS: 2015-2025 seasons (readings_all; fires from NASA FIRMS).
 -- WINDOW: 15 Oct - 30 Nov, dry days, so low- and high-fire days come from the
 -- same season instead of comparing November with September.
 --
@@ -22,14 +26,12 @@
 -- doesn't need a north-westerly. Each scenario is run twice:
 --   'all days'           Diwali weeks included
 --   'excluding Diwali'   days -3 to +7 around each Diwali removed
--- In the real data the wind pattern only appears cleanly once Diwali is out
--- (north-westerly: 1.38x -> 2.07x from fewest to most fires; other winds:
--- 1.18x -> 1.36x). Cells hold ~20-30 days, so see uncertainty.py for ranges.
+-- See uncertainty.py for ranges: each cell holds a few dozen days.
 WITH city_daily AS (
     SELECT date, AVG(pm25) AS pm25
-    FROM readings
+    FROM readings_all
     WHERE pm25 IS NOT NULL
-      AND date < '2020-03-25'
+      AND date NOT BETWEEN '2020-03-25' AND '2020-05-31'
     GROUP BY date
     HAVING COUNT(*) >= 5
 ),
@@ -57,6 +59,7 @@ binned AS (
     FROM city_daily c
     JOIN weather w ON w.date = c.date
     WHERE w.rain_mm < 1
+      AND w.mixing_height_mean_m IS NOT NULL
 ),
 expected AS (
     SELECT mixing_bin, wind_bin, AVG(pm25) AS expected_pm25
@@ -66,11 +69,14 @@ expected AS (
     HAVING COUNT(*) >= 10
 ),
 diwali(diwali_date) AS (
-    VALUES ('2015-11-11'), ('2016-10-30'), ('2017-10-19'), ('2018-11-07'), ('2019-10-27')
+    VALUES ('2015-11-11'), ('2016-10-30'), ('2017-10-19'), ('2018-11-07'), ('2019-10-27'),
+           ('2020-11-14'), ('2021-11-04'), ('2022-10-24'), ('2023-11-12'), ('2024-10-31'),
+           ('2025-10-20')
 ),
 window_days AS (
     SELECT
         b.date,
+        strftime('%Y', b.date) AS season,
         b.pm25,
         e.expected_pm25,
         f_prev.n_fires AS fires_prev_day,
@@ -92,7 +98,7 @@ scenarios AS (
 ranked AS (
     SELECT
         *,
-        NTILE(3) OVER (PARTITION BY scenario ORDER BY fires_prev_day, date) AS fire_third
+        NTILE(3) OVER (PARTITION BY scenario, season ORDER BY fires_prev_day, date) AS fire_third
     FROM scenarios
 )
 SELECT
@@ -100,6 +106,7 @@ SELECT
     CASE fire_third WHEN 1 THEN 'fewest fires' WHEN 2 THEN 'middle' ELSE 'most fires' END AS fire_level,
     wind,
     COUNT(*) AS n_days,
+    COUNT(DISTINCT season) AS n_seasons,
     MIN(fires_prev_day) AS min_fires,
     MAX(fires_prev_day) AS max_fires,
     ROUND(AVG(pm25), 1) AS actual_pm25,

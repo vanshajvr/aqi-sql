@@ -45,6 +45,7 @@ QUERY_FILES = {
     "alert-rules-future": "24_alert_rules_future.sql",
     "then-vs-now-8-winters": "25_then_vs_now_8_winters.sql",
     "alert-rules-gap": "26_alert_rules_gap.sql",
+    "fires-daynight": "27_fires_daynight.sql",
 }
 
 # Read the .sql files once at startup, not on every request.
@@ -154,10 +155,10 @@ def list_stations():
             "station_name": row["station_name"],
             "latitude": row["latitude"],
             "longitude": row["longitude"],
-            "avg_aqi_2018_19": stats.get("avg_aqi_2018_19"),
+            "avg_pm25": stats.get("avg_pm25"),
             "worst_overall_rank": stats.get("worst_overall_rank"),
             "worst_month": stats.get("worst_month"),
-            "worst_month_avg_aqi": stats.get("worst_month_avg_aqi"),
+            "worst_month_avg_pm25": stats.get("worst_month_avg_pm25"),
             # map views (see 21, 10, 16)
             "pm25_2018_19": periods.get(station_id, {}).get("pm25_2018_19"),
             "pm25_2025_26": periods.get(station_id, {}).get("pm25_2025_26"),

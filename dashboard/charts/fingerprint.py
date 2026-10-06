@@ -29,7 +29,7 @@ def build(df10):
                   annotation_font=dict(color="#8b949e", size=11))
     fig.update_layout(
         showlegend=False,
-        xaxis=dict(title="Station mean / median of all stations (2018-2019)",
+        xaxis=dict(title="Station mean / median of all stations (network days, 2018–2026)",
                    ticksuffix="x", gridcolor=GRID, range=[0, x_max]),
         yaxis=dict(categoryorder="array", categoryarray=order, title="",
                    tickvals=order, ticktext=row_labels),

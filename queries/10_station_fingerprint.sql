@@ -12,30 +12,36 @@
 --   * a pollutant with a WIDE spread is local: specific sites are hotspots,
 --     which points at nearby sources (traffic for NO2/CO, dust for PM10)
 --
--- PERIOD: 2018-2019 only, the two full years where all 37 stations report
--- (see 08_coverage.sql), so every station is measured over the same days of
--- weather. Mixing in 2015-17 would compare stations across different years.
+-- PERIOD: NETWORK DAYS, 2018-2026 (readings_all): days on which at least 80%
+-- of the stations (30 of 37) reported PM2.5, the same rule as 06. So every station is
+-- measured over (almost) the same days of weather. The network wasn't built
+-- out before 2018 (see 08_coverage.sql).
 --
--- A station needs >= 300 days of a pollutant to get an index (several IMD
--- stations do not measure SO2; three stations have no usable PM10).
-WITH long AS (
-    SELECT station_id, 'PM2.5' AS pollutant, pm25 AS value FROM readings
-        WHERE date BETWEEN '2018-01-01' AND '2019-12-31'
-    UNION ALL SELECT station_id, 'PM10', pm10 FROM readings
-        WHERE date BETWEEN '2018-01-01' AND '2019-12-31'
-    UNION ALL SELECT station_id, 'NO2', no2 FROM readings
-        WHERE date BETWEEN '2018-01-01' AND '2019-12-31'
-    UNION ALL SELECT station_id, 'CO', co FROM readings
-        WHERE date BETWEEN '2018-01-01' AND '2019-12-31'
-    UNION ALL SELECT station_id, 'SO2', so2 FROM readings
-        WHERE date BETWEEN '2018-01-01' AND '2019-12-31'
+-- A station needs a pollutant on >= 40% of network days to get an index
+-- (several IMD stations do not measure SO2).
+WITH network_days AS (
+    SELECT date
+    FROM readings_all
+    WHERE pm25 IS NOT NULL AND date >= '2018-01-01'
+    GROUP BY date
+    HAVING COUNT(*) >= 0.8 * (SELECT COUNT(*) FROM stations)
+),
+net AS (
+    SELECT r.* FROM readings_all r JOIN network_days USING (date)
+),
+long AS (
+    SELECT station_id, 'PM2.5' AS pollutant, pm25 AS value FROM net
+    UNION ALL SELECT station_id, 'PM10', pm10 FROM net
+    UNION ALL SELECT station_id, 'NO2', no2 FROM net
+    UNION ALL SELECT station_id, 'CO', co FROM net
+    UNION ALL SELECT station_id, 'SO2', so2 FROM net
 ),
 station_mean AS (
     SELECT station_id, pollutant, AVG(value) AS mean_value
     FROM long
     WHERE value IS NOT NULL
     GROUP BY station_id, pollutant
-    HAVING COUNT(*) >= 300
+    HAVING COUNT(*) >= 0.4 * (SELECT COUNT(*) FROM network_days)
 ),
 ordered AS (
     -- SQLite has no MEDIAN(): rank each station within its pollutant, then

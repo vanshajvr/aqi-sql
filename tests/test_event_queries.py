@@ -4,8 +4,11 @@ Each test builds a tiny in-memory `readings` table with hand-picked values so
 the expected answer is known exactly, then runs the real .sql file from
 queries/ against it. Nothing here touches data/aqi.db.
 
+Values are PM2.5 (the analyses' measure since they cover 2015-2026), on
+CPCB's PM2.5 bands: Very Poor 121-250, Severe 251+.
+
 Bugs these guard against (found in external review):
-  * "Severe" was defined as AQI >= 300 in 04 but 401+ in 05
+  * "Severe" was defined differently in 04 and 05
   * a single bad day counted once per station (up to 37x)
   * the Mar-Sep baseline included the 2020 COVID lockdown
   * Diwali analysed by calendar month instead of its actual date
@@ -16,10 +19,13 @@ from pathlib import Path
 
 import pytest
 
+from tests.readings_view import ensure_readings_all
+
 QUERIES = Path(__file__).resolve().parent.parent / "queries"
 
 
 def run_query(conn, filename):
+    ensure_readings_all(conn)
     cur = conn.execute((QUERIES / filename).read_text())
     cols = [c[0] for c in cur.description]
     return [dict(zip(cols, row)) for row in cur.fetchall()]
@@ -28,15 +34,15 @@ def run_query(conn, filename):
 @pytest.fixture
 def conn():
     c = sqlite3.connect(":memory:")
-    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, aqi REAL)")
+    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, pm25 REAL)")
     yield c
     c.close()
 
 
-def add_day(conn, day, aqi, n_stations=5):
+def add_day(conn, day, pm25, n_stations=5):
     conn.executemany(
         "INSERT INTO readings VALUES (?, ?, ?)",
-        [(f"S{i}", day, aqi) for i in range(n_stations)],
+        [(f"S{i}", day, pm25) for i in range(n_stations)],
     )
 
 
@@ -47,14 +53,14 @@ def by_period(rows):
 # ---------- 04_event_clustering.sql ----------
 
 def test_thresholds_match_cpcb_buckets(conn):
-    # 300 is "Poor", 301-400 "Very Poor", 401+ "Severe" (same as 05)
-    for d, aqi in [("2016-12-01", 300), ("2016-12-02", 301),
-                   ("2016-12-03", 400), ("2016-12-04", 401)]:
-        add_day(conn, d, aqi)
+    # PM2.5 120 is "Poor", 121-250 "Very Poor", 251+ "Severe" (same as 05)
+    for d, pm in [("2016-12-01", 120), ("2016-12-02", 121),
+                  ("2016-12-03", 250), ("2016-12-04", 251)]:
+        add_day(conn, d, pm)
     dec = by_period(run_query(conn, "04_event_clustering.sql"))["early_winter(Dec)"]
     assert dec["n_days"] == 4
-    assert dec["n_days_very_poor_plus"] == 3   # 301, 400, 401 - not 300
-    assert dec["n_days_severe"] == 1           # only 401
+    assert dec["n_days_very_poor_plus"] == 3   # 121, 250, 251 - not 120
+    assert dec["n_days_severe"] == 1           # only 251
 
 
 def test_one_bad_day_counts_as_one_day(conn):
@@ -79,13 +85,15 @@ def test_days_with_thin_station_coverage_are_ignored(conn):
 def test_lockdown_days_excluded_from_baseline(conn):
     add_day(conn, "2019-05-10", 200)   # normal baseline day, kept
     add_day(conn, "2020-04-15", 50)    # lockdown, excluded
+    add_day(conn, "2020-05-31", 50)    # last lockdown day, excluded
+    add_day(conn, "2020-06-01", 60)    # unlock, kept
     add_day(conn, "2020-02-15", 350)   # pre-lockdown winter, kept
     rows = by_period(run_query(conn, "04_event_clustering.sql"))
-    assert rows["rest of the year(Mar-Sep)"]["n_days"] == 1
+    assert rows["rest of the year(Mar-Sep)"]["n_days"] == 2
     assert rows["late_winter(Jan-Feb)"]["n_days"] == 1
 
 
-def test_null_aqi_rows_do_not_count_as_stations(conn):
+def test_null_pm25_rows_do_not_count_as_stations(conn):
     add_day(conn, "2016-12-01", 450, n_stations=5)
     conn.executemany("INSERT INTO readings VALUES (?, ?, NULL)",
                      [(f"N{i}", "2016-12-01") for i in range(10)])
@@ -97,8 +105,8 @@ def test_null_aqi_rows_do_not_count_as_stations(conn):
 
 def test_diwali_windows_use_actual_date(conn):
     diwali = date(2017, 10, 19)
-    def put(offset, aqi):
-        add_day(conn, (diwali + timedelta(days=offset)).isoformat(), aqi)
+    def put(offset, pm25):
+        add_day(conn, (diwali + timedelta(days=offset)).isoformat(), pm25)
 
     for off in range(-21, -7):  put(off, 100)   # baseline window, 14 days
     for off in range(-7, 0):    put(off, 150)   # week before, 7 days
@@ -108,9 +116,9 @@ def test_diwali_windows_use_actual_date(conn):
 
     rows = {r["diwali_year"]: r for r in run_query(conn, "07_diwali_effect.sql")}
     r = rows["2017"]
-    assert r["baseline_aqi"] == 100.0
-    assert r["week_before_aqi"] == 150.0
-    assert r["week_after_aqi"] == 300.0
+    assert r["baseline_pm25"] == 100.0
+    assert r["week_before_pm25"] == 150.0
+    assert r["week_after_pm25"] == 300.0
     assert r["after_vs_baseline"] == 3.0
     assert (r["n_days_baseline"], r["n_days_week_before"], r["n_days_week_after"]) == (14, 7, 8)
     assert rows["all years"]["after_vs_baseline"] == 3.0
@@ -133,17 +141,18 @@ def test_coverage_separates_null_rows_from_late_start(conn):
         if d >= date(2016, 7, 1):                            # LATE joins 1 July
             conn.execute("INSERT INTO readings VALUES ('LATE', ?, 100)", (d.isoformat(),))
         d += timedelta(days=1)
-    # GAPPY: 10 rows present, 4 with NULL AQI
+    # GAPPY: 10 rows present, 4 with NULL PM2.5
     for i in range(10):
         conn.execute("INSERT INTO readings VALUES ('GAPPY', ?, ?)",
                      ((start + timedelta(days=i)).isoformat(), None if i < 4 else 100))
 
     rows = {r["station_id"]: r for r in run_query(conn, "08_coverage.sql")}
     assert rows["FULL"]["pct_of_year_covered"] == 100.0
-    assert rows["LATE"]["n_days_with_aqi"] == 184
+    assert rows["LATE"]["n_days_with_pm25"] == 184
     assert rows["LATE"]["pct_of_year_covered"] == 50.3       # 184 / 366
-    assert rows["GAPPY"]["n_null_aqi"] == 4
-    assert rows["GAPPY"]["n_days_with_aqi"] == 6
+    assert rows["GAPPY"]["n_null_pm25"] == 4
+    assert rows["GAPPY"]["n_days_with_pm25"] == 6
+    assert rows["FULL"]["main_source"] == "Kaggle"
 
 # ---------- 09_lockdown_pollutants.sql ----------
 
@@ -192,6 +201,12 @@ def test_lockdown_ignores_stations_missing_a_window(pollutant_conn):
 # ---------- 10_station_fingerprint.sql ----------
 
 def test_fingerprint_index_is_relative_to_city_median():
+    """
+    A-D report PM2.5 and NO2 on 300 days of 2018: those are network days
+    (>= 80% of the 5 stations). E reports NO2 on only 100 of them, under
+    the 40% minimum, so it gets no index. A's 2017 NO2 is before network
+    days begin and must not raise its mean.
+    """
     c = sqlite3.connect(":memory:")
     c.execute("CREATE TABLE stations (station_id TEXT, station_name TEXT)")
     c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, "
@@ -202,12 +217,11 @@ def test_fingerprint_index_is_relative_to_city_median():
         c.execute("INSERT INTO stations VALUES (?, ?)", (sid, f"Station {sid}"))
         c.executemany("INSERT INTO readings (station_id, date, no2, pm25) VALUES (?, ?, ?, 100)",
                       [(sid, (start + timedelta(days=i)).isoformat(), no2) for i in range(300)])
-    # E has too few days to be indexed; F's readings fall outside 2018-2019
+    c.execute("INSERT INTO stations VALUES ('E', 'E')")
     c.executemany("INSERT INTO readings (station_id, date, no2) VALUES ('E', ?, 999)",
-                  [((start + timedelta(days=i)).isoformat(),) for i in range(299)])
-    c.executemany("INSERT INTO readings (station_id, date, no2) VALUES ('F', ?, 999)",
+                  [((start + timedelta(days=i)).isoformat(),) for i in range(100)])
+    c.executemany("INSERT INTO readings (station_id, date, no2) VALUES ('A', ?, 999)",
                   [((date(2017, 1, 1) + timedelta(days=i)).isoformat(),) for i in range(300)])
-    c.executemany("INSERT INTO stations VALUES (?, ?)", [("E", "E"), ("F", "F")])
 
     rows = run_query(c, "10_station_fingerprint.sql")
     no2 = {r["station_id"]: r for r in rows if r["pollutant"] == "NO2"}

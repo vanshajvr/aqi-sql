@@ -1,21 +1,21 @@
 metric,estimate,ci_low,ci_high,unit,method,note
-% of December days Very Poor or worse,81.034,67.938,92.594,% of days,week-block bootstrap,
-% of March-September days Very Poor or worse,13.924,9.128,18.972,% of days,week-block bootstrap,
-"PM2.5 vs weather-predicted, late October",1.65,1.323,2.121,ratio (1 = weather explains it),week-block bootstrap,
-"PM2.5 vs weather-predicted, early November",2.235,1.677,3.003,ratio (1 = weather explains it),week-block bootstrap,
-"PM2.5 vs weather-predicted, early December",1.09,0.96,1.237,ratio (1 = weather explains it),week-block bootstrap,
-Lockdown effect on NO2 (lower bound),-41.3,-49.957,-31.043,percentage points,"station bootstrap, re-running 09",
-Lockdown effect on PM10 (lower bound),-36.8,-40.153,-33.1,percentage points,"station bootstrap, re-running 09",
-Lockdown effect on PM2.5 (lower bound),-19.9,-25.5,-13.133,percentage points,"station bootstrap, re-running 09",
-Lockdown: NO2 effect minus PM2.5 effect,-21.4,-29.553,-12.848,percentage points,"station bootstrap, re-running 09",negative = NO2 fell more; 100.0% of resamples
-"Dirtiest / cleanest station, NO2",4.75,2.62,4.75,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
-"Dirtiest / cleanest station, PM2.5",1.76,1.54,1.76,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
-"Spread ratio, NO2 / PM2.5",2.699,1.606,2.879,ratio,"station bootstrap, re-running 10",NO2 spread wider in 100.0% of resamples
-"Fire effect (most minus fewest fires), north-westerly wind",0.692,0.057,1.255,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
-"Fire effect (most minus fewest fires), other wind",0.185,-0.323,0.619,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
-Fire effect: north-westerly minus other wind,0.507,-0.268,1.271,change in excess ratio,week-block bootstrap,positive = smoke arrives with the wind; 89.8% of resamples
-"Severe days (PM2.5 > 250), winter 2025-26 minus 2018-20",-11.016,-19.325,-3.309,percentage points,week-block bootstrap,negative = better now; 99.8% of resamples
-"Weather-adjusted ratio, winter 2025-26 minus 2018-20",-0.089,-0.315,0.157,ratio,week-block bootstrap,negative = better now; 77.0% of resamples
-"Smoke-window weather-adjusted ratio, 2025 minus 2018-21",-0.097,-0.477,0.259,ratio,week-block bootstrap,16 Oct - 15 Nov; negative = less excess now; 66.5% of resamples
+% of December days Very Poor or worse,85.862,78.927,91.852,% of days,week-block bootstrap,"city PM2.5 > 120, 2015-2026"
+% of March-September days Very Poor or worse,3.778,2.742,5.076,% of days,week-block bootstrap,"city PM2.5 > 120, 2015-2026"
+"PM2.5 vs weather-predicted, late October",1.532,1.291,1.806,ratio (1 = weather explains it),week-block bootstrap,
+"PM2.5 vs weather-predicted, early November",2.208,1.915,2.591,ratio (1 = weather explains it),week-block bootstrap,
+"PM2.5 vs weather-predicted, early December",1.086,1.005,1.173,ratio (1 = weather explains it),week-block bootstrap,
+Lockdown effect on NO2 (lower bound),-41.3,-50.252,-30.548,percentage points,"station bootstrap, re-running 09",
+Lockdown effect on PM10 (lower bound),-36.8,-40.252,-32.8,percentage points,"station bootstrap, re-running 09",
+Lockdown effect on PM2.5 (lower bound),-19.9,-25.2,-13.048,percentage points,"station bootstrap, re-running 09",
+Lockdown: NO2 effect minus PM2.5 effect,-21.4,-29.5,-13.4,percentage points,"station bootstrap, re-running 09",negative = NO2 fell more; 100.0% of resamples
+"Dirtiest / cleanest station, NO2",4.34,2.274,4.41,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
+"Dirtiest / cleanest station, PM2.5",1.63,1.515,1.64,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
+"Spread ratio, NO2 / PM2.5",2.663,1.458,2.711,ratio,"station bootstrap, re-running 10",NO2 spread wider in 100.0% of resamples
+"Fire effect (most minus fewest fires), north-westerly wind",1.015,0.61,1.451,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
+"Fire effect (most minus fewest fires), other wind",0.317,-0.041,0.608,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
+Fire effect: north-westerly minus other wind,0.697,0.195,1.236,change in excess ratio,week-block bootstrap,positive = smoke arrives with the wind; 99.7% of resamples
+"Severe days (PM2.5 > 250), winter 2025-26 minus 2018-20",-11.016,-18.948,-3.072,percentage points,week-block bootstrap,negative = better now; 99.5% of resamples
+"Weather-adjusted ratio, winter 2025-26 minus 2018-20",-0.089,-0.326,0.165,ratio,week-block bootstrap,negative = better now; 77.2% of resamples
+"Smoke-window weather-adjusted ratio, 2025 minus 2018-21",-0.097,-0.502,0.259,ratio,week-block bootstrap,16 Oct - 15 Nov; negative = less excess now; 66.3% of resamples
 "First bad days warned, rule E (2018-20)",69.388,55.472,80.485,% of onsets,Wilson score interval,34 of 49 onsets
 "First bad days warned, rule B (2018-20)",0.0,0.0,7.27,% of onsets,Wilson score interval,0 of 49 onsets

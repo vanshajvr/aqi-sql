@@ -9,6 +9,8 @@ it is.
 import sqlite3
 import pytest
 
+from fetch_data import READINGS_ALL_VIEW
+
 SCHEMA = """
 CREATE TABLE stations (
     station_id TEXT PRIMARY KEY,
@@ -38,24 +40,30 @@ CREATE TABLE embassy_pm25 (
 CREATE TABLE fires (
     date TEXT PRIMARY KEY, n_fires INTEGER, frp_sum_mw REAL
 );
+CREATE TABLE fires_daynight (
+    date TEXT PRIMARY KEY, n_day INTEGER, n_night INTEGER,
+    frp_day_mw REAL, frp_night_mw REAL
+);
 CREATE TABLE weather (
     date TEXT PRIMARY KEY,
     temp_mean_c REAL, temp_min_c REAL, wind_speed_kmh REAL, wind_dir_deg REAL,
     rain_mm REAL, humidity_pct REAL, mixing_height_mean_m REAL, mixing_height_max_m REAL
 );
-"""
+""" + READINGS_ALL_VIEW + ";"
 
 
 def _build_db(path, stations, readings):
     """
     stations: list of (station_id, station_name, city, latitude, longitude)
-    readings: list of (station_id, date, aqi)
+    readings: list of (station_id, date, value): stored as PM2.5 (what the
+    analyses use, via readings_all) and as AQI
     """
     conn = sqlite3.connect(path)
     conn.executescript(SCHEMA)
     conn.executemany("INSERT INTO stations VALUES (?,?,?,?,?)", stations)
     conn.executemany(
-        "INSERT INTO readings (station_id, date, aqi) VALUES (?,?,?)", readings
+        "INSERT INTO readings (station_id, date, aqi, pm25) VALUES (?,?,?,?)",
+        [(s, d, v, v) for s, d, v in readings]
     )
     conn.commit()
     conn.close()

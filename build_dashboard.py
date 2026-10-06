@@ -60,6 +60,7 @@ def main():
         then_now_severe=to_div(then_now.build_winters(data["df25"])[0]),
         then_now_ratio=to_div(then_now.build_winters(data["df25"])[1]),
         then_now_stubble=to_div(then_now.build_stubble(data["df20"])),
+        then_now_daynight=to_div(then_now.build_daynight(data["df27"])),
         diwali=to_div(diwali.build(data["df07"])),
         coverage=to_div(coverage.build(data["df08"], station_names)),
         lockdown=to_div(lockdown.build(data["df09"], data["df15"])),

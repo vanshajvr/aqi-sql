@@ -1,3 +1,6 @@
+-- 01_rolling_average.sql
+-- Each station's 7- and 30-reading rolling PM2.5, 2015-2026 (readings_all).
+--
 -- NOTE: these are ROW windows, not calendar-day windows. "7-day" here means
 -- the 7 most recent *rows with a reading*, not the 7 most recent calendar
 -- days. Where the source data has a gap (common in this dataset — see
@@ -11,15 +14,15 @@
 SELECT
     station_id,
     date,
-    aqi,
-    ROUND(AVG(aqi) OVER (
+    pm25,
+    ROUND(AVG(pm25) OVER (
         PARTITION BY station_id ORDER BY DATE
         ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
     ),1) AS rolling_7day_avg,
-    ROUND(AVG(aqi) OVER (
+    ROUND(AVG(pm25) OVER (
         PARTITION BY station_id ORDER BY DATE
         ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
     ),1) AS rolling_30day_avg
-FROM readings
-WHERE aqi IS NOT NULL
+FROM readings_all
+WHERE pm25 IS NOT NULL
 ORDER BY station_id, date;

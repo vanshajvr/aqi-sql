@@ -9,13 +9,14 @@
 -- Weather is one grid point at central Delhi (see fetch_weather.py).
 --
 -- Unit: city-wide day (mean PM2.5 across >= 5 reporting stations), averaged
--- per calendar month over all years. The 2020 lockdown (from 25 Mar) is
--- excluded so it doesn't pull spring down.
+-- per calendar month over 2015-2026 (readings_all). The 2020 lockdown
+-- (25 Mar - 31 May) is excluded so it doesn't pull spring down. Mixing height
+-- is missing for Jan - Jun 2024 in the weather source; AVG skips those days.
 WITH city_daily AS (
     SELECT date, AVG(pm25) AS pm25
-    FROM readings
+    FROM readings_all
     WHERE pm25 IS NOT NULL
-      AND date < '2020-03-25'
+      AND date NOT BETWEEN '2020-03-25' AND '2020-05-31'
     GROUP BY date
     HAVING COUNT(*) >= 5
 )

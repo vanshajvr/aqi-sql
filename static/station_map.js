@@ -35,13 +35,13 @@ const VIEWS = {
   },
   no2: {
     field: "no2_index", stops: SEQ_STOPS, domain: [0.5, 2.5], top: "worst",
-    title: "NO₂ vs the city median, 2018–19",
+    title: "NO₂ vs the city median, 2018–26",
     fmt: (v) => `${v.toFixed(2)}× city median`, ticks: ["0.5×", "2.5×"],
     note: "Mostly traffic. A wide spread means local hotspots (finding 4).",
   },
   persist: {
     field: "pct_months_top5", stops: SEQ_STOPS, domain: [0, 70], top: "worst",
-    title: "Months among the city's 5 worst, Feb 2018 – Jun 2020",
+    title: "Months among the city's 5 worst, 2018–2026",
     fmt: (v) => `${v.toFixed(0)}% of months`, ticks: ["0%", "70%"],
     note: "How often a station is among the worst, not just how bad on average (finding 7).",
   },
@@ -131,21 +131,23 @@ function bar(label, value, max, colour, text) {
 }
 
 function detailHtml(s) {
-  const bucket = window.bucketForAqi ? window.bucketForAqi(s.avg_aqi_2018_19) : "";
+  const avg = s.avg_pm25;
+  const band = avg == null ? "" : avg <= 30 ? "Good" : avg <= 60 ? "Satisfactory" : avg <= 90 ? "Moderate"
+    : avg <= 120 ? "Poor" : avg <= 250 ? "Very Poor" : "Severe";   // CPCB PM2.5 bands
   const ch = s.change_pct;
   const chText = ch == null ? "no data" : `${ch > 0 ? "+" : ""}${ch.toFixed(0)}%`;
   const chClass = ch == null ? "" : ch < 0 ? "better" : ch > 0 ? "worse" : "";
   return `
     <div class="gl-detail-name">${shortStationName(s.station_name)}</div>
-    <div class="gl-detail-sub">${s.station_name.match(/-\s*(DPCC|CPCB|IMD)\s*$/)?.[1] || ""} station · #${s.worst_overall_rank || "–"} of 37 by 2018–19 AQI</div>
+    <div class="gl-detail-sub">${s.station_name.match(/-\s*(DPCC|CPCB|IMD)\s*$/)?.[1] || ""} station · #${s.worst_overall_rank || "–"} of 37 by PM2.5, 2018–26</div>
     <div class="gl-detail-section">PM2.5, µg/m³</div>
     ${bar("2018–19", s.pm25_2018_19, 150, "#8b949e", s.pm25_2018_19?.toFixed(0))}
     ${bar("2025–26", s.pm25_2025_26, 150, "#58a6ff", s.pm25_2025_26?.toFixed(0))}
     <div class="gl-detail-change ${chClass}">${chText} <span>raw change, not weather-adjusted</span></div>
-    <div class="gl-detail-section">Pollution profile, 2018–19</div>
+    <div class="gl-detail-section">Pollution profile, 2018–26</div>
     ${bar("NO₂", s.no2_index, 2.5, "#fb923c", `${s.no2_index?.toFixed(2)}× median`)}
     ${bar("Worst-5", s.pct_months_top5, 100, "#ef4444", `${s.pct_months_top5?.toFixed(0)}% of months`)}
-    <div class="gl-detail-foot">Official AQI 2018–19: <b>${s.avg_aqi_2018_19?.toFixed(0) ?? "–"}</b> (${bucket || "no data"})</div>`;
+    <div class="gl-detail-foot">PM2.5 2018–26: <b>${avg?.toFixed(0) ?? "–"} µg/m³</b> (${band || "no data"})</div>`;
 }
 
 // ---------------------------------------------------------------- map

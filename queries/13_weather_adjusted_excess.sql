@@ -11,21 +11,22 @@
 -- excess_ratio near 1.0: weather explains that period's pollution.
 -- Well above 1.0: something extra is being emitted (or blown in).
 --
--- Result in the real data: ~1.0-1.15 through Dec-Feb, but ~1.6-2.2 from late
--- October to mid-November, the stubble-burning peak (Diwali falls in the
--- same window, so the two are not separated here; see 07 for Diwali).
+-- Late October to mid-November is the stubble-burning peak (Diwali falls in
+-- the same window, so the two are not separated here; see 07 for Diwali).
 --
 -- Choices, kept with the query:
 --  * dry days only (rain < 1 mm): rain is its own washout effect
---  * pre-lockdown only (before 25 Mar 2020)
+--  * 2015-2026 (readings_all), without the 2020 lockdown (25 Mar - 31 May)
+--  * days without mixing height (Jan - Jun 2024 in the weather source) are
+--    dropped rather than bucketed
 --  * a bucket needs >= 10 baseline days, otherwise its days are dropped
---  * adding temperature to the buckets gives the same Oct-Nov excess
---    (1.59 / 1.54) on fewer days, so the result isn't a temperature artefact
+--  * on 2015 - Mar 2020, adding temperature to the buckets gave the same
+--    Oct-Nov excess on fewer days, so the result isn't a temperature artefact
 WITH city_daily AS (
     SELECT date, AVG(pm25) AS pm25
-    FROM readings
+    FROM readings_all
     WHERE pm25 IS NOT NULL
-      AND date < '2020-03-25'
+      AND date NOT BETWEEN '2020-03-25' AND '2020-05-31'
     GROUP BY date
     HAVING COUNT(*) >= 5
 ),
@@ -54,6 +55,7 @@ binned AS (
     FROM city_daily c
     JOIN weather w ON w.date = c.date
     WHERE w.rain_mm < 1
+      AND w.mixing_height_mean_m IS NOT NULL
 ),
 expected AS (
     SELECT mixing_bin, wind_bin, AVG(pm25) AS expected_pm25, COUNT(*) AS n_baseline

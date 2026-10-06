@@ -71,3 +71,26 @@ def build_stubble(df20):
                      ticksuffix="×", row=2, col=1)
     fig.update_xaxes(dtick=1, gridcolor="rgba(0,0,0,0)", row=2, col=1)
     return base_layout(fig, height=520, top_margin=30)
+
+
+def build_daynight(df27):
+    """Night-pass share of fire detections per season: did burning move
+    out of the ~13:30 overpass and into the night?"""
+    d = df27.copy()
+    before = d[d["year"] <= 2021]["night_share_pct"].max()
+    colors = [MUTED if y <= 2021 else ACCENT for y in d["year"]]
+    fig = go.Figure(go.Bar(
+        x=d["year"], y=d["night_share_pct"], marker=dict(color=colors, cornerradius=3, line=dict(width=0)),
+        text=d["night_share_pct"].map(lambda v: f"{v:.1f}%"), textposition="outside",
+        customdata=d[["n_night", "n_day"]].values,
+        hovertemplate="<b>%{x}</b><br>%{y:.2f}% of detections at night"
+                      "<br>%{customdata[0]:,} night · %{customdata[1]:,} day<extra></extra>",
+    ))
+    fig.add_hline(y=before, line=dict(color=MUTED, width=1, dash="dot"),
+                  annotation_text="highest, 2015–21", annotation_position="top left",
+                  annotation_font=dict(color=MUTED, size=11))
+    fig.update_layout(showlegend=False, bargap=0.3,
+                      xaxis=dict(dtick=1, title=""),
+                      yaxis=dict(title="Night-pass detections (% of all)", gridcolor=GRID, rangemode="tozero",
+                                 ticksuffix="%", range=[0, d["night_share_pct"].max() * 1.3]))
+    return base_layout(fig, height=340, top_margin=30)

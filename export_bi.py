@@ -110,6 +110,7 @@ FINDING_TABLES = [
     ("finding_then_vs_now", "19_then_vs_now.sql"),
     ("finding_then_vs_now_8_winters", "25_then_vs_now_8_winters.sql"),
     ("finding_alert_rules_gap", "26_alert_rules_gap.sql"),
+    ("finding_fires_daynight", "27_fires_daynight.sql"),
     ("finding_stubble_then_vs_now", "20_stubble_then_vs_now.sql"),
     ("data_coverage", "08_coverage.sql"),
 ]

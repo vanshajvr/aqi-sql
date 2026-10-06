@@ -21,7 +21,7 @@ def build(df08, station_names):
         z=pivot.values, x=years, y=pivot.index, zmin=0, zmax=100,
         colorscale=SCALE, xgap=2, ygap=2,
         colorbar=dict(title="% of days", ticksuffix="%", thickness=10),
-        hovertemplate="<b>%{y}</b><br>%{x}: %{z:.0f}% of days with AQI<extra></extra>",
+        hovertemplate="<b>%{y}</b><br>%{x}: %{z:.0f}% of days with PM2.5<extra></extra>",
     ))
     fig.update_layout(xaxis=dict(type="category", side="top", gridcolor="rgba(0,0,0,0)"),
                       yaxis=dict(gridcolor="rgba(0,0,0,0)", tickfont=dict(size=11)))

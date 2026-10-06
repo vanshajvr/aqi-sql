@@ -1,10 +1,12 @@
 -- 08_coverage.sql
--- How complete is the AQI record, per station and per year?
+-- How complete is the PM2.5 record, per station and per year, 2015-2026?
+-- (readings_all: Kaggle to Jun 2020, then CPCB, with OpenAQ where CPCB has no
+-- value; the main_source column says which supplied most of the year.)
 --
 -- Answers "which stations have big gaps, and which only joined partway
 -- through?" Two different kinds of missing data are separated:
---   n_null_aqi          : a row exists but AQI is NULL (station reported, no usable value)
---   pct_of_year_covered : days with a usable AQI as a share of the days the
+--   n_null_pm25         : a row exists but PM2.5 is NULL (station reported, no usable value)
+--   pct_of_year_covered : days with a usable PM2.5 as a share of the days the
 --                         dataset spans in that calendar year. A station that
 --                         joined in July scores ~50% for that year even with a
 --                         perfect record afterwards, which is exactly the
@@ -15,19 +17,31 @@
 -- trend comparisons.
 WITH bounds AS (
     SELECT MIN(date) AS d_min, MAX(date) AS d_max
-    FROM readings
+    FROM readings_all
 ),
 station_year AS (
     SELECT
         station_id,
         strftime('%Y', date) AS year,
         COUNT(*) AS n_rows,
-        COUNT(aqi) AS n_days_with_aqi,
-        SUM(CASE WHEN aqi IS NULL THEN 1 ELSE 0 END) AS n_null_aqi,
+        COUNT(pm25) AS n_days_with_pm25,
+        SUM(CASE WHEN pm25 IS NULL THEN 1 ELSE 0 END) AS n_null_pm25,
         MIN(date) AS first_date,
         MAX(date) AS last_date
-    FROM readings
+    FROM readings_all
     GROUP BY station_id, strftime('%Y', date)
+),
+main_source AS (
+    SELECT station_id, year, source
+    FROM (
+        SELECT station_id, strftime('%Y', date) AS year, source,
+               ROW_NUMBER() OVER (PARTITION BY station_id, strftime('%Y', date)
+                                  ORDER BY COUNT(*) DESC, source) AS rn
+        FROM readings_all
+        WHERE pm25 IS NOT NULL
+        GROUP BY station_id, strftime('%Y', date), source
+    )
+    WHERE rn = 1
 ),
 with_span AS (
     SELECT
@@ -41,13 +55,15 @@ with_span AS (
     CROSS JOIN bounds b
 )
 SELECT
-    station_id,
-    CAST(year AS INTEGER) AS year,
-    n_days_with_aqi,
-    n_null_aqi,
-    days_in_range,
-    ROUND(100.0 * n_days_with_aqi / days_in_range, 1) AS pct_of_year_covered,
-    first_date,
-    last_date
-FROM with_span
-ORDER BY station_id, year;
+    w.station_id,
+    CAST(w.year AS INTEGER) AS year,
+    w.n_days_with_pm25,
+    w.n_null_pm25,
+    w.days_in_range,
+    ROUND(100.0 * w.n_days_with_pm25 / w.days_in_range, 1) AS pct_of_year_covered,
+    m.source AS main_source,
+    w.first_date,
+    w.last_date
+FROM with_span w
+LEFT JOIN main_source m USING (station_id, year)
+ORDER BY w.station_id, w.year;

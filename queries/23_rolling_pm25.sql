@@ -10,14 +10,9 @@
 -- (Sundays) is returned, to keep the dashboard page light; the windows
 -- themselves are computed on every day.
 WITH all_pm AS (
-    SELECT station_id, date, pm25 FROM readings
-    WHERE pm25 IS NOT NULL AND date < '2020-07-01'
-    UNION ALL
-    SELECT station_id, date, pm25 FROM readings_openaq
-    WHERE pm25 IS NOT NULL AND date BETWEEN '2020-07-01' AND '2021-12-31'
-    UNION ALL
-    SELECT station_id, date, pm25 FROM readings_cpcb
-    WHERE pm25 IS NOT NULL AND date >= '2022-01-01'
+    -- readings_all: one source per station-day (see fetch_data.py)
+    SELECT station_id, date, pm25 FROM readings_all
+    WHERE pm25 IS NOT NULL
 ),
 rolled AS (
     SELECT

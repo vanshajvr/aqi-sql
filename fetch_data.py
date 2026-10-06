@@ -29,6 +29,13 @@ CPCB_CSV = next(
                  Path(__file__).parent / "data" / "seed" / "cpcb_daily.csv") if p.exists()),
     None,
 )
+# Written by fetch_fires.py --daynight: the same detections split by the
+# satellite's day (~13:30) and night (~01:30) pass; separate from `fires`
+FIRES_DAYNIGHT_CSV = next(
+    (p for p in (RAW_DIR / "fires_daynight_daily.csv",
+                 Path(__file__).parent / "data" / "seed" / "fires_daynight_daily.csv") if p.exists()),
+    None,
+)
 # Written by fetch_openaq.py --embassy: US Embassy PM2.5, raw (cleaned where used)
 EMBASSY_CSV = next(
     (p for p in (RAW_DIR / "embassy_pm25_daily.csv",
@@ -85,6 +92,38 @@ def drop_implausible_co(readings):
         readings.loc[bad, "co"] = None
     return readings
 
+
+# One record for 2015-2026: every analysis (except the pre-registered tests
+# and the 2020 lockdown study, which keep their own sources) reads this view,
+# so they all share one rule. One value per station-day and pollutant:
+#   to 30 Jun 2020   Kaggle (official CPCB data)
+#   from Jul 2020    CPCB's own daily data (Test C: results/cpcb_validation.csv)
+#                    wherever it has a value, otherwise OpenAQ (Test A:
+#                    results/backfill_validation.csv). The CPCB file starts in
+#                    2022, so Jul 2020 - Dec 2021 is OpenAQ, and patchy; a CPCB
+#                    download for those years would slot in with no changes.
+# `source` names where the day's PM2.5 came from. The official AQI exists only
+# in the Kaggle era, so the analyses use concentrations (PM2.5 above all).
+READINGS_ALL_VIEW = """
+CREATE VIEW readings_all AS
+SELECT station_id, date, pm25, pm10, no2, so2, co, NULL AS o3, 'Kaggle' AS source
+FROM readings
+WHERE date < '2020-07-01'
+UNION ALL
+SELECT c.station_id, c.date,
+       COALESCE(c.pm25, o.pm25), COALESCE(c.pm10, o.pm10), COALESCE(c.no2, o.no2),
+       COALESCE(c.so2, o.so2), COALESCE(c.co, o.co), COALESCE(c.o3, o.o3),
+       CASE WHEN c.pm25 IS NULL AND o.pm25 IS NOT NULL THEN 'OpenAQ' ELSE 'CPCB' END
+FROM readings_cpcb c
+LEFT JOIN readings_openaq o ON o.station_id = c.station_id AND o.date = c.date
+WHERE c.date >= '2020-07-01'
+UNION ALL
+SELECT o.station_id, o.date, o.pm25, o.pm10, o.no2, o.so2, o.co, o.o3, 'OpenAQ'
+FROM readings_openaq o
+WHERE o.date >= '2020-07-01'
+  AND NOT EXISTS (SELECT 1 FROM readings_cpcb c
+                  WHERE c.station_id = o.station_id AND c.date = o.date)
+"""
 
 def main():
     if not STATIONS_CSV.exists() or not READINGS_CSV.exists():
@@ -224,6 +263,13 @@ def main():
             )
         """)
         conn.execute("""
+            CREATE TABLE fires_daynight(
+                date TEXT PRIMARY KEY,
+                n_day INTEGER, n_night INTEGER,
+                frp_day_mw REAL, frp_night_mw REAL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE embassy_pm25(
                 date TEXT PRIMARY KEY,
                 pm25 REAL,
@@ -250,6 +296,8 @@ def main():
             cpcb = cpcb[cpcb["station_id"].isin(delhi_stations["station_id"])]
             cpcb = drop_implausible_co(drop_copied_pm10(cpcb))
             cpcb.to_sql("readings_cpcb", conn, if_exists="append", index=False)
+        if FIRES_DAYNIGHT_CSV is not None:
+            pd.read_csv(FIRES_DAYNIGHT_CSV).to_sql("fires_daynight", conn, if_exists="append", index=False)
         if EMBASSY_CSV is not None:
             pd.read_csv(EMBASSY_CSV).to_sql("embassy_pm25", conn, if_exists="append", index=False)
         if FIRES_CSV is not None:
@@ -269,6 +317,7 @@ def main():
         conn.execute(
             "CREATE INDEX idx_readings_station_date ON readings(station_id, date)"
         )
+        conn.execute(READINGS_ALL_VIEW)
         conn.commit()
 
         n_stations=conn.execute("SELECT COUNT(*) FROM stations").fetchone()[0]

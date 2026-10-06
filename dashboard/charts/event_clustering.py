@@ -2,11 +2,11 @@ import plotly.graph_objects as go
 
 from ..theme import PERIOD_LABELS, SEVERITY_COLORS, base_layout
 
-# 04 now counts DAYS (city-wide mean AQI) on the CPCB scale, so the two series
+# 04 counts DAYS (city-wide mean PM2.5) on CPCB's PM2.5 bands, so the two series
 # reuse the severity breakdown's own colors for the same categories.
 SERIES = [
-    ("pct_days_very_poor_plus", "n_days_very_poor_plus", "Very Poor+ (>300)", "Very Poor"),
-    ("pct_days_severe", "n_days_severe", "Severe (>400)", "Severe"),
+    ("pct_days_very_poor_plus", "n_days_very_poor_plus", "Very Poor+ (PM2.5 > 120)", "Very Poor"),
+    ("pct_days_severe", "n_days_severe", "Severe (PM2.5 > 250)", "Severe"),
 ]
 
 
@@ -26,7 +26,7 @@ def build(df04):
         ))
     fig.update_layout(
         barmode="group", bargap=0.3, bargroupgap=0.08,
-        xaxis_title="", yaxis_title="% of days (city-wide mean AQI)",
+        xaxis_title="", yaxis_title="% of days (city-wide mean PM2.5)",
         legend=dict(orientation="h", y=1.08, x=0, bgcolor="rgba(0,0,0,0)"),
     )
     return base_layout(fig, height=480, top_margin=60)

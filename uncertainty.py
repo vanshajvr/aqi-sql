@@ -39,7 +39,7 @@ OUT_PATH = ROOT / "results" / "confidence_intervals.csv"
 SEED = 20261005
 N_WEEK_RESAMPLES = 2000
 N_STATION_RESAMPLES = 500
-LOCKDOWN_START = "2020-03-25"
+LOCKDOWN = ("2020-03-25", "2020-05-31")   # excluded, as in 04, 12, 13 and 18
 
 
 def sql(name):
@@ -77,41 +77,39 @@ def week_bootstrap(df, stat, n, rng):
 # ---------------------------------------------------------------- city-day data
 
 def city_days(conn):
-    """One row per day: city-wide mean AQI / PM2.5 (>= 5 stations each), with weather.
-    Same rules as 04 (AQI) and 13 (PM2.5)."""
+    """One row per day, 2015-2026: city-wide mean PM2.5 (>= 5 stations), with
+    weather. Same rules as 04 and 13 (readings_all, lockdown excluded)."""
     df = pd.read_sql_query(f"""
-        WITH a AS (
-            SELECT date, AVG(aqi) AS aqi FROM readings
-            WHERE aqi IS NOT NULL GROUP BY date HAVING COUNT(*) >= 5
-        ),
-        p AS (
-            SELECT date, AVG(pm25) AS pm25 FROM readings
+        WITH p AS (
+            SELECT date, AVG(pm25) AS pm25 FROM readings_all
             WHERE pm25 IS NOT NULL GROUP BY date HAVING COUNT(*) >= 5
         )
-        SELECT w.date, a.aqi, p.pm25, w.mixing_height_mean_m, w.wind_speed_kmh, w.rain_mm
+        SELECT w.date, p.pm25, w.mixing_height_mean_m, w.wind_speed_kmh, w.rain_mm
         FROM weather w
-        LEFT JOIN a ON a.date = w.date
         LEFT JOIN p ON p.date = w.date
-        WHERE w.date < '{LOCKDOWN_START}'
+        WHERE w.date NOT BETWEEN '{LOCKDOWN[0]}' AND '{LOCKDOWN[1]}'
     """, conn)
     dates = pd.to_datetime(df["date"])
     df["month"] = dates.dt.month
     df["week"] = dates.dt.strftime("%G-%V")          # ISO year-week: the resampling block
     df["half_month"] = (dates.dt.strftime("%m") + np.where(dates.dt.day <= 15, "-1", "-2"))
-    # Same buckets as 13_weather_adjusted_excess.sql
+    # Same buckets as 13_weather_adjusted_excess.sql; days without mixing
+    # height (Jan - Jun 2024) get no bucket (np.digitize would put NaN in the top one)
     df["mixing_bin"] = np.digitize(df["mixing_height_mean_m"], [250, 350, 450, 600, 800]) + 1
     df["wind_bin"] = np.digitize(df["wind_speed_kmh"], [5, 8, 12]) + 1
+    df.loc[df["mixing_height_mean_m"].isna(), "mixing_bin"] = -1
     return df
 
 
 def share_very_poor(df, months):
-    d = df[df["month"].isin(months) & df["aqi"].notna()]
-    return 100.0 * (d["aqi"] > 300).mean()
+    """% of city-days Very Poor or worse: PM2.5 > 120 (04's definition)."""
+    d = df[df["month"].isin(months) & df["pm25"].notna()]
+    return 100.0 * (d["pm25"] > 120).mean()
 
 
 def excess_ratio(df, half_month):
     """Mirror of 13_weather_adjusted_excess.sql for one half-month."""
-    dry = df[(df["rain_mm"] < 1) & df["pm25"].notna()]
+    dry = df[(df["rain_mm"] < 1) & df["pm25"].notna() & (df["mixing_bin"] > 0)]
     base = dry[~dry["month"].isin([10, 11])].groupby(["mixing_bin", "wind_bin"])["pm25"]
     expected = base.mean()[base.size() >= 10].rename("expected")
     target = dry[dry["half_month"] == half_month].join(expected, on=["mixing_bin", "wind_bin"], how="inner")
@@ -124,13 +122,15 @@ def excess_ratio(df, half_month):
 
 def station_bootstrap(conn, query_file, extract, n, rng):
     """Resample stations with replacement, rebuild an in-memory DB, re-run the
-    real query, and apply extract(result_df) -> dict of numbers."""
-    readings = pd.read_sql_query("SELECT * FROM readings", conn)
+    real query, and apply extract(result_df) -> dict of numbers. Queries on
+    readings_all (10) get its rows as a table of that name."""
+    query = sql(query_file)
+    table = "readings_all" if "readings_all" in query else "readings"
+    readings = pd.read_sql_query(f"SELECT * FROM {table}", conn)
     stations = pd.read_sql_query("SELECT * FROM stations", conn)
     weather = pd.read_sql_query("SELECT * FROM weather", conn)
     ids = stations["station_id"].to_numpy()
     by_station = {sid: g for sid, g in readings.groupby("station_id")}
-    query = sql(query_file)
 
     results = []
     for _ in range(n):
@@ -143,7 +143,7 @@ def station_bootstrap(conn, query_file, extract, n, rng):
             r_parts.append(by_station.get(sid, readings.iloc[0:0]).assign(station_id=new_id))
             s_parts.append(stations[stations["station_id"] == sid].assign(station_id=new_id))
         mem = sqlite3.connect(":memory:")
-        pd.concat(r_parts).to_sql("readings", mem, index=False)
+        pd.concat(r_parts).to_sql(table, mem, index=False)
         pd.concat(s_parts).to_sql("stations", mem, index=False)
         weather.to_sql("weather", mem, index=False)
         results.append(extract(pd.read_sql_query(query, mem)))
@@ -223,7 +223,7 @@ def main():
         assert round(est, 1) == sql04.loc[period, "pct_days_very_poor_plus"], "drifted from 04"
         boot = week_bootstrap(days, lambda d, m=months: share_very_poor(d, m), N_WEEK_RESAMPLES, rng)
         add(f"% of {label} days Very Poor or worse", est, percentile_ci(boot),
-            "week-block bootstrap", "% of days")
+            "week-block bootstrap", "% of days", "city PM2.5 > 120, 2015-2026")
     print("1/7 season shares done")
 
     # 2. Stubble-season excess over weather (finding 2)

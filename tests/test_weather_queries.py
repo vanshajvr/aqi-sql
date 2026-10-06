@@ -8,10 +8,13 @@ from pathlib import Path
 
 import pytest
 
+from tests.readings_view import ensure_readings_all
+
 QUERIES = Path(__file__).resolve().parent.parent / "queries"
 
 
 def run_query(conn, filename):
+    ensure_readings_all(conn)
     cur = conn.execute((QUERIES / filename).read_text())
     cols = [c[0] for c in cur.description]
     return [dict(zip(cols, row)) for row in cur.fetchall()]
@@ -184,6 +187,74 @@ def test_fires_and_wind_dose_response_by_wind_and_diwali_exclusion():
     assert ex[("north-westerly", "most fires")]["excess_ratio"] == 2.0
     assert ex[("other", "most fires")]["excess_ratio"] == 1.2
     assert ex[("north-westerly", "most fires")]["min_fires"] == 3000
+    assert ex[("north-westerly", "most fires")]["n_seasons"] == 1
     assert sum(r["n_days"] for r in rows if r["scenario"] == "excluding Diwali") == 6
     assert sum(r["n_days"] for r in rows if r["scenario"] == "all days") == 7
+    c.close()
+
+
+def test_fire_thirds_are_ranked_within_each_season():
+    """
+    Two seasons with very different fire levels (detections fell ~90%
+    after 2021). Thirds are ranked within each season, so 2025's busiest
+    days count as "most fires" even though 2018's quietest had more.
+    """
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, pm25 REAL)")
+    c.execute("CREATE TABLE weather (date TEXT, mixing_height_mean_m REAL, wind_speed_kmh REAL, "
+              "wind_dir_deg REAL, rain_mm REAL)")
+    c.execute("CREATE TABLE fires (date TEXT, n_fires INTEGER, frp_sum_mw REAL)")
+
+    c.execute("CREATE TABLE readings_cpcb (station_id TEXT, date TEXT, pm25 REAL)")
+
+    def day(d, pm25, fires_prev=None, mixing=300):
+        table = "readings" if d < "2020-07-01" else "readings_cpcb"   # as in readings_all
+        c.executemany(f"INSERT INTO {table} VALUES (?, ?, ?)", [(f"S{i}", d, pm25) for i in range(5)])
+        c.execute("INSERT INTO weather VALUES (?, ?, 6, 300, 0)", (d, mixing))
+        if fires_prev is not None:
+            prev = (date.fromisoformat(d) - timedelta(days=1)).isoformat()
+            c.execute("INSERT INTO fires VALUES (?, ?, 0)", (prev, fires_prev))
+
+    for d in days(date(2018, 12, 1), 10):
+        day(d, 100)
+    for i, f in enumerate((5000, 6000, 7000)):          # 2018: all big
+        day(f"2018-10-{16 + 2 * i:02d}", 100 + 50 * i, f)
+    for i, f in enumerate((10, 20, 30)):                 # 2025: all small
+        day(f"2025-11-{2 + 2 * i:02d}", 100 + 50 * i, f)
+    day("2025-11-10", 500, 40, mixing=None)              # no mixing height: dropped, not bucketed
+
+    rows = run_query(c, "18_fires_and_wind.sql")
+    ex = {r["fire_level"]: r for r in rows if r["scenario"] == "excluding Diwali"}
+    assert ex["most fires"]["n_seasons"] == 2
+    assert (ex["most fires"]["min_fires"], ex["most fires"]["max_fires"]) == (30, 7000)
+    assert ex["fewest fires"]["excess_ratio"] == 1.0 and ex["most fires"]["excess_ratio"] == 2.0
+    assert sum(r["n_days"] for r in rows if r["scenario"] == "excluding Diwali") == 6
+    c.close()
+
+
+def test_fires_daynight_night_share_and_preregistered_verdict():
+    """
+    27: night share per season (15 Oct - 30 Nov). 2015-2021 night shares are
+    at most 2%; 2023-2025 are 5%, 6% and 1%, so only two of three are above
+    the earlier maximum: 'inconclusive'. Detections outside the window are
+    ignored, and day + night is checked against the published count.
+    """
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE fires_daynight (date TEXT, n_day INTEGER, n_night INTEGER, "
+              "frp_day_mw REAL, frp_night_mw REAL)")
+    c.execute("CREATE TABLE fires (date TEXT, n_fires INTEGER, frp_sum_mw REAL)")
+    nights = {2015: 1, 2016: 2, 2017: 1, 2018: 2, 2019: 1, 2020: 2, 2021: 2,
+              2022: 3, 2023: 5, 2024: 6, 2025: 1}
+    for y, n in nights.items():
+        c.execute("INSERT INTO fires_daynight VALUES (?, ?, ?, 0, 0)", (f"{y}-11-01", 100 - n, n))
+        c.execute("INSERT INTO fires VALUES (?, 100, 0)", (f"{y}-11-01",))
+    c.execute("INSERT INTO fires_daynight VALUES ('2025-12-10', 0, 500, 0, 0)")   # outside the window
+    rows = {r["year"]: r for r in run_query(c, "27_fires_daynight.sql")}
+    assert rows[2024]["night_share_pct"] == 6.0
+    assert rows[2025]["night_share_pct"] == 1.0
+    assert rows[2015]["max_night_share_2015_21_pct"] == 2.0
+    assert rows[2020]["check_vs_fires"] == 1.0
+    assert rows[2025]["verdict"] == "inconclusive"
+    c.execute("UPDATE fires_daynight SET n_night = 9, n_day = 91 WHERE date = '2025-11-01'")
+    assert run_query(c, "27_fires_daynight.sql")[0]["verdict"] == "supports a shift"
     c.close()

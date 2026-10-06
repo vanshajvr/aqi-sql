@@ -3,7 +3,7 @@ import pandas as pd
 
 def build(df03, width=1200, height=180):
     """
-    Renders the real city-wide monthly-average AQI trend as a very low-
+    Renders the real city-wide monthly-average PM2.5 trend as a very low-
     opacity SVG polyline+area, meant to sit behind the header text as an
     ambient visual - the page's actual data becomes its visual identity
     instead of a generic gradient. Pure SVG, no JS, generated once at
@@ -12,7 +12,7 @@ def build(df03, width=1200, height=180):
     d = df03.copy()
     d["date"] = pd.to_datetime(d["year"].astype(str) + "-" + d["month"] + "-01")
     d = d.sort_values("date")
-    values = d["avg_aqi"].tolist()
+    values = d["avg_pm25"].tolist()
     n = len(values)
     if n < 2:
         return ""

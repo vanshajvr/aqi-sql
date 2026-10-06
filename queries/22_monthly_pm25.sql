@@ -5,7 +5,7 @@
 -- OpenAQ backfill for July 2020 - December 2021 (validated against Kaggle:
 -- results/backfill_validation.csv), and CPCB's own daily data from January
 -- 2022 (results/cpcb_validation.csv), which also covers OpenAQ's
--- Nov 2022 - Feb 2025 gap.
+-- Nov 2022 - Feb 2025 gap; OpenAQ fills station-days CPCB lacks.
 --
 -- PM2.5, not AQI: the backfill has no official AQI (pre-registration,
 -- Amendment 1).
@@ -16,14 +16,9 @@
 -- the "city" mean rests on a handful of stations, and the chart greys out
 -- months with fewer than 10 (see 08_coverage.sql).
 WITH all_pm AS (
-    SELECT station_id, date, pm25 FROM readings
-    WHERE pm25 IS NOT NULL AND date < '2020-07-01'
-    UNION ALL
-    SELECT station_id, date, pm25 FROM readings_openaq
-    WHERE pm25 IS NOT NULL AND date BETWEEN '2020-07-01' AND '2021-12-31'
-    UNION ALL
-    SELECT station_id, date, pm25 FROM readings_cpcb
-    WHERE pm25 IS NOT NULL AND date >= '2022-01-01'
+    -- readings_all: one source per station-day (see fetch_data.py)
+    SELECT station_id, date, pm25 FROM readings_all
+    WHERE pm25 IS NOT NULL
 ),
 station_month AS (
     SELECT station_id, strftime('%Y-%m', date) AS year_month, AVG(pm25) AS pm25
@@ -34,7 +29,8 @@ station_month AS (
 SELECT
     year_month,
     CASE WHEN year_month < '2020-07' THEN 'Kaggle'
-         WHEN year_month < '2022-01' THEN 'OpenAQ' ELSE 'CPCB' END AS source,
+         WHEN year_month < '2022-01' THEN 'OpenAQ'
+         WHEN year_month < '2026-09' THEN 'CPCB' ELSE 'OpenAQ' END AS source,
     ROUND(AVG(pm25), 1) AS pm25,
     COUNT(*) AS n_stations
 FROM station_month

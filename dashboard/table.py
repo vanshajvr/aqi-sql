@@ -4,10 +4,10 @@ import pandas as pd
 
 
 def build(df06, df21, station_names):
-    """All stations: official AQI rank (2018-19), PM2.5 then and now, and the
-    raw change. Missing values sort last (data-sort=-1e9 / text)."""
+    """All stations: PM2.5 rank on network days (2018-26), PM2.5 then and now,
+    and the raw change. Missing values sort last (data-sort=-1e9 / text)."""
     periods = df21.set_index("station_id")
-    d = df06.sort_values("avg_aqi_2018_19", ascending=False).reset_index(drop=True)
+    d = df06.sort_values("avg_pm25", ascending=False).reset_index(drop=True)
 
     def cell(v, fmt, missing="&ndash;"):
         if pd.isna(v):
@@ -28,7 +28,7 @@ def build(df06, df21, station_names):
         <tr>
           <td data-sort="{i + 1}">{i + 1}</td>
           <td data-sort="{name}">{name}</td>
-          {cell(r['avg_aqi_2018_19'], lambda v: f'{v:.0f}')}
+          {cell(r['avg_pm25'], lambda v: f'{v:.0f}')}
           {cell(p.get('pm25_2018_19') if len(p) else None, lambda v: f'{v:.0f}')}
           {cell(p.get('pm25_2025_26') if len(p) else None, lambda v: f'{v:.0f}')}
           {cell(change, lambda v: f'{v:+.0f}%' if v else '0%').replace('<td', f'<td{change_cls}', 1)}
@@ -44,7 +44,7 @@ def build(df06, df21, station_names):
         <tr>
           <th onclick="sortTable(0)">Rank</th>
           <th onclick="sortTable(1)">Station</th>
-          <th onclick="sortTable(2)">AQI 2018&ndash;19</th>
+          <th onclick="sortTable(2)">PM2.5 2018&ndash;26</th>
           <th onclick="sortTable(3)">PM2.5 2018&ndash;19</th>
           <th onclick="sortTable(4)">PM2.5 2025&ndash;26</th>
           <th onclick="sortTable(5)">Change</th>

@@ -19,19 +19,19 @@ ICON_TREND_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
  
  
 def build(df06, df04, df03):
-    worst = df06.sort_values("avg_aqi_2018_19", ascending=False).iloc[0]
-    best = df06.sort_values("avg_aqi_2018_19", ascending=True).iloc[0]
+    worst = df06.sort_values("avg_pm25", ascending=False).iloc[0]
+    best = df06.sort_values("avg_pm25", ascending=True).iloc[0]
     peak_period = df04.sort_values("pct_days_very_poor_plus", ascending=False).iloc[0]
     biggest_drop = df03.dropna(subset=["yoy_change"]).sort_values("yoy_change").iloc[0]
  
     cards = [
-        ("Worst Station", worst["station_name"], f"Avg AQI {worst['avg_aqi_2018_19']:.1f} (2018-19)", NEGATIVE, ICON_WARNING),
-        ("Best Station", best["station_name"], f"Avg AQI {best['avg_aqi_2018_19']:.1f} (2018-19)", POSITIVE, ICON_LEAF),
+        ("Worst Station", worst["station_name"], f"PM2.5 {worst['avg_pm25']:.0f} µg/m³ (2018–26)", NEGATIVE, ICON_WARNING),
+        ("Best Station", best["station_name"], f"PM2.5 {best['avg_pm25']:.0f} µg/m³ (2018–26)", POSITIVE, ICON_LEAF),
         ("Peak Severity Period", PERIOD_LABELS.get(peak_period["period"], peak_period["period"]),
          f"{peak_period['pct_days_very_poor_plus']:.0f}% of days Very Poor or worse", WARNING, ICON_FLAME),
         ("Sharpest YoY Drop",
          f"{MONTH_LABELS.get(biggest_drop['month'], biggest_drop['month'])} {biggest_drop['year']}",
-         f"{biggest_drop['yoy_change']:.1f} AQI vs a year earlier (lockdown)", ACCENT, ICON_TREND_DOWN),
+         f"{biggest_drop['yoy_change']:.0f} µg/m³ PM2.5 vs a year earlier", ACCENT, ICON_TREND_DOWN),
     ]
  
     html_cards = ""

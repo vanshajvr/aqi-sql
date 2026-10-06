@@ -37,7 +37,7 @@ def build(df22):
     fig.add_annotation(x="2020-07-01", y=1, yref="paper", text="OpenAQ →", showarrow=False,
                        xanchor="left", font=dict(color=MUTED, size=11))
     fig.add_vline(x="2022-01-01", line=dict(color=MUTED, width=1, dash="dot"))
-    fig.add_annotation(x="2022-01-01", y=1, yref="paper", text="CPCB →", showarrow=False,
+    fig.add_annotation(x="2022-01-01", y=0.94, yref="paper", text="CPCB →", showarrow=False,
                        xanchor="left", font=dict(color=MUTED, size=11))
     fig.update_layout(
         showlegend=False,

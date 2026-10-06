@@ -1,7 +1,9 @@
 -- 03_yoy_comparison.sql
 -- Is the same month better or worse than it was a year earlier?
 --
--- avg_aqi is the city-wide monthly mean across whichever stations reported,
+-- PM2.5, 2015-2026 (readings_all; the official AQI stops in 2020).
+--
+-- avg_pm25 is the city-wide monthly mean across whichever stations reported,
 -- for the trend line. It is NOT used for the year-over-year change, because
 -- the station set changed a lot over time (8 stations in 2015-16, 37 from
 -- 2018; see 08_coverage.sql). Comparing raw city means would report a station
@@ -21,16 +23,16 @@ WITH station_month AS (
         station_id,
         CAST(strftime('%Y', date) AS INTEGER) AS year,
         strftime('%m', date) AS month,
-        AVG(aqi) AS avg_aqi
-    FROM readings
-    WHERE aqi IS NOT NULL
+        AVG(pm25) AS avg_pm25
+    FROM readings_all
+    WHERE pm25 IS NOT NULL
     GROUP BY station_id, year, month
 ),
 city_month AS (
     SELECT
         year,
         month,
-        AVG(avg_aqi) AS avg_aqi,
+        AVG(avg_pm25) AS avg_pm25,
         COUNT(*) AS n_stations
     FROM station_month
     GROUP BY year, month
@@ -39,7 +41,7 @@ matched AS (
     SELECT
         cur.year,
         cur.month,
-        AVG(cur.avg_aqi - prev.avg_aqi) AS yoy_change,
+        AVG(cur.avg_pm25 - prev.avg_pm25) AS yoy_change,
         COUNT(*) AS n_matched_stations
     FROM station_month cur
     JOIN station_month prev
@@ -51,7 +53,7 @@ matched AS (
 SELECT
     c.month,
     CAST(c.year AS TEXT) AS year,
-    ROUND(c.avg_aqi, 1) AS avg_aqi,
+    ROUND(c.avg_pm25, 1) AS avg_pm25,
     c.n_stations,
     c.year - LAG(c.year) OVER (PARTITION BY c.month ORDER BY c.year) AS year_gap,
     COALESCE(m.n_matched_stations, 0) AS n_matched_stations,

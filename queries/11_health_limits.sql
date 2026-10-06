@@ -1,5 +1,5 @@
 -- 11_health_limits.sql
--- How often does Delhi's PM2.5 exceed health limits?
+-- How often does Delhi's PM2.5 exceed health limits? 2015-2026 (readings_all).
 --
 -- AQI is an index; PM2.5 in ug/m3 is what health limits are written in.
 --   India NAAQS, 24-hour PM2.5 : 60 ug/m3
@@ -7,10 +7,10 @@
 -- Unit: one city-wide value per day (mean across reporting stations), same
 -- rule as 04: a day needs >= 5 stations. Reported per calendar year; only
 -- years with at least 300 qualifying days are complete enough to compare
--- (2018 and 2019 - see 08_coverage.sql).
+-- (2018-2019 and 2022-2025; see 08_coverage.sql).
 WITH city_daily AS (
     SELECT date, AVG(pm25) AS pm25
-    FROM readings
+    FROM readings_all
     WHERE pm25 IS NOT NULL
     GROUP BY date
     HAVING COUNT(*) >= 5

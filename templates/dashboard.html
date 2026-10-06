@@ -28,7 +28,7 @@
       <div class="badges">
         <span class="badge">37 stations</span>
         <span class="badge" data-no-animate>2015&ndash;2026</span>
-        <span class="badge">26 SQL queries</span>
+        <span class="badge">27 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
@@ -57,7 +57,7 @@
         <ol class="takeaways">
           <li>
             <b>Winter smog is mostly the weather.</b>
-            <span>Shallow winter air traps pollution. December is only 9&ndash;15% above what its weather predicts.</span>
+            <span>Shallow winter air traps pollution. December is only 9&ndash;17% above what its weather predicts.</span>
             <button type="button" class="goto-tab" data-goto-tab="seasons">Seasons &amp; Weather &rarr;</button>
           </li>
           <li>
@@ -83,15 +83,15 @@
       <div class="grid-2">
         <div class="card">
           <h3>PM2.5 peaks every winter, 2015&ndash;2026</h3>
-          <p class="hint">Monthly city-wide average. Grey points: fewer than 10 stations reporting. Shaded: no data.</p>
+          <p class="hint">Monthly city-wide average. Grey points: fewer than 10 stations reporting.</p>
           $yoy
         </div>
         <div class="card">
           <h3>Bad-air days by season</h3>
-          <p class="hint">81% of December days are Very Poor or worse, against 14% in March&ndash;September.</p>
+          <p class="hint">86% of December days are Very Poor or worse, against 4% in March&ndash;September.</p>
           $event
           <details class="method"><summary>How this is measured</summary>
-            One city-wide AQI per day (mean of reporting stations, days with &ge;5 stations). CPCB categories: Very Poor 301&ndash;400, Severe 401+. 2020 lockdown excluded. 95% intervals: December 68&ndash;93%, March&ndash;September 9&ndash;19%.
+            One city-wide PM2.5 per day (mean of reporting stations, days with &ge;5 stations), 2015&ndash;2026. CPCB's PM2.5 categories: Very Poor 121&ndash;250 &micro;g/m&sup3;, Severe 251+. 2020 lockdown (25 March &ndash; 31 May) excluded. 95% intervals: December 79&ndash;92%, March&ndash;September 2.7&ndash;5.1%.
           </details>
         </div>
       </div>
@@ -101,7 +101,7 @@
           <p class="hint">The lower the mixing height, the higher the PM2.5. October and November sit above the pattern.</p>
           $weather_monthly
           <details class="method"><summary>How this is measured</summary>
-            Mixing height is the depth of air that pollution can spread into (ERA5 reanalysis, central Delhi). April&ndash;June are dustier than their mixing height suggests because of pre-monsoon dust storms.
+            Mixing height is the depth of air that pollution can spread into (ERA5 reanalysis, central Delhi), 2015&ndash;2026; the weather source has none for January&ndash;June 2024. April&ndash;June are dustier than their mixing height suggests because of pre-monsoon dust storms.
           </details>
         </div>
         <div class="card">
@@ -109,7 +109,7 @@
           <p class="hint">Late October to mid-November reaches 2.2&times; what the weather predicts: the crop-burning window.</p>
           $weather_excess
           <details class="method"><summary>How this is measured</summary>
-            Dry days only. Each day is compared with typical days that had the same mixing height and wind, using every month except October&ndash;November as the baseline. 1&times; means the weather fully explains the pollution. Diwali falls in the same window. 95% intervals: late October 1.3&ndash;2.1&times;, early November 1.7&ndash;3.0&times;.
+            Dry days only. Each day is compared with typical days that had the same mixing height and wind, using every month except October&ndash;November as the baseline. 1&times; means the weather fully explains the pollution. Diwali falls in the same window. 2015&ndash;2026, without the 2020 lockdown or days missing mixing height. 95% intervals: late October 1.3&ndash;1.8&times;, early November 1.9&ndash;2.6&times;.
           </details>
         </div>
       </div>
@@ -118,10 +118,10 @@
     <div id="tab-sources" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-sources" tabindex="0">
       <div class="card">
         <h3>Crop-fire smoke rides the wind</h3>
-        <p class="hint">After heavy burning in Punjab, Delhi's PM2.5 reaches 2.1&times; the weather prediction when the wind blows from Punjab. In other winds the effect is small.</p>
+        <p class="hint">After a season's heaviest burning days, Delhi's PM2.5 reaches 2.3&times; the weather prediction when the wind blows from Punjab. In other winds the effect is much smaller.</p>
         $fires
         <details class="method"><summary>How this is measured</summary>
-          Daily satellite fire counts in Punjab and northern Haryana (NASA FIRMS, VIIRS), the day before. Each bar compares PM2.5 with same-weather days, as in "Pollution beyond the weather". 15 October &ndash; 30 November, dry days only, and the weeks around Diwali removed: crackers are local smoke that needs no north-westerly, and leaving them in hides the wind pattern. With the wind from Punjab, the rise from fewest to most fires is +0.69&times; (95% interval +0.06 to +1.26). The difference from other winds is suggestive but not proven (90% of resamples).
+          Daily satellite fire counts in Punjab and northern Haryana (NASA FIRMS, VIIRS), the day before, 2015&ndash;2025. Days are split into thirds <em>within each season</em>, because detections fell about 90% after 2021. Each bar compares PM2.5 with same-weather days, as in "Pollution beyond the weather". 15 October &ndash; 30 November, dry days only, and the weeks around Diwali removed: crackers are local smoke that needs no north-westerly. With the wind from Punjab, the rise from fewest to most fires is +1.02&times; (95% interval +0.61 to +1.45). The difference from other winds, +0.70 (+0.20 to +1.24), holds in 99.7% of resamples: the wind is what carries the smoke in.
         </details>
       </div>
       <div class="card">
@@ -135,18 +135,18 @@
       <div class="grid-2">
         <div class="card">
           <h3>Local or regional?</h3>
-          <p class="hint">PM2.5 is similar everywhere (1.8&times; spread). NO<sub>2</sub> varies 4.8&times; between stations.</p>
+          <p class="hint">PM2.5 is similar everywhere (1.6&times; spread). NO<sub>2</sub> varies 4.3&times; between stations.</p>
           $fingerprint
           <details class="method"><summary>How this is measured</summary>
-            Each dot is one station's 2018&ndash;19 mean divided by the median of all stations. A narrow spread means a regional pollutant; a wide spread means local hotspots. SO<sub>2</sub> is low everywhere.
+            Each dot is one station's mean over network days (2018&ndash;2026, days when at least 80% of stations reported) divided by the median of all stations. A narrow spread means a regional pollutant; a wide spread means local hotspots. SO<sub>2</sub> is low everywhere.
           </details>
         </div>
         <div class="card">
           <h3>The Diwali spike</h3>
-          <p class="hint">The week after Diwali averages 1.55&times; the AQI of the weeks before.</p>
+          <p class="hint">The week after Diwali averages 1.9&times; the PM2.5 of the three weeks before, across ten festivals.</p>
           $diwali
           <details class="method"><summary>How this is measured</summary>
-            Anchored on each year's actual Diwali date: 3 weeks before = days &minus;21 to &minus;8, week before = &minus;7 to &minus;1, Diwali week = day 0 to +7. 2016 has no data, and 2017's baseline rests on 2 days. Diwali overlaps stubble season, so not all of the jump is firecrackers.
+            Anchored on each year's actual Diwali date: 3 weeks before = days &minus;21 to &minus;8, week before = &minus;7 to &minus;1, Diwali week = day 0 to +7. 2015&ndash;2025; 2016 has no data, and 2017's baseline rests on 2 days. 2020 is the exception (0.8&times;): that Diwali came after the stubble peak, with a cracker ban. Diwali overlaps stubble season, so not all of the jump is firecrackers.
           </details>
         </div>
       </div>
@@ -168,8 +168,11 @@
         <h3>Fires fell 90%. The smoke window didn't.</h3>
         <p class="hint">Satellite-detected crop fires collapsed after 2021, but Delhi's pollution in the smoke window, relative to its weather, stayed inside its 2018&ndash;21 range in 2023, 2024 and 2025.</p>
         $then_now_stubble
+        <h4 class="subhead">Did the burning move into the night?</h4>
+        <p class="hint">The satellite passes at about 13:30 and 01:30. In 2024 and 2025, night detections were 3&ndash;4% of the total, against under 0.5% before: daytime fires fell about 90%, night fires didn't fall. A test written down in advance calls that support for a shift, but a few hundred night fires can't account for the missing tens of thousands. Fires lit in the evening and out by 01:30 are invisible to both passes.</p>
+        $then_now_daynight
         <details class="method"><summary>How this is measured</summary>
-          Top: fires detected by NASA's VIIRS satellite in Punjab and northern Haryana, 15 October &ndash; 30 November. Bottom: Delhi PM2.5 from 16 October to 15 November, divided by what the day's weather predicts, on the same 12-station panel. 2025 minus 2018&ndash;21: &minus;0.10 (95% interval &minus;0.48 to +0.26). No PM2.5 points for 2015&ndash;16 (too few panel stations yet). From 2022 the PM2.5 is CPCB's own data. Satellites only see fires burning at overpass time, and burning has reportedly shifted later in the day, so falling counts may partly be fires going unseen.
+          Top: fires detected by NASA's VIIRS satellite in Punjab and northern Haryana, 15 October &ndash; 30 November. Bottom: Delhi PM2.5 from 16 October to 15 November, divided by what the day's weather predicts, on the same 12-station panel. 2025 minus 2018&ndash;21: &minus;0.10 (95% interval &minus;0.50 to +0.26). No PM2.5 points for 2015&ndash;16 (too few panel stations yet). From 2022 the PM2.5 is CPCB's own data. Night share: VIIRS night-pass detections as a share of all, 15 October &ndash; 30 November, against <a href="https://github.com/vanshajvr/aqi-sql/blob/main/analysis_plans/fires_daynight_preregistration.md" target="_blank" rel="noopener">a rule set before downloading</a>: each of 2023&ndash;25 above the highest share of 2015&ndash;21. Day plus night detections match the published counts exactly.
         </details>
       </div>
     </div>
@@ -267,10 +270,10 @@
         <p class="chart-empty-state" id="chart-empty-state" hidden>No charts selected. Pick at least one from "Show charts" above.</p>
         <div class="card" data-chart="ranking">
           <h3>Most persistent hotspots</h3>
-          <p class="hint">Wazirpur, Mundka and Punjabi Bagh are among the month's 5 worst about two months in three.</p>
+          <p class="hint">Jahangirpuri, Anand Vihar and Wazirpur are among the month's 5 worst in more than half of all months.</p>
           $hotspots
           <details class="method"><summary>How this is measured</summary>
-            Only months with &ge;20 reporting stations (February 2018 &ndash; June 2020). Anand Vihar has the worst average but spikes rather than staying on top.
+            Only months with &ge;20 reporting stations (2018&ndash;2026, apart from thin months in 2020&ndash;21). PM2.5, 2015&ndash;2026.
           </details>
         </div>
         <div class="card" data-chart="rolling">
@@ -279,8 +282,8 @@
           $rolling
         </div>
         <div class="card" data-chart="severity">
-          <h3>Days in each AQI category</h3>
-          <p class="hint">Switch between the 15 worst and 15 best stations.</p>
+          <h3>Days in each PM2.5 category</h3>
+          <p class="hint">CPCB's PM2.5 bands, 2015&ndash;2026. Switch between the 15 worst and 15 best stations.</p>
           $severity
         </div>
       </div>
@@ -306,20 +309,21 @@
       <div class="card">
         <h3>About this analysis</h3>
         <ul class="method-list">
-          <li><b>Data:</b> CPCB station readings (via Kaggle) and daily weather (ERA5 via Open-Meteo).</li>
-          <li><b>Fair comparisons:</b> city-wide figures need &ge;5 reporting stations; trends compare the same stations; rankings use 2018&ndash;19, when all stations report.</li>
+          <li><b>Data:</b> CPCB station readings, 2015&ndash;2026 (Kaggle to June 2020, then CPCB's portal, with OpenAQ filling gaps), daily weather (ERA5 via Open-Meteo) and crop-fire counts (NASA FIRMS).</li>
+          <li><b>Measure:</b> PM2.5 throughout, on CPCB's PM2.5 bands, because the official AQI stops in 2020. The early-warning rules keep their original AQI design.</li>
+          <li><b>Fair comparisons:</b> city-wide figures need &ge;5 reporting stations; trends compare the same stations; station rankings use network days (2018&ndash;2026, &ge;80% of stations reporting).</li>
           <li><b>Cleaning:</b> two sensor faults removed (Punjabi Bagh PM10, early-2015 CO).</li>
           <li><b>Read more:</b> <a href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">findings memo</a> &middot; <a href="https://github.com/vanshajvr/aqi-sql/tree/main/queries" target="_blank" rel="noopener">SQL queries</a> &middot; <a href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">code</a></li>
         </ul>
       </div>
       <div class="card">
         <h3>All stations</h3>
-        <p class="hint">Click a column to sort, or search by name. Rank is by official AQI, 2018&ndash;19; the change is raw PM2.5, not weather-adjusted.</p>
+        <p class="hint">Click a column to sort, or search by name. Rank is by PM2.5 on network days, 2018&ndash;2026; the change is raw PM2.5, not weather-adjusted.</p>
         $table
       </div>
       <div class="card">
         <h3>Data coverage</h3>
-        <p class="hint">Share of days with a reading. Most stations joined in 2017&ndash;18.</p>
+        <p class="hint">Share of days with a PM2.5 reading, 2015&ndash;2026. Most stations joined in 2017&ndash;18; mid-2020 to 2021 is patchy (OpenAQ only).</p>
         $coverage
       </div>
     </div>
@@ -368,7 +372,7 @@
       </div>
     </div>
 
-    <footer>Data: Central Pollution Control Board (CPCB) via Kaggle and OpenAQ &middot; weather: ERA5 via Open-Meteo &middot; fires: NASA FIRMS &middot; built with SQL, Python and Plotly.</footer>
+    <footer>Data: Central Pollution Control Board (CPCB), via Kaggle, OpenAQ and CPCB's portal &middot; weather: ERA5 via Open-Meteo &middot; fires: NASA FIRMS &middot; built with SQL, Python and Plotly.</footer>
   </div>
 
   <script>window.COMPARE_DATA = $compare_data_json;</script>

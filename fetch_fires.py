@@ -29,9 +29,16 @@ Rate limit: FIRMS allows 5,000 transactions per 10 minutes per key; one
 5-day area request costs about 5-10. Requests are spaced out and the key's
 live counter is checked, pausing well before the limit.
 
+Day/night (--daynight): the same requests and filters, but keeping FIRMS'
+day/night flag, written per day to data/seed/fires_daynight_daily.csv (a
+separate file, so the published counts above can't change). VIIRS passes at
+~13:30 and ~01:30 local time. Saved after each season; seasons already in the
+file are skipped. See analysis_plans/fires_daynight_preregistration.md.
+
 Usage (from the repo root, with FIRMS_MAP_KEY in .env):
     set -a; source .env; set +a
     python3 fetch_fires.py
+    python3 fetch_fires.py --daynight
 
 Standard library only, so it adds nothing to requirements.txt.
 """
@@ -48,6 +55,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 OUT_PATH = Path(__file__).parent / "data" / "seed" / "fires_daily.csv"
+DAYNIGHT_PATH = Path(__file__).parent / "data" / "seed" / "fires_daynight_daily.csv"
 SOURCE = "VIIRS_SNPP_SP"
 AREA = "73.8,29.3,77.5,32.6"          # west, south, east, north
 YEARS = range(2015, 2026)
@@ -82,10 +90,78 @@ def season_days(year):
     return [start + timedelta(days=i) for i in range((end - start).days + 1)]
 
 
+class Throttle:
+    """Checks the key's live counter every 20 requests and pauses near the limit."""
+    def __init__(self, key):
+        self.key, self.n = key, 0
+
+    def tick(self):
+        if self.n and self.n % 20 == 0:
+            used = transactions_used(self.key)
+            print(f"  {self.n} requests so far; key counter at {used}/5000")
+            while used > PAUSE_ABOVE_TRANSACTIONS:
+                print("  pausing 60s to stay under the FIRMS limit")
+                time.sleep(60)
+                used = transactions_used(self.key)
+        self.n += 1
+
+
+def fetch_detections(key, days, throttle):
+    """Kept detections (vegetation, nominal/high confidence) for these days."""
+    out = []
+    for i in range(0, len(days), DAYS_PER_REQUEST):
+        chunk = days[i:i + DAYS_PER_REQUEST]
+        throttle.tick()
+        body = get(f"{API}/api/area/csv/{key}/{SOURCE}/{AREA}/{len(chunk)}/{chunk[0].isoformat()}")
+        if not body.startswith("latitude"):
+            sys.exit(f"Unexpected FIRMS response for {chunk[0]}: {body[:200]!r}. Nothing written.")
+        out += [r for r in csv.DictReader(io.StringIO(body)) if r["type"] == "0" and r["confidence"] != "l"]
+        time.sleep(SECONDS_BETWEEN_REQUESTS)
+    return out
+
+
+def main_daynight(key):
+    fields = ["date", "n_day", "n_night", "frp_day_mw", "frp_night_mw"]
+    rows = {}
+    if DAYNIGHT_PATH.exists():
+        with open(DAYNIGHT_PATH) as f:
+            rows = {r["date"]: r for r in csv.DictReader(f)}
+    throttle = Throttle(key)
+    for year in YEARS:
+        days = season_days(year)
+        if days[0].isoformat() in rows:
+            print(f"{year}: already in {DAYNIGHT_PATH.name}")
+            continue
+        season = {d.isoformat(): {"date": d.isoformat(), "n_day": 0, "n_night": 0,
+                                  "frp_day_mw": 0.0, "frp_night_mw": 0.0} for d in days}
+        for r in fetch_detections(key, days, throttle):
+            day = season.get(r["acq_date"])
+            if day is None:
+                continue
+            part = "day" if r["daynight"] == "D" else "night"
+            day[f"n_{part}"] += 1
+            day[f"frp_{part}_mw"] += float(r["frp"] or 0)
+        for v in season.values():
+            v["frp_day_mw"], v["frp_night_mw"] = round(v["frp_day_mw"], 1), round(v["frp_night_mw"], 1)
+        rows.update(season)
+        tmp = DAYNIGHT_PATH.with_suffix(".csv.tmp")
+        with open(tmp, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(rows[k] for k in sorted(rows))
+        tmp.replace(DAYNIGHT_PATH)
+        n_day = sum(v["n_day"] for v in season.values())
+        n_night = sum(v["n_night"] for v in season.values())
+        print(f"{year}: {n_day:,} day + {n_night:,} night detections (saved)")
+    print(f"\nWrote {DAYNIGHT_PATH} ({throttle.n} requests)")
+
+
 def main():
     key = os.environ.get("FIRMS_MAP_KEY", "").strip()
     if not key:
         sys.exit("Set FIRMS_MAP_KEY first (see the docstring). Nothing written.")
+    if "--daynight" in sys.argv:
+        return main_daynight(key)
 
     existing = {}
     if OUT_PATH.exists():

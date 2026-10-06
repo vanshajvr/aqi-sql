@@ -41,6 +41,10 @@ Amendment 1 post-hoc checks and the 2025-26 source sensitivity
 (results/then_vs_now_trend.csv); query 26's alert scores
 (results/alert_gap_test.csv).
 
+Fires day/night (analysis_plans/fires_daynight_preregistration.md): query
+27's night share per season and pre-registered verdict, written to
+results/fires_daynight_test.csv.
+
 Usage (after fetch_data.py has built data/aqi.db with readings_openaq):
     python3 validate_backfill.py
 """
@@ -290,7 +294,12 @@ def main():
     print(f"Alert rule E on Nov 2022 - Jan 2025: {'PASS' if e['rule_e_pass'].all() else 'FAIL'}")
 
     trend, t25 = then_vs_now_trend(conn)
+    # Day/night fire test (analysis_plans/fires_daynight_preregistration.md)
+    dn = pd.read_sql_query((ROOT / "queries" / "27_fires_daynight.sql").read_text(), conn)
+    dn.to_csv(OUT_PATH.with_name("fires_daynight_test.csv"), index=False)
     conn.close()
+    print("\n" + dn.to_string(index=False))
+    print(f"Fires day/night test: {dn['verdict'].iloc[0]}")
     print("\n" + t25.to_string(index=False))
     print("\n" + trend.to_string(index=False))
 

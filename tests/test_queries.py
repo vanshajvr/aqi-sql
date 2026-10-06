@@ -102,7 +102,7 @@ def test_yoy_ignores_stations_joining_the_network(db_builder):
     db = db_builder("yoy_join", stations, readings)
     jan = run_query(db, "03_yoy_comparison.sql").set_index("year")
 
-    assert jan.loc["2019", "avg_aqi"] == pytest.approx(260.0)  # raw mean went UP
+    assert jan.loc["2019", "avg_pm25"] == pytest.approx(260.0)  # raw mean went UP
     assert jan.loc["2019", "n_matched_stations"] == 3
     assert jan.loc["2019", "yoy_change"] == pytest.approx(-20.0)  # air got better
 
@@ -127,7 +127,7 @@ def test_severity_percentages_sum_to_100(db_builder):
     """
     stations = [("S1", "Test", "Delhi", 28.6, 77.2)]
     dates = pd.date_range("2019-01-01", periods=498).strftime("%Y-%m-%d")
-    readings = [("S1", d, 150) for d in dates]  # 498 Moderate days
+    readings = [("S1", d, 75) for d in dates]  # 498 Moderate days (PM2.5 61-90)
     readings += [("S1", "2020-06-01", 450), ("S1", "2020-06-02", 450)]  # 2 Severe days
 
     db = db_builder("severity", stations, readings)
@@ -156,7 +156,7 @@ def test_pipeline_summary_ranks_match_manual_calculation(db_builder):
         ("S1", "2019-01-01", 400),
         ("S2", "2019-01-01", 200),
         ("S3", "2019-01-01", 50),
-    ]
+    ]   # one network day: all three stations reported
     db = db_builder("pipeline", stations, readings)
     df = run_query(db, "06_pipeline_summary.sql").set_index("station_id")
 
@@ -164,26 +164,28 @@ def test_pipeline_summary_ranks_match_manual_calculation(db_builder):
     assert df.loc["S2", "worst_overall_rank"] == 2
     assert df.loc["S3", "worst_overall_rank"] == 3
 
-def test_pipeline_summary_ranks_on_2018_19_only(db_builder):
+def test_pipeline_summary_ranks_on_network_days_only(db_builder):
     """
-    A station with a filthy 2016 but clean 2018-19 must not outrank one that
-    was worse in the common window: stations joined in different years, so
-    only 2018-2019 compares them over the same days.
+    Stations are compared only on network days (from 2018, >= 80% of
+    stations reporting). OLD's filthy 2016 doesn't count, and neither does
+    NEW's clean day when it reported alone. The worst month still searches
+    the whole record, but a month needs >= 15 days.
     """
     stations = [("OLD", "Old", "Delhi", 28.6, 77.2), ("NEW", "New", "Delhi", 28.6, 77.2)]
-    readings = [("OLD", "2016-01-01", 900), ("OLD", "2018-06-01", 150),
-                ("NEW", "2018-06-01", 250), ("NEW", "2020-03-01", 50)]
+    readings = [("OLD", f"2016-01-{d:02d}", 900) for d in range(1, 16)]
+    readings += [("OLD", "2018-06-01", 150), ("NEW", "2018-06-01", 250), ("NEW", "2020-03-01", 50)]
     db = db_builder("pipeline_window", stations, readings)
     df = run_query(db, "06_pipeline_summary.sql").set_index("station_id")
 
     assert df.loc["NEW", "worst_overall_rank"] == 1
-    assert df.loc["OLD", "avg_aqi_2018_19"] == 150.0
+    assert df.loc["OLD", "avg_pm25"] == 150.0
+    assert df.loc["NEW", "avg_pm25"] == 250.0          # its lone 2020 day is not a network day
     assert df.loc["OLD", "worst_month"] == "2016-01"   # peak still searches all years
 
 
 def test_persistent_hotspots_counts_top5_in_eligible_months_only(db_builder):
     """
-    20 stations in Jan 2019 (eligible month) with distinct AQI: the 5 worst get
+    20 stations in Jan 2019 (eligible month) with distinct PM2.5: the 5 worst get
     a top-5 month. Feb 2019 has only 3 stations, so it must not count at all,
     and a station with < 15 days in a month doesn't qualify for that month.
     """

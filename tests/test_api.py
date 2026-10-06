@@ -39,8 +39,8 @@ def test_list_stations_shape_and_content(client):
 
     expected_keys = {
         "station_id", "station_name", "latitude", "longitude",
-        "avg_aqi_2018_19", "worst_overall_rank", "worst_month",
-        "worst_month_avg_aqi", "pm25_2018_19", "pm25_2025_26", "change_pct",
+        "avg_pm25", "worst_overall_rank", "worst_month",
+        "worst_month_avg_pm25", "pm25_2018_19", "pm25_2025_26", "change_pct",
         "no2_index", "pct_months_top5",
     }
     assert expected_keys.issubset(data[0].keys())

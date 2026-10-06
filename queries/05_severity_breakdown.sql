@@ -1,17 +1,24 @@
+-- 05_severity_breakdown.sql
+-- Each station's days by CPCB category, 2015-2026, on PM2.5 (CPCB's PM2.5
+-- sub-index bands; the official AQI stops in 2020):
+--   Good <= 30, Satisfactory <= 60, Moderate <= 90, Poor <= 120,
+--   Very Poor <= 250, Severe above
+-- Station-days from readings_all; each station over its own record (the chart
+-- orders stations by 06's like-for-like average).
 WITH classified AS(
     SELECT
         station_id,
-        aqi,
+        pm25,
         CASE
-            WHEN aqi<=50 THEN 'Good'
-            WHEN aqi<=100 THEN 'Satisfactory'
-            WHEN aqi<=200 THEN 'Moderate'
-            WHEN aqi<=300 THEN 'Poor'
-            WHEN aqi<=400 THEN 'Very Poor'
+            WHEN pm25<=30 THEN 'Good'
+            WHEN pm25<=60 THEN 'Satisfactory'
+            WHEN pm25<=90 THEN 'Moderate'
+            WHEN pm25<=120 THEN 'Poor'
+            WHEN pm25<=250 THEN 'Very Poor'
             ELSE 'Severe'
         END AS computed_bucket
-    FROM readings
-    WHERE aqi IS NOT NULL
+    FROM readings_all
+    WHERE pm25 IS NOT NULL
 )
 SELECT
     station_id,

@@ -5,8 +5,10 @@
 -- PERIODS: two equal 12-month windows, each containing one full winter, so
 -- seasonality can't make one look better than the other:
 --   then  Oct 2018 - Sep 2019   (Kaggle, official CPCB data)
---   now   Oct 2025 - Sep 2026   (OpenAQ backfill, validated against Kaggle
---                               on Jan-Jun 2020; results/backfill_validation.csv)
+--   now   Oct 2025 - Sep 2026   (CPCB's own daily data, with OpenAQ for the
+--                               station-days CPCB lacks: September 2026, and
+--                               2026 at Okhla and Dwarka Sector 8;
+--                               results/cpcb_validation.csv)
 -- PM2.5, not AQI: the backfill has no official AQI (pre-registration,
 -- Amendment 1).
 --
@@ -17,11 +19,10 @@
 -- Unlike 19 (a fixed 12-station panel for the city-wide trend), this keeps
 -- every station, because the point is to compare places.
 WITH all_pm AS (
-    SELECT station_id, date, pm25 FROM readings
-    WHERE pm25 IS NOT NULL AND date BETWEEN '2018-10-01' AND '2019-09-30'
-    UNION ALL
-    SELECT station_id, date, pm25 FROM readings_openaq
-    WHERE pm25 IS NOT NULL AND date BETWEEN '2025-10-01' AND '2026-09-30'
+    -- readings_all: one source per station-day (see fetch_data.py)
+    SELECT station_id, date, pm25 FROM readings_all
+    WHERE pm25 IS NOT NULL
+      AND (date BETWEEN '2018-10-01' AND '2019-09-30' OR date BETWEEN '2025-10-01' AND '2026-09-30')
 ),
 by_period AS (
     SELECT

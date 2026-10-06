@@ -7,11 +7,13 @@ Every November, Delhi's air makes the news. The usual suspects get named
 usually without numbers. I wanted to know how much each one actually
 contributes, and which of them a city could do anything about.
 
-**The data:** about 36,000 daily readings from 37 government monitoring
-stations (CPCB, DPCC and IMD), April 2015 to July 2020, covering PM2.5, PM10,
-NO2, SO2, CO and AQI, plus OpenAQ's archive of the same stations for
-2020–21 and CPCB's own daily records for 2022–2026 (both checked before use;
-see finding 8). I
+**The data:** about 106,000 daily readings from 37 government monitoring
+stations (CPCB, DPCC and IMD), January 2015 to September 2026, covering PM2.5,
+PM10, NO2, SO2 and CO: the official CPCB record to mid-2020 (via Kaggle),
+then CPCB's own portal from 2022, with OpenAQ's archive of the same stations
+filling the gaps (each source checked against the one before it; see
+finding 8). Everything is measured in **PM2.5**, the pollutant that matters
+most for health, because the official AQI stops in 2020. I
 joined them to daily weather (ERA5 via Open-Meteo: mixing height, wind, rain
 and temperature) and to satellite fire counts for Punjab and Haryana (NASA
 FIRMS). All the
@@ -40,81 +42,80 @@ analysis is in SQL, every number below comes from a tested query in
 
 ### 1. It's the lid, not just the smoke
 
-On **81% of December days**, the city-wide AQI was "Very Poor" or worse
-(above 300). Across March to September, it was 14%. (95% intervals: 68–93%
-against 9–19%. Wide, because there are only five Decembers, but nowhere near
-overlapping.)
+On **86% of December days** from 2015 to 2026, city-wide PM2.5 was "Very Poor"
+or worse (above 120 µg/m³). Across March to September, it was 4%. (95%
+intervals: 79–92% against 3–5%.)
 
 The cause is overhead. The *mixing height* (how deep a layer of air
 pollution can spread into) averages about **275 m in December and January**
-against **890 m in May**. In winter, Delhi's lid drops to roughly a third of
+against **895 m in May**. In winter, Delhi's lid drops to roughly a third of
 its summer height, and the same emissions get squeezed into a third of the
 air.
 
 To test this, I compared each December day with typical days from the rest
 of the year that had the same mixing height and wind. December comes out only
-**9–15% above what its weather predicts**, and early December's interval
-(0.96–1.24×) includes 1, so I can't rule out that the weather explains all of
-it. Winter air isn't bad because
+**9–17% above what its weather predicts**. Winter air isn't bad because
 something extra is burning. It's bad because nothing can escape.
 
 ### 2. Four weeks the weather can't explain
 
 Run the same comparison through the year and one window stands out. In late
-October, PM2.5 runs at **1.65×** what the weather predicts; in the first half
-of November, **2.2×**. The rest of winter stays between 0.8× and 1.25×. Even
-the bottom of each 95% interval (1.3× and 1.7×) sits clearly above 1.
+October, PM2.5 runs at **1.5×** what the weather predicts; in the first half
+of November, **2.2×**. December to February stays between 0.96× and 1.17×.
+Even the bottom of each 95% interval (1.3× and 1.9×)
+sits clearly above 1.
 
 That window lines up with the peak of crop-residue burning in Punjab and
 Haryana, and Diwali falls in the same weeks. Lining up in time isn't proof,
 so I went looking for the smoke itself.
 
 **Following the smoke.** NASA's satellites log every fire they detect. I
-counted the crop fires in Punjab and northern Haryana each day (over 370,000
-across five seasons) and asked: does Delhi's air get worse after big fire
-days, beyond what the weather explains? I kept the comparison within the
-burning window (15 October to 30 November) and took out the weeks around
-Diwali, since crackers are a local source that would muddy the test.
+counted the crop fires in Punjab and northern Haryana each day (about 660,000
+across eleven seasons, 2015–2025) and asked: does Delhi's air get worse after
+big fire days, beyond what the weather explains? I kept the comparison within
+the burning window (15 October to 30 November), took out the weeks around
+Diwali, since crackers are a local source that would muddy the test, and
+compared high- and low-fire days *within each season*, because detections
+fell about 90% after 2021.
 
-| Fires the day before | Wind from Punjab (north-west) | Other winds |
+| Fires the day before (within the season) | Wind from Punjab (north-west) | Other winds |
 |---|---|---|
-| Fewest third | 1.38× | 1.18× |
-| Most third | **2.07×** | 1.36× |
+| Fewest third | 1.30× | 1.39× |
+| Most third | **2.32×** | 1.70× |
 
 *(PM2.5 as a multiple of what the day's weather predicts)*
 
-When the wind blows from Punjab, the days after the heaviest burning run at
-**2.1× the weather prediction**. The rise from the fewest-fire days (+0.69) is
-clearly above zero (95% interval +0.06 to +1.26). In other winds, the rise is
-small and could be nothing. That's what you'd expect if smoke is being
-carried in, but I want to be honest about the limit: with only about 20 days
-in each group, the *difference* between the two winds isn't proven. It shows
-up in 90% of resamples, not 95%.
+When the wind blows from Punjab, the days after a season's heaviest burning
+run at **2.3× the weather prediction**, a rise of +1.02 over the fewest-fire days (95% interval +0.61 to +1.45). In
+other winds, the rise is about a third as large. The gap between the two winds (+0.70, interval +0.20 to +1.24) holds in
+99.7% of resamples. With five seasons this was only suggestive; with eleven,
+it's what you'd expect if the smoke is being carried in, and the data now
+supports it.
 
-So, carefully stated: **crop fires measurably add to Delhi's air when the wind
-blows from Punjab**, and the data hints, without proving, that the wind is
-what brings them. One by-product: with the Diwali weeks left in, high-fire
-days look bad in *any* wind, because cracker smoke is made inside the city
-and needs no wind to arrive.
+So: **crop fires measurably add to Delhi's air, and the wind from Punjab is
+what brings them.** One by-product: with the Diwali weeks left in, high-fire days look
+bad in *any* wind, because cracker smoke is made inside the city and needs no
+wind to arrive.
 
 ### 3. The haze never really leaves
 
-In 2018 and 2019, the two complete years, city-wide PM2.5 broke **India's own
-24-hour limit (60 µg/m³) on 70% of days** (73% in 2018, 67% in 2019). It broke
-the WHO guideline (15 µg/m³) on **all but two days** in two years. The annual
-average was 108–114 µg/m³.
+In the seven complete years (2018–2020 and 2022–2025), city-wide PM2.5 broke
+**India's own 24-hour limit (60 µg/m³) on 64% of days**, from 55% (2020, with
+its lockdown) to 73% (2018). It met the WHO guideline (15 µg/m³) on **9 days
+out of 2,515**. The annual average ran from 95 to 114 µg/m³.
 
 ### 4. Same sky, different streets
 
-Comparing stations over the same two years:
+Comparing stations on the same days (2018–2026, days when at least 80% of
+stations reported):
 
-- The dirtiest station has only **1.8× the PM2.5** of the cleanest.
-- For **NO2**, which comes mostly from vehicle exhaust, the gap is **4.8×**.
+- The dirtiest station has only **1.6× the PM2.5** of the cleanest.
+- For **NO2**, which comes mostly from vehicle exhaust, the gap is **4.3×**.
 
 PM2.5 hangs over the whole city at similar levels. NO2 piles up at particular
-places (its spread was wider than PM2.5's in all 500 resampled station
-networks): Anand Vihar (2.4× the city median), Punjabi Bagh, and the area
-around the JLN and Dhyan Chand stadiums.
+places (its spread was wider than PM2.5's in all of 500 resampled
+station networks): Anand Vihar (1.9× the city median), ITO, and the area
+around the JLN stadium.
 
 ### 5. The city pressed pause
 
@@ -137,21 +138,25 @@ somewhere a city lockdown doesn't reach.
 
 ### 6. One festival, one bad week
 
-The week after Diwali averaged **1.55×** the AQI of the three weeks before,
-ranging from 1.2× (2015, 2018) to more than 2× (2017, 2019). Five festivals that
-overlap with stubble season are too few to pin the effect on crackers alone,
-but the spike is real every year.
+Across the ten Diwalis with data (2015–2025), the week after Diwali averaged
+**1.9×** the PM2.5 of the three weeks before. It was higher in most years
+(3.4–4.1× in 2019, 2021, 2022 and 2025), and the exception proves the
+overlap: in 2020, Diwali came after the stubble peak, under a cracker ban,
+and the week after was *cleaner* than the smoky weeks before (0.8×). Diwali
+and stubble season overlap too much to pin the spike on crackers alone, but
+in most years it's unmistakable.
 
-### 7. The worst station isn't the most stubborn one
+### 7. Two stations at the top, and a belt that never lets up
 
-**Anand Vihar** is Delhi's worst station on average. It ranks first for AQI,
-PM2.5, PM10, NO2 and CO, and in 1,583 days of data it never once recorded a
-"Good" day.
+**Jahangirpuri and Anand Vihar** are Delhi's worst stations, effectively tied
+on PM2.5 (128 and 127 µg/m³ on the same days, 2018–2026). Anand Vihar is
+worst for PM10, NO2 and CO too, and fewer than 4% of its 3,400 days were
+"Good".
 
-Month by month, though, the more persistent offenders are in the north-west
-industrial belt. **Wazirpur, Mundka and Punjabi Bagh** are among the city's 5
-worst stations about two months in every three. Anand Vihar manages 57%: it
-spikes higher, but it doesn't stay on top as reliably.
+Month by month, the most persistent are in the north and north-west:
+**Jahangirpuri, Anand Vihar and Wazirpur** are among the city's 5 worst
+stations in more than half of all months (63%, 59% and 54%), with Bawana
+close behind (48%).
 
 ### 8. Not yet measurably better
 
@@ -203,10 +208,20 @@ don't need weather and use all its days.
   fell from 50,000–87,000 a season in 2018–21 to 12,746 in 2024 and 8,108 in
   2025. Yet Delhi's pollution from 16 October to 15 November, relative to its
   weather, was 1.54×, 1.57× and 1.68× in 2023–25, inside the 2018–21 range
-  (1.40–2.33×). 2025 against 2018–21 is −0.10, with a 95% interval of −0.48
+  (1.40–2.33×). 2025 against 2018–21 is −0.10, with a 95% interval of −0.50
   to +0.26, which includes no change at all. Either burning has moved out of the satellites'
   view (there are reports of fires being lit after the afternoon overpass), or
   other sources fill the window.
+- **I checked the satellite's blind spot, with the test [written down
+  first](analysis_plans/fires_daynight_preregistration.md).** VIIRS passes at
+  about 13:30 and 01:30. Night detections were under 0.5% of the total in
+  every season from 2015 to 2021, and 0.8%, 4.1% and 3.2% in 2023–25, each
+  above that range, so by the pre-set rule the data **supports a shift**. But
+  the absolute numbers matter: night fires held at a few hundred a season
+  while daytime fires fell from 50,000–90,000 to 8,000–12,000. That fits
+  burning moving away from the afternoon pass, but the night pass can't see
+  fires lit in the evening and out by 01:30, so it can't say how much
+  burning is now hidden. The smoke window says: plenty.
 
 **The lesson for anyone judging progress:** satellite fire counts make
 crop-burning policy look like a success that Delhi's air doesn't yet show.
@@ -325,18 +340,21 @@ where the uncertainty comes from:
   interval.
 
 The short version: every conclusion above survives, but some numbers are
-softer than they look. December's 81% could plausibly be anywhere from 68% to
-93%, because five Decembers is not many.
+softer than they look. The fire effect in other winds, for instance, has a
+wide interval, because each group holds only a few dozen days.
 
 ---
 
 ## What I'm less sure about
 
-- **The early years are thin.** Only 8 stations reported in 2015–16 and 17 in
-  2017; all 37 report only from 2018. So trends compare only stations present
-  in both years, rankings use 2018–19, and a "city-wide" day needs at least 5
-  stations reporting. The data can't support claims like "Delhi got
-  better/worse since 2015".
+- **The early years are thin, and so is mid-2020 to 2021.** Only 8 stations
+  reported in 2015–16 and 17 in 2017; all 37 report only from 2018. And for
+  July 2020 to December 2021 the only source is OpenAQ's archive, which has
+  10–40% of station-days (almost nothing for April–August 2021). So trends
+  compare only stations present in both years, station rankings use network
+  days (2018–2026, when at least 80% of stations reported), and a
+  "city-wide" day needs at least 5 stations reporting. The data can't support
+  claims like "Delhi got better/worse since 2015".
 - **The lockdown result is a range, not a single number.** It uses one baseline
   year (2019). The lower bound is cautious: early March 2020 was already
   cleaner than its weather explains, possibly because COVID closures began
@@ -382,10 +400,11 @@ is why every period now uses the most complete source available.
 
 | Finding | Query | Technique |
 |---|---|---|
-| 1 | [`04`](queries/04_event_clustering.sql), [`12`](queries/12_weather_by_month.sql), [`13`](queries/13_weather_adjusted_excess.sql) | Station readings rolled up to city-days with CPCB thresholds; monthly weather profile |
-| 2 | [`13_weather_adjusted_excess.sql`](queries/13_weather_adjusted_excess.sql), [`18_fires_and_wind.sql`](queries/18_fires_and_wind.sql) | Actual vs expected PM2.5 from same-weather days; previous-day satellite fire counts (NASA FIRMS) in thirds × wind direction, Diwali weeks excluded |
+| All | `readings_all` view in [`fetch_data.py`](fetch_data.py) | One record for 2015–2026: Kaggle to mid-2020, then CPCB with OpenAQ filling gaps, one value per station-day |
+| 1 | [`04`](queries/04_event_clustering.sql), [`12`](queries/12_weather_by_month.sql), [`13`](queries/13_weather_adjusted_excess.sql) | Station readings rolled up to city-days with CPCB's PM2.5 bands; monthly weather profile |
+| 2 | [`13_weather_adjusted_excess.sql`](queries/13_weather_adjusted_excess.sql), [`18_fires_and_wind.sql`](queries/18_fires_and_wind.sql) | Actual vs expected PM2.5 from same-weather days; previous-day satellite fire counts (NASA FIRMS) in thirds within each season × wind direction, Diwali weeks excluded |
 | 3 | [`11_health_limits.sql`](queries/11_health_limits.sql) | City-day PM2.5 against India's and WHO's limits, complete years flagged |
-| 4 | [`10_station_fingerprint.sql`](queries/10_station_fingerprint.sql) | Each station vs the city median (window-function median), common 2018–19 window |
+| 4 | [`10_station_fingerprint.sql`](queries/10_station_fingerprint.sql) | Each station vs the city median (window-function median), on network days 2018–2026 |
 | 5 | [`09`](queries/09_lockdown_pollutants.sql), [`15`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |
 | 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's actual Diwali date |
 | 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
