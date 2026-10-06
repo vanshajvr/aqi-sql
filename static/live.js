@@ -262,7 +262,7 @@ function initLiveMap(data) {
   const geojson = { type: "FeatureCollection", features: stations.map((s) => ({
     type: "Feature",
     properties: { station_id: s.station_id, name: liveShort(s.station_name), _label: top.has(s.station_id) ? 1 : 0,
-                  color: BAND_COLORS[s.pm25_band] || "#484f58", pm25: s.pm25 ?? -1 },
+                  color: BAND_COLORS[s.pm25_band] || "#484f58", pm25: s.pm25 ?? -1, band: s.pm25_band || "" },
     geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
   })) };
 
@@ -281,6 +281,52 @@ function initLiveMap(data) {
 
   const radius = ["case", ["<", ["get", "pm25"], 0], 4,
     ["interpolate", ["linear"], ["get", "pm25"], 20, 6, 60, 9, 120, 14, 250, 18]];
+
+  // Heartbeat on the hotspots (the labelled five): two quick rings, then a
+  // rest, faster where the air is worse. Driven by one animation loop that
+  // rewrites a few paint properties per frame; each band gets its own phase
+  // through a "match" expression, since expressions can't read the clock.
+  const BEAT_SECONDS = { Severe: 0.85, "Very Poor": 1.1, Poor: 1.4, Moderate: 1.8 };
+  const BEAT_DEFAULT = 2.0;
+  const RING_SECONDS = 0.9, SECOND_BEAT = 0.22;
+  const isHot = ["==", ["get", "_label"], 1];
+  const notDim = ["!", ["boolean", ["feature-state", "dim"], false]];
+
+  function byBand(fn) {
+    const expr = ["match", ["get", "band"]];
+    Object.entries(BEAT_SECONDS).forEach(([band, period]) => expr.push(band, fn(period)));
+    expr.push(fn(BEAT_DEFAULT));
+    return expr;
+  }
+
+  function startHeartbeat() {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t0 = performance.now();
+    const ring = (offset) => (period) => {
+      const t = (((performance.now() - t0) / 1000) % period) - offset;   // seconds since this ring's beat
+      return t >= 0 && t < RING_SECONDS ? t / RING_SECONDS : 1;          // 0 -> 1 while expanding, 1 = gone
+    };
+    const thump = (period) => {
+      const t = ((performance.now() - t0) / 1000) % period;
+      const bump = (x) => Math.max(0, 1 - Math.abs(x) / 0.09);           // short triangular kick
+      return 1 + 0.18 * bump(t - 0.05) + 0.12 * bump(t - 0.05 - SECOND_BEAT);
+    };
+    const frame = () => {
+      // Skip the work while the Analysis view is showing; the loop stays alive
+      if (container.offsetParent !== null) {
+        [["live-pulse-a", 0], ["live-pulse-b", SECOND_BEAT]].forEach(([layer, offset]) => {
+          const p = byBand(ring(offset));
+          liveMap.setPaintProperty(layer, "circle-radius", ["*", radius, ["+", 1, ["*", 2.4, p]]]);
+          liveMap.setPaintProperty(layer, "circle-stroke-opacity",
+            ["case", notDim, ["*", offset ? 0.55 : 0.85, ["^", ["-", 1, p], 2]], 0]);
+        });
+        liveMap.setPaintProperty("live-dot", "circle-radius",
+          ["case", isHot, ["*", radius, byBand(thump)], radius]);
+      }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
 
   function setDim(activeId) {
     stations.forEach((s) => liveMap.setFeatureState({ source: "live", id: s.station_id },
@@ -309,6 +355,9 @@ function initLiveMap(data) {
       "circle-radius": ["*", radius, 2.3],
       "circle-opacity": ["case", ["boolean", ["feature-state", "dim"], false], 0.04,
         ["boolean", ["feature-state", "hover"], false], 0.6, 0.3] } });
+    ["live-pulse-a", "live-pulse-b"].forEach((id) => liveMap.addLayer({ id, type: "circle", source: "live",
+      filter: isHot, paint: { "circle-color": "rgba(0,0,0,0)", "circle-radius": radius,
+        "circle-stroke-color": ["get", "color"], "circle-stroke-width": 1.6, "circle-stroke-opacity": 0 } }));
     liveMap.addLayer({ id: "live-dot", type: "circle", source: "live", paint: {
       "circle-color": ["get", "color"], "circle-radius": radius,
       "circle-opacity": ["case", ["boolean", ["feature-state", "dim"], false], 0.3, 0.95],
@@ -345,8 +394,9 @@ function initLiveMap(data) {
     search.addEventListener("change", () => search.value && select(search.value));
     if (status) {
       status.className = "map-status";
-      status.innerHTML = `<span class="live-dot live-dot-stale"></span> ${stations.length} stations · colour and size show the latest hourly PM2.5`;
+      status.innerHTML = `<span class="live-dot live-dot-stale"></span> ${stations.length} stations · colour and size show the latest hourly PM2.5; the five most polluted pulse, faster where the air is worse`;
     }
+    startHeartbeat();
   });
 }
 
