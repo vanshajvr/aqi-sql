@@ -1,6 +1,6 @@
 # aqi-sql
 
-### Delhi's air, read through 70,000 days of sensor data
+### Delhi's air, read through 106,000 days of sensor data
 
 [![CI](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml/badge.svg)](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml)
 

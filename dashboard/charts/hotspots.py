@@ -19,7 +19,7 @@ def build(df16):
     ))
     fig.update_layout(
         showlegend=False, bargap=0.3,
-        xaxis=dict(title="% of months in that month's 5 worst stations (Feb 2018 - Jun 2020)",
+        xaxis=dict(title="% of months in that month's 5 worst stations (2018–2026)",
                    ticksuffix="%", range=[0, 100], gridcolor=GRID),
         yaxis=dict(title=""),
     )

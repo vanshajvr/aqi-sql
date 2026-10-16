@@ -25,14 +25,16 @@ DB_PATH = ROOT / "data" / "aqi.db"
 QUERIES_DIR = ROOT / "queries"
 OUT_DIR = ROOT / "exports"
 
-CPCB_CATEGORY = """
+# CPCB's PM2.5 sub-index bands, as in 04 and 05 (PM2.5 throughout, because
+# the official AQI stops in 2020)
+PM25_CATEGORY = """
     CASE
         WHEN {col} IS NULL THEN NULL
-        WHEN {col} <= 50 THEN 'Good'
-        WHEN {col} <= 100 THEN 'Satisfactory'
-        WHEN {col} <= 200 THEN 'Moderate'
-        WHEN {col} <= 300 THEN 'Poor'
-        WHEN {col} <= 400 THEN 'Very Poor'
+        WHEN {col} <= 30 THEN 'Good'
+        WHEN {col} <= 60 THEN 'Satisfactory'
+        WHEN {col} <= 90 THEN 'Moderate'
+        WHEN {col} <= 120 THEN 'Poor'
+        WHEN {col} <= 250 THEN 'Very Poor'
         ELSE 'Severe'
     END"""
 
@@ -45,46 +47,46 @@ SEASON = """
         ELSE 'Rest of year (Mar-Sep)'
     END"""
 
+# Both base tables read readings_all (fetch_data.py): 2015-2026, one source
+# per station-day, the same record every analysis uses.
 BASE_TABLES = {
     "station_daily": f"""
         SELECT
             r.station_id,
             r.date,
-            r.pm25, r.pm10, r.no2, r.so2, r.co,
-            r.aqi,
-            {CPCB_CATEGORY.format(col="r.aqi")} AS aqi_category
-        FROM readings r
+            r.pm25, r.pm10, r.no2, r.so2, r.co, r.o3,
+            {PM25_CATEGORY.format(col="r.pm25")} AS pm25_category,
+            r.source
+        FROM readings_all r
         ORDER BY r.station_id, r.date
     """,
     "city_daily": f"""
         WITH city AS (
             SELECT
                 date,
-                COUNT(aqi) AS n_stations,
-                AVG(aqi) AS aqi,
+                COUNT(pm25) AS n_stations,
                 AVG(pm25) AS pm25,
                 AVG(pm10) AS pm10,
                 AVG(no2) AS no2,
                 AVG(co) AS co
-            FROM readings
+            FROM readings_all
             GROUP BY date
-            HAVING COUNT(aqi) >= 5
+            HAVING COUNT(pm25) >= 5
         )
         SELECT
             c.date,
             CAST(strftime('%Y', c.date) AS INTEGER) AS year,
             CAST(strftime('%m', c.date) AS INTEGER) AS month,
             {SEASON.format(col="c.date")} AS season,
-            CASE WHEN c.date >= '2020-03-25' THEN 1 ELSE 0 END AS is_lockdown,
+            CASE WHEN c.date BETWEEN '2020-03-25' AND '2020-05-31' THEN 1 ELSE 0 END AS is_lockdown,
             c.n_stations,
-            ROUND(c.aqi, 1) AS aqi,
-            {CPCB_CATEGORY.format(col="c.aqi")} AS aqi_category,
             ROUND(c.pm25, 1) AS pm25,
+            {PM25_CATEGORY.format(col="c.pm25")} AS pm25_category,
             ROUND(c.pm10, 1) AS pm10,
             ROUND(c.no2, 1) AS no2,
             ROUND(c.co, 2) AS co,
-            CASE WHEN c.pm25 IS NULL THEN NULL WHEN c.pm25 > 60 THEN 1 ELSE 0 END AS pm25_over_india_limit,
-            CASE WHEN c.pm25 IS NULL THEN NULL WHEN c.pm25 > 15 THEN 1 ELSE 0 END AS pm25_over_who_limit,
+            CASE WHEN c.pm25 > 60 THEN 1 ELSE 0 END AS pm25_over_india_limit,
+            CASE WHEN c.pm25 > 15 THEN 1 ELSE 0 END AS pm25_over_who_limit,
             w.temp_mean_c, w.temp_min_c, w.wind_speed_kmh, w.wind_dir_deg,
             w.rain_mm, w.humidity_pct, w.mixing_height_mean_m
         FROM city c
@@ -128,8 +130,8 @@ def build_stations(conn):
     df["short_name"] = df["station_name"].str.replace(r",\s*Delhi.*$", "", regex=True)
     df["operator"] = df["station_name"].str.extract(r"-\s*(DPCC|CPCB|IMD)\s*$", expand=False)
     cols = ["station_id", "station_name", "short_name", "operator", "latitude", "longitude",
-            "avg_aqi_2018_19", "worst_overall_rank", "pct_months_top5",
-            "worst_month", "worst_month_avg_aqi", "n_days_2018_19"]
+            "avg_pm25", "worst_overall_rank", "pct_months_top5",
+            "worst_month", "worst_month_avg_pm25", "n_days"]
     return df[cols]
 
 

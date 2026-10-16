@@ -124,12 +124,13 @@ def health():
 def list_stations():
     """
     Station-level summary for the map: one row per station with its
-    coordinates (if geocoded), 2018-2019 average AQI, worst-month info, and
+    coordinates (if geocoded), PM2.5 average and rank on network days
+    (2018-2026), worst-month info, and
     the values behind each map view (PM2.5 then/now and change, NO2 hotspot
     index, persistence) - everything a marker/popup needs, in one call.
 
     Reuses 06_pipeline_summary.sql (already covered by the dashboard) for
-    the AQI stats, then merges in lat/lon separately, rather than
+    the station stats, then merges in lat/lon separately, rather than
     re-deriving the same ranking logic inline here.
     """
     summary_rows = {r["station_id"]: r for r in run_query_cached("pipeline-summary")}
