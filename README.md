@@ -257,11 +257,30 @@ aqi-sql/
   the one stretch still resting on OpenAQ alone (10–40% of station-days), and
   `readings_all` would pick it up with no code changes.
 
+### Beyond Delhi: pollution across India
+
+- **Is Delhi's problem Delhi's, or the whole north Indian plain's?** The
+  station data says PM2.5 is regional within Delhi. Cities across the plain
+  (Lucknow, Kanpur, Patna) against coastal and southern cities (Mumbai,
+  Chennai, Bengaluru) would test whether the winter lid covers the whole
+  region.
+- **Did the National Clean Air Programme work?** NCAP set pollution targets
+  for about 130 cities in 2019. Comparing those cities with the rest, after
+  allowing for weather, is the same difference-in-differences method as the
+  lockdown test, applied to a national policy.
+- **How far does the Punjab smoke travel?** The fire-and-wind test, run city
+  by city downwind.
+
+The Kaggle source already covers about 26 cities for 2015–2020; later years
+would come from OpenAQ and CPCB. A few million station-days is also where a
+cloud warehouse such as BigQuery would earn its place. The first step would be
+a coverage check, with the analysis written down before it runs.
+
 ### Smaller ideas
 
 - **Re-score the alert rules with archived weather forecasts** instead of
   actual next-day weather, to measure the real-world drop in performance.
-- **Rebuild the key findings in Tableau Public** from the
+- **Rebuild the key findings in Power BI or Tableau Public** from the
   [BI exports](exports/README.md).
 
 ## Credits

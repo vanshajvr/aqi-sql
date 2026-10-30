@@ -1,0 +1,59 @@
+// DAX measures for the Power BI report (see exports/README.md, "Power BI").
+// Create each one with "New measure" on the table named in its comment.
+
+// ---------- on city_daily: one row per city-day (>= 5 stations)
+
+City days = COUNTROWS ( city_daily )
+
+Avg PM2.5 = AVERAGE ( city_daily[pm25] )
+
+% days Very Poor or worse =
+DIVIDE ( CALCULATE ( COUNTROWS ( city_daily ), city_daily[pm25] > 120 ), [City days] )
+
+% days Severe =
+DIVIDE ( CALCULATE ( COUNTROWS ( city_daily ), city_daily[pm25] > 250 ), [City days] )
+
+% days over India limit =
+DIVIDE ( SUM ( city_daily[pm25_over_india_limit] ), [City days] )
+
+% days within WHO guideline =
+DIVIDE ( [City days] - SUM ( city_daily[pm25_over_who_limit] ), [City days] )
+
+Avg PM2.5 (no lockdown) =
+CALCULATE ( [Avg PM2.5], city_daily[is_lockdown] = 0 )
+
+// Year-on-year change. Caveat: the station network grew from 8 (2015) to 37
+// (2018), so early-year city means aren't like-for-like (query 03 is).
+Avg PM2.5 last year =
+CALCULATE ( [Avg PM2.5], SAMEPERIODLASTYEAR ( dates[date] ) )
+
+YoY change % =
+DIVIDE ( [Avg PM2.5] - [Avg PM2.5 last year], [Avg PM2.5 last year] )
+
+// ---------- on station_daily: one row per station-day
+
+Station days = COUNT ( station_daily[pm25] )
+
+Station avg PM2.5 = AVERAGE ( station_daily[pm25] )
+
+% station days Good =
+DIVIDE (
+    CALCULATE ( COUNT ( station_daily[pm25] ), station_daily[pm25_category] = "Good" ),
+    [Station days]
+)
+
+% station days Very Poor or worse =
+DIVIDE (
+    CALCULATE ( COUNT ( station_daily[pm25] ), station_daily[pm25] > 120 ),
+    [Station days]
+)
+
+// ---------- on stations: the like-for-like ranking (network days, 2018-2026)
+
+Network-day avg PM2.5 = AVERAGE ( stations[avg_pm25] )
+
+Station rank =
+IF (
+    HASONEVALUE ( stations[short_name] ),
+    RANKX ( ALL ( stations[short_name] ), [Network-day avg PM2.5], , DESC )
+)

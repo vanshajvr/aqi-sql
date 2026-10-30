@@ -14,8 +14,14 @@ Two kinds of table:
 All logic is SQL, like the rest of the project; this script only runs it and
 writes files. Run after fetch_data.py:
     python3 export_bi.py
+    python3 export_bi.py --excel   # also exports/aqi_powerbi.xlsx (needs openpyxl)
+
+--excel writes one workbook with a sheet per table plus a date table. Power BI
+in the browser makes a separate model from each uploaded CSV and can't join
+them; one workbook becomes one model with all the tables in it.
 """
 import sqlite3
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -135,6 +141,57 @@ def build_stations(conn):
     return df[cols]
 
 
+# Sheets in the Power BI workbook: the base tables plus the finding tables a
+# report is most likely to need (sheet names must be <= 31 characters)
+EXCEL_SHEETS = ["station_daily", "city_daily", "stations", "dates",
+                "finding_weather_by_month", "finding_weather_excess",
+                "finding_station_fingerprint", "finding_fires_and_wind",
+                "finding_then_vs_now_8_winters", "finding_alert_rules"]
+
+
+CATEGORY_ORDER = {"Good": 1, "Satisfactory": 2, "Moderate": 3, "Poor": 4, "Very Poor": 5, "Severe": 6}
+
+
+def build_dates(city_daily):
+    """One row per calendar day, for Power BI's date table (Mark as date table)."""
+    d = pd.DataFrame({"date": pd.date_range(city_daily["date"].min(), city_daily["date"].max())})
+    d["year"] = d["date"].dt.year
+    d["month"] = d["date"].dt.month
+    d["month_name"] = d["date"].dt.strftime("%b")
+    d["year_month"] = d["date"].dt.strftime("%Y-%m")
+    d["season"] = pd.cut(d["month"], [0, 2, 9, 11, 12], labels=[
+        "Late winter (Jan-Feb)", "Rest of year (Mar-Sep)", "Stubble season (Oct-Nov)", "Early winter (Dec)"],
+        ordered=False).astype(str)
+    winter_start = d["year"].where(d["month"] >= 11, d["year"] - 1)
+    d["winter"] = (winter_start.astype(str) + "-" + (winter_start + 1).astype(str).str[2:]).where(
+        d["month"].isin([11, 12, 1, 2]))
+    d["is_lockdown"] = d["date"].between("2020-03-25", "2020-05-31").astype(int)
+    return d
+
+
+def write_excel(tables):
+    from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.table import Table, TableStyleInfo
+    tables = dict(tables, dates=build_dates(tables["city_daily"]))
+    path = OUT_DIR / "aqi_powerbi.xlsx"
+    with pd.ExcelWriter(path, engine="openpyxl") as xl:
+        for name in EXCEL_SHEETS:
+            df = tables[name].copy()
+            if "date" in df.columns:
+                df["date"] = pd.to_datetime(df["date"])   # typed as dates in Power BI
+            if "pm25_category" in df.columns:               # "Sort by column": Good -> Severe
+                df.insert(df.columns.get_loc("pm25_category") + 1, "pm25_category_order",
+                          df["pm25_category"].map(CATEGORY_ORDER))
+            df.to_excel(xl, sheet_name=name, index=False)
+            # Format each sheet as an Excel table: Power BI's direct upload
+            # (workspace -> Upload -> Browse) only imports data held in tables
+            ws = xl.sheets[name]
+            ref = f"A1:{get_column_letter(df.shape[1])}{len(df) + 1}"
+            ws.add_table(Table(displayName=name, ref=ref,
+                               tableStyleInfo=TableStyleInfo(name="TableStyleLight9", showRowStripes=True)))
+    print(f"{path.relative_to(ROOT)}: {len(EXCEL_SHEETS)} sheets, each an Excel table")
+
+
 def main():
     if not DB_PATH.exists():
         raise FileNotFoundError(f"{DB_PATH} not found. Run fetch_data.py first.")
@@ -153,6 +210,8 @@ def main():
         path = OUT_DIR / f"{name}.csv"
         df.to_csv(path, index=False)
         print(f"{path.relative_to(ROOT)}: {len(df):,} rows, {len(df.columns)} columns")
+    if "--excel" in sys.argv:
+        write_excel(tables)
 
 
 if __name__ == "__main__":

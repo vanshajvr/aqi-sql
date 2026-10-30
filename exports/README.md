@@ -76,20 +76,80 @@ header explains the method.
 | `finding_fires_daynight.csv` | 27 | Finding 8: night-pass share of fire detections, with the pre-registered verdict |
 | `data_coverage.csv` | 08 | Caveats: % of days with data, per station per year |
 
-## Suggested dashboard (4 pages)
+## Power BI (in the browser, or Desktop)
 
-1. **Overview**: KPI tiles from `city_daily` (% of days over the India limit;
-   % of Dec days Very Poor+), a monthly PM2.5 line, and a station map from
-   `stations` sized and coloured by `avg_pm25`.
-2. **Why winter is worst**: scatter from `finding_weather_by_month`
-   (x = mixing height, y = PM2.5, label = month), next to a bar chart of
-   `finding_weather_excess` with a reference line at 1.0.
-3. **Local vs regional**: strip plot from `finding_station_fingerprint`
-   (rows = pollutant, x = `index_vs_city_median`, one mark per station), and
-   `finding_persistent_hotspots` as a bar chart.
-4. **The lockdown test**: `finding_lockdown_did` (stacked bar: `pct_change_pre`
-   + `lockdown_effect_pts`) with the `finding_lockdown_weather_adjusted`
-   values as reference marks.
+Power BI in the browser makes a separate model from each uploaded CSV, and
+separate models can't be joined. So upload **one workbook** instead:
+
+```bash
+python3 export_bi.py --excel     # writes exports/aqi_powerbi.xlsx (10 sheets)
+```
+
+It holds `station_daily`, `city_daily`, `stations`, a `dates` table (with
+`season`, `winter` and `is_lockdown`) and six finding tables. Tables with a
+`pm25_category` also have `pm25_category_order`, for sorting categories from
+Good to Severe.
+
+### 1. Load it
+
+In app.powerbi.com, open **My workspace → Upload → Browse** and pick
+`aqi_powerbi.xlsx`. Each sheet is an Excel table, which is what this upload
+imports, and it doesn't need OneDrive.
+
+The *Get data → Excel workbook* (Power Query) route needs OneDrive for
+Business, including its "Upload file" option. Many student accounts don't
+include it ("Your account does not have a license for SharePoint Online or
+OneDrive for Business"). If neither route works, use Power BI Desktop on
+Windows (a virtual machine on a Mac), where *Get data → Excel* reads the
+local file. Menu names move around between Power BI updates.
+
+### 2. Model it
+
+Open the semantic model and choose **Open data model** (if it's missing,
+turn on *Users can edit data models in the Power BI service* in the
+workspace settings).
+
+- **Relationships** (one-to-many, single direction):
+  - `dates[date]` → `city_daily[date]`
+  - `dates[date]` → `station_daily[date]`
+  - `stations[station_id]` → `station_daily[station_id]`
+  - `stations[station_id]` → `finding_station_fingerprint[station_id]`
+- **Mark `dates` as the date table**, on `dates[date]`.
+- **Sort by column:** `pm25_category` by `pm25_category_order` (in both
+  tables), and `month_name` by `month`.
+- **Measures:** copy them from [`measures.dax`](measures.dax), one *New
+  measure* each, on the table named in its comment.
+
+### 3. Build the report (4 pages)
+
+1. **Overview**: cards for *Avg PM2.5*, *% days Very Poor or worse* and *%
+   days over India limit*; a line chart of *Avg PM2.5* by `dates[year_month]`;
+   a column chart of *% days Very Poor or worse* by `dates[season]`; and a
+   year slicer.
+2. **Why winter is worst**: a scatter from `finding_weather_by_month` (x =
+   `mean_mixing_height_m`, y = `mean_pm25`, details = `month`), next to a
+   column chart of `finding_weather_excess` (`half_month`, `excess_ratio`)
+   with a constant line at 1.
+3. **Stations**: a bar chart of *Network-day avg PM2.5* by
+   `stations[short_name]` (top 15), and a map of `stations` (latitude,
+   longitude, size = `avg_pm25`). Your organisation may switch map visuals
+   off; the bar chart stands on its own. Add a **drill-through** page,
+   *Station detail*, filtered on `short_name`: *Station avg PM2.5* by month,
+   and a 100% stacked bar of station days by `pm25_category`.
+4. **Then vs now**: columns from `finding_then_vs_now_8_winters`
+   (`winter`, `pct_days_over_250` and `weather_adjusted_ratio`), plus
+   `finding_fires_and_wind` as a clustered column chart (x = `fire_level`,
+   legend = `wind`, filtered to `scenario = excluding Diwali`).
+
+Use the CPCB category colours below so it matches the web dashboard.
+
+### 4. Share it
+
+- **Public link:** File → Embed report → **Publish to web**. If it's greyed
+  out, your college's Power BI admin has switched it off.
+- **Otherwise:** File → **Download this file** (.pbix) and commit it, export
+  a PDF, and add screenshots to the main README. A short screen recording
+  works well on LinkedIn.
 
 Use the CPCB category colours (Good `#3fb950`, Satisfactory `#7ee787`,
 Moderate `#d29922`, Poor `#db6d28`, Very Poor `#f85149`, Severe `#8b1a1a`) so
