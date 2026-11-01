@@ -8,7 +8,7 @@ usually without numbers. I wanted to know how much each one actually
 contributes, and which of them a city could do anything about.
 
 **The data:** about 106,000 daily readings from 37 government monitoring
-stations (CPCB, DPCC and IMD), January 2015 to September 2026, covering PM2.5,
+stations (CPCB, DPCC and IMD), 2015 to 2026, covering PM2.5,
 PM10, NO2, SO2 and CO: the official CPCB record to mid-2020 (via Kaggle),
 then CPCB's own portal from 2022, with OpenAQ's archive of the same stations
 filling the gaps (each source checked against the one before it; see
@@ -31,7 +31,7 @@ analysis is in SQL, every number below comes from a tested query in
   and satellites show its smoke reaching Delhi when the wind is right.
 - **PM2.5, the most harmful pollutant, is a regional problem.** Delhi can't
   fix it alone. Traffic pollution is local, and the city *can* act on that.
-- **It isn't measurably better yet.** Across eight winters with no gaps, the
+- **It isn't measurably better yet.** Across eight winters, the
   worst days are rarer than before 2020 in most years, but for the same
   weather, winter air is about as polluted, and the smoke window hasn't
   cleared even though satellite-detected fires fell 90%.
@@ -88,9 +88,7 @@ fell about 90% after 2021.
 When the wind blows from Punjab, the days after a season's heaviest burning
 run at **2.3× the weather prediction**, a rise of +1.02 over the fewest-fire days (95% interval +0.61 to +1.45). In
 other winds, the rise is about a third as large. The gap between the two winds (+0.70, interval +0.20 to +1.24) holds in
-99.7% of resamples. With five seasons this was only suggestive; with eleven,
-it's what you'd expect if the smoke is being carried in, and the data now
-supports it.
+99.7% of resamples: what you'd expect if the smoke is carried in on the wind.
 
 So: **crop fires measurably add to Delhi's air, and the wind from Punjab is
 what brings them.** One by-product: with the Diwali weeks left in, high-fire days look
@@ -130,7 +128,7 @@ against the same dates in 2019 in two ways:
 
 Both methods agree on the order: traffic and dust fell furthest, and PM2.5
 fell least. Resampling the stations, the lower-bound effects are NO2 −41
-(interval −50 to −31) and PM2.5 −20 (−26 to −13), and NO2 fell further in
+(interval −50 to −31) and PM2.5 −20 (−25 to −13), and NO2 fell further in
 every one of 500 resamples. The weather wasn't the reason: days with the lockdown window's
 weather predict the same PM2.5 in both years. Even with most of the city
 switched off, **about half of Delhi's PM2.5 stayed**. That half comes from
@@ -139,8 +137,8 @@ somewhere a city lockdown doesn't reach.
 ### 6. One festival, one bad week
 
 Across the ten Diwalis with data (2015–2025), the week after Diwali averaged
-**1.9×** the PM2.5 of the three weeks before. It was higher in most years
-(3.4–4.1× in 2019, 2021, 2022 and 2025), and the exception proves the
+**1.9×** the PM2.5 of the three weeks before. The week after was dirtier
+in nine of the ten years, by up to 4.1× (2022), and the exception shows the
 overlap: in 2020, Diwali came after the stubble peak, under a cracker ban,
 and the week after was *cleaner* than the smoky weeks before (0.8×). Diwali
 and stubble season overlap too much to pin the spike on crackers alone, but
@@ -153,8 +151,8 @@ on PM2.5 (128 and 127 µg/m³ on the same days, 2018–2026). Anand Vihar is
 worst for PM10, NO2 and CO too, and fewer than 4% of its 3,400 days were
 "Good".
 
-Month by month, the most persistent are in the north and north-west:
-**Jahangirpuri, Anand Vihar and Wazirpur** are among the city's 5 worst
+Month by month, the same names keep coming up: **Jahangirpuri, Anand Vihar
+and Wazirpur** are among the city's 5 worst
 stations in more than half of all months (63%, 59% and 54%), with Bawana
 close behind (48%).
 
@@ -177,7 +175,7 @@ both have (correlation 0.96, median difference 1.1%), and they fill the gap.
 I [wrote down how they'd be used](analysis_plans/cpcb_gap_preregistration.md),
 including the rule for calling a trend, before running a single winter.
 
-The same 12 stations, eight winters, no gaps:
+The same 12 stations, eight winters:
 
 | Winter | Source | Mean PM2.5 | Severe days (PM2.5 > 250) | PM2.5 vs weather-predicted |
 |---|---|---|---|---|
@@ -201,9 +199,9 @@ don't need weather and use all its days.
 - **The worst days are rarer in most recent winters**, at 2.5–8.3% in four of
   the last five against 13–17% in 2018–20. But 2023–24 shows they haven't
   gone away.
-- **2025–26 wasn't special.** The earlier write-up leaned on it as the one good
-  post-2020 winter. With the gap filled, 2022–23 was the cleanest for its
-  weather, and 2025–26 is ordinary.
+- **One good winter isn't a trend.** 2022–23 and 2025–26 were the cleanest
+  for their weather, but 2023–24 was among the worst, so the line stays
+  flat.
 - **The smoke window is the sharpest result.** Satellite-detected crop fires
   fell from 50,000–87,000 a season in 2018–21 to 12,746 in 2024 and 8,108 in
   2025. Yet Delhi's pollution from 16 October to 15 November, relative to its
@@ -221,7 +219,7 @@ don't need weather and use all its days.
   while daytime fires fell from 50,000–90,000 to 8,000–12,000. That fits
   burning moving away from the afternoon pass, but the night pass can't see
   fires lit in the evening and out by 01:30, so it can't say how much
-  burning is now hidden. The smoke window says: plenty.
+  burning is now hidden.
 
 **The lesson for anyone judging progress:** satellite fire counts make
 crop-burning policy look like a success that Delhi's air doesn't yet show.
@@ -325,7 +323,7 @@ Early Warning tab.
 ## How sure am I?
 
 A number without a range invites the question "would that hold up next
-year?" So every headline figure has a 95% interval, in
+year?" So the headline figures have 95% intervals, in
 [`results/confidence_intervals.csv`](results/confidence_intervals.csv),
 computed by [`uncertainty.py`](uncertainty.py). How I resampled depends on
 where the uncertainty comes from:
@@ -339,8 +337,8 @@ where the uncertainty comes from:
 - **The alert result** is a count (34 of 49), so it gets a standard Wilson
   interval.
 
-The short version: every conclusion above survives, but some numbers are
-softer than they look. The fire effect in other winds, for instance, has a
+The short version: the conclusions above hold, but some numbers are softer
+than they look. The fire effect in other winds, for instance, has a
 wide interval, because each group holds only a few dozen days.
 
 ---
@@ -350,7 +348,7 @@ wide interval, because each group holds only a few dozen days.
 - **The early years are thin, and so is mid-2020 to 2021.** Only 8 stations
   reported in 2015–16 and 17 in 2017; all 37 report only from 2018. And for
   July 2020 to December 2021 the only source is OpenAQ's archive, which has
-  10–40% of station-days (almost nothing for April–August 2021). So trends
+  about 30% of station-days (almost nothing for April–August 2021). So trends
   compare only stations present in both years, station rankings use network
   days (2018–2026, when at least 80% of stations reported), and a
   "city-wide" day needs at least 5 stations reporting. The data can't support
@@ -383,8 +381,7 @@ the results:
   CO of 10–20 mg/m³ from January to June 2015, against a normal 1–2, and two
   more spiked in April 2018. Any station-month with a median above 5 mg/m³ is
   blanked: 314 readings, under 1% of the CO data.
-
-- **A winter missing its cleanest month.** The first write-up put 2021–22 at a
+- **A winter missing its cleanest month.** An early version put 2021–22 at a
   mean PM2.5 of 179, as bad as 2018–19. CPCB's records showed why: OpenAQ has
   almost no February 2022, the cleanest month of that winter, so the average
   leaned on November–January. On the days both sources have, they agree
@@ -407,7 +404,7 @@ is why every period now uses the most complete source available.
 | 4 | [`10_station_fingerprint.sql`](queries/10_station_fingerprint.sql) | Each station vs the city median (window-function median), on network days 2018–2026 |
 | 5 | [`09`](queries/09_lockdown_pollutants.sql), [`15`](queries/15_lockdown_weather_adjusted.sql), [`14`](queries/14_lockdown_weather.sql) | Difference-in-differences; weather-matched comparison; weather in each window |
 | 6 | [`07_diwali_effect.sql`](queries/07_diwali_effect.sql) | Windows anchored on each year's actual Diwali date |
-| 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on a common window; monthly top-5 counts with eligibility rules |
+| 7 | [`06`](queries/06_pipeline_summary.sql), [`10`](queries/10_station_fingerprint.sql), [`16`](queries/16_persistent_hotspots.sql) | Ranking on network days (2018–2026); monthly top-5 counts with eligibility rules |
 | Alert (future test) | [`24_alert_rules_future.sql`](queries/24_alert_rules_future.sql), [`26_alert_rules_gap.sql`](queries/26_alert_rules_gap.sql), [`validate_backfill.py`](validate_backfill.py) | Same rules translated to PM2.5, scored on three unseen periods against [pre-registered criteria](analysis_plans/alert_future_preregistration.md) ([results](results/alert_future_test.csv), [gap period](results/alert_gap_test.csv)) |
 | Alert | [`17_alert_rules.sql`](queries/17_alert_rules.sql) | Next-day pairs via `LEAD()`; precision, recall and first-bad-day recall per rule; train/test split with the choice made in SQL |
 | 8 | [`25_then_vs_now_8_winters.sql`](queries/25_then_vs_now_8_winters.sql), [`20_stubble_then_vs_now.sql`](queries/20_stubble_then_vs_now.sql), [`validate_backfill.py`](validate_backfill.py) | Fixed 12-station panel across eight winters; weather-adjusted ratio; trend slope with a week-block bootstrap within each winter ([results](results/then_vs_now_trend.csv)); pre-registered checks of the OpenAQ and CPCB data ([plan](analysis_plans/backfill_preregistration.md), [plan](analysis_plans/cpcb_gap_preregistration.md), [results](results/backfill_validation.csv), [results](results/cpcb_validation.csv)) |

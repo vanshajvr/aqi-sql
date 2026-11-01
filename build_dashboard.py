@@ -47,7 +47,7 @@ def main():
     # raises on an unknown/missing key so typos don't fail silently.
     template = Template(TEMPLATE_PATH.read_text())
     html = template.substitute(
-        kpi_cards=build_kpi_cards(df06, df04, df03),
+        kpi_cards=build_kpi_cards(df06, df04, data["df11"]),
         worst_stations=to_div(worst_stations.build(data["df21"])),
         yoy=to_div(trend.build(data["df22"])),
         event=to_div(event_clustering.build(df04)),

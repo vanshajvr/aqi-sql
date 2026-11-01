@@ -52,16 +52,16 @@ passed a third unseen period added later (81% of 27).
 
 **And it isn't measurably better yet.** Bringing the data forward to 2026
 (OpenAQ for 2020–21, then CPCB's own records, each checked before use) gives
-eight winters with no gaps. Severe winter days are rarer in most recent
+eight winters, none missing. Severe winter days are rarer in most recent
 winters, but by a trend rule fixed in advance, winter pollution for the same
 weather shows **no clear trend** since 2018. And while satellite-detected
 crop fires fell **about 90%**, Delhi's air in the smoke window didn't improve
 relative to its weather. Fire counts make the problem look more solved than
 the air does.
 
-**And I checked how sure to be.** Every headline number has a 95% interval
-(block bootstrap over weeks, or over stations re-running the actual SQL), and
-every conclusion holds within its interval. They're in
+**And I checked how sure to be.** The headline numbers have 95% intervals
+(block bootstrap over weeks, or over stations re-running the actual SQL).
+They're in
 [`results/confidence_intervals.csv`](results/confidence_intervals.csv).
 
 What this means for policy, and what I'm less sure about, is in
@@ -109,7 +109,7 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 
 | Problem | What I did |
 |---|---|
-| The network grew from 8 stations (2015) to 37 (2018), so a "city average" meant different things in different years | City-wide days need ≥5 stations; trends compare only stations present in both years; rankings use 2018–19, when all stations report |
+| The network grew from 8 stations (2015) to 37 (2018), so a "city average" meant different things in different years | City-wide days need ≥5 stations; trends compare only stations present in both years; station rankings use network days (2018–2026, when at least 80% of stations report) |
 | Punjabi Bagh's PM10 column was a copy of its PM2.5 on 95% of days (caught because the two averages matched, which is physically impossible) | Detected by a rule in `fetch_data.py`; that station's PM10 is excluded |
 | Three stations reported CO 10× too high in early 2015, and two spiked in April 2018 | Station-months with a median above 5 mg/m³ are blanked (314 readings, <1%) |
 | East Arjun Nagar logged 1,553 readings, all with no AQI | Dropped |
@@ -184,9 +184,9 @@ python3 fetch_fires.py        # crop fires, incremental (needs FIRMS_MAP_KEY; al
 python3 fetch_openaq.py       # raw 2020-26 station data (needs OPENAQ_API_KEY; ~15 min)
 python3 prepare_openaq.py     # units + stitching -> data/seed/openaq_daily.csv (already committed)
 python3 prepare_cpcb.py       # CPCB 2022-26 daily file -> data/seed/cpcb_daily.csv (already committed)
-python3 validate_backfill.py  # pre-registered tests A, B and C -> results/
+python3 validate_backfill.py  # the pre-registered tests -> results/
 python3 export_bi.py          # tidy CSVs for Tableau / Power BI, see exports/README.md
-python3 uncertainty.py        # 95% intervals -> results/ (~4 min, fixed seed)
+python3 uncertainty.py        # 95% intervals -> results/ (~15 min, fixed seed)
 pytest tests/                 # the test suite
 ```
 
@@ -254,7 +254,7 @@ aqi-sql/
   evening and out by 01:30. Geostationary satellites (e.g. INSAT-3D) image
   every 15–30 minutes and could measure how much burning is now hidden.
 - **Download CPCB's 2020–21 data** the same way as 2022–26. Mid-2020 to 2021 is
-  the one stretch still resting on OpenAQ alone (10–40% of station-days), and
+  the one stretch still resting on OpenAQ alone (about 30% of station-days), and
   `readings_all` would pick it up with no code changes.
 
 ### Beyond Delhi: pollution across India

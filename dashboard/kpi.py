@@ -1,8 +1,5 @@
 from .theme import ACCENT, POSITIVE, NEGATIVE, WARNING
 
-MONTH_LABELS = {"01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr", "05": "May", "06": "Jun",
-                "07": "Jul", "08": "Aug", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"}
- 
 PERIOD_LABELS = {
     "early_winter(Dec)": "Early Winter (Dec)",
     "stubble_season(Oct-Nov)": "Stubble Season (Oct-Nov)",
@@ -18,20 +15,20 @@ ICON_FLAME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 ICON_TREND_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>'
  
  
-def build(df06, df04, df03):
+def build(df06, df04, df11):
     worst = df06.sort_values("avg_pm25", ascending=False).iloc[0]
     best = df06.sort_values("avg_pm25", ascending=True).iloc[0]
     peak_period = df04.sort_values("pct_days_very_poor_plus", ascending=False).iloc[0]
-    biggest_drop = df03.dropna(subset=["yoy_change"]).sort_values("yoy_change").iloc[0]
+    complete = df11[df11["is_complete_year"] == 1]
+    over_limit = 100 * complete["n_days_over_naaqs"].sum() / complete["n_days"].sum()
  
     cards = [
         ("Worst Station", worst["station_name"], f"PM2.5 {worst['avg_pm25']:.0f} µg/m³ (2018–26)", NEGATIVE, ICON_WARNING),
         ("Best Station", best["station_name"], f"PM2.5 {best['avg_pm25']:.0f} µg/m³ (2018–26)", POSITIVE, ICON_LEAF),
         ("Peak Severity Period", PERIOD_LABELS.get(peak_period["period"], peak_period["period"]),
          f"{peak_period['pct_days_very_poor_plus']:.0f}% of days Very Poor or worse", WARNING, ICON_FLAME),
-        ("Sharpest YoY Drop",
-         f"{MONTH_LABELS.get(biggest_drop['month'], biggest_drop['month'])} {biggest_drop['year']}",
-         f"{biggest_drop['yoy_change']:.0f} µg/m³ PM2.5 vs a year earlier", ACCENT, ICON_TREND_DOWN),
+        ("Days Over India's Limit", f"{over_limit:.0f}%",
+         f"PM2.5 above 60 µg/m³, {len(complete)} complete years", ACCENT, ICON_TREND_DOWN),
     ]
  
     html_cards = ""
