@@ -210,37 +210,62 @@ function scaleBar(pollutant, value, withLabels) {
 
 // ---------------------------------------------------------------- board
 
-function renderHero(city, day) {
+// The answer card: one number, its category, and what it means in plain terms
+function renderHero(city, day, failed) {
   const el = document.getElementById("live-hero");
-  const t = readingTime(city.as_of);
   const useDay = day && day.pm25_24h_median != null;
   const value = useDay ? day.pm25_24h_median : city.pm25_median;
   const band = useDay ? day.band : city.pm25_band;
-  const counts = useDay ? day.band_counts : city.band_counts;
   const color = BAND_TEXT[band];
+  const times = (limit) => value / limit;
+  const plain = times(60) >= 1.05
+    ? `<b>${times(60).toFixed(1)}×</b> India's 24-hour limit for PM2.5`
+    : times(60) >= 0.95 ? "Around India's 24-hour limit for PM2.5" : "Within India's 24-hour limit for PM2.5";
+  const basis = useDay ? "24-hour average" : (failed ? "latest hour" : "latest hour, while the 24-hour average loads");
+  el.innerHTML = `
+    <div class="live-hero-main">
+      <div class="live-eyebrow">Delhi's air · ${basis}</div>
+      <div class="live-hero-row">
+        <div class="live-hero-number" style="color:${color}">${Math.round(value)}</div>
+        <div>
+          <div class="live-hero-band" style="color:${color}">${band}</div>
+          <div class="live-unit">PM2.5, µg/m³</div>
+        </div>
+      </div>
+    </div>
+    <div class="live-hero-side">
+      <p class="live-plain">${plain} (60 µg/m³) · ${times(15).toFixed(0)}× the WHO guideline (15)</p>
+      ${scaleBar("pm25", value, true)}
+      ${!useDay && !failed ? `<p class="live-pending"><span class="live-spinner"></span>Working out the 24-hour average…</p>` : ""}
+    </div>`;
+}
+
+// Behind "See the data behind it": the day in detail
+function renderDayDetail(city, day) {
+  const el = document.getElementById("live-day");
+  if (!el) return;
+  const t = readingTime(city.as_of);
+  if (!day || day.pm25_24h_median == null) {
+    el.innerHTML = `<h3>The last 24 hours</h3><p class="live-pending">${day === undefined
+      ? `<span class="live-spinner"></span>Working out the 24-hour average…`
+      : "The 24-hour average isn't available right now."}</p>`;
+    return;
+  }
+  const counts = day.band_counts;
   const dist = BANDS.filter((b) => counts[b])
-    .map((b) => `<span style="flex:${counts[b]};background:${BAND_COLORS[b]}" title="${b}: ${counts[b]} stations"></span>`)
-    .join("");
+    .map((b) => `<span style="flex:${counts[b]};background:${BAND_COLORS[b]}" title="${b}: ${counts[b]} stations"></span>`).join("");
   const distLegend = BANDS.filter((b) => counts[b])
     .map((b) => `<span><i style="background:${BAND_COLORS[b]}"></i>${b} ${counts[b]}</span>`).join("");
-  const peak = useDay && day.peak_hour;
-  const facts = `
+  const peak = day.peak_hour;
+  el.innerHTML = `
+    <h3>The last 24 hours</h3>
+    <p class="hint">City median of ${day.n_stations} stations, to ${hourLabel(day.end)}.</p>
     <div class="live-facts">
       <div><span>Latest hour</span><b style="color:${BAND_TEXT[city.pm25_band]}">${Math.round(city.pm25_median)}</b><small>${city.pm25_band} · ${t.when}</small></div>
       ${peak ? `<div><span>Worst hour</span><b style="color:${BAND_TEXT[bandOf(peak.median)]}">${Math.round(peak.median)}</b><small>${bandOf(peak.median)} · ${hourLabel(peak.time)}</small></div>` : ""}
-    </div>`;
-  el.innerHTML = `
-    <div class="live-eyebrow">Delhi · ${useDay ? "24-hour average" : "latest hour"} · median of ${useDay ? day.n_stations : city.n_stations} stations</div>
-    <div class="live-hero-row">
-      <div class="live-hero-number" style="color:${color}">${Math.round(value)}</div>
-      <div>
-        <div class="live-hero-band" style="color:${color}">${band}</div>
-        <div class="live-unit">PM2.5, µg/m³${useDay ? " · the basis of CPCB's AQI" : ""}</div>
-      </div>
     </div>
-    ${scaleBar("pm25", value, true)}
-    ${useDay ? facts + daySparkline(day.hourly) : `<p class="live-pending"><span class="live-spinner"></span>Working out the 24-hour average…</p>`}
-    <div class="live-eyebrow" style="margin-top:16px">Stations by category${useDay ? ", 24-hour average" : ", latest hour"}</div>
+    ${daySparkline(day.hourly)}
+    <div class="live-eyebrow" style="margin-top:16px">Stations by category, 24-hour average</div>
     <div class="live-dist">${dist}</div>
     <div class="live-dist-legend">${distLegend}</div>`;
 }
@@ -513,6 +538,23 @@ function initLiveMap(data) {
 
 // ---------------------------------------------------------------- load
 
+// "See the data behind it": open / close; the map starts the first time it's shown
+function setupMoreToggle(data) {
+  const btn = document.getElementById("live-more-btn");
+  const more = document.getElementById("live-more");
+  if (!btn || !more || btn.dataset.ready) return;
+  btn.dataset.ready = "1";
+  btn.addEventListener("click", () => {
+    const open = more.hidden;
+    more.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.querySelector(".live-more-label").textContent = open ? "Hide the data" : "See the data behind it";
+    if (!open) return;
+    if (!liveMap) requestAnimationFrame(() => initLiveMap(data));
+    else setTimeout(() => liveMap.resize(), 50);
+  });
+}
+
 async function loadLiveBoard() {
   const status = document.getElementById("live-status");
   if (status) { status.hidden = false; status.className = "map-status"; status.textContent = "Loading the latest readings…"; }
@@ -526,13 +568,14 @@ async function loadLiveBoard() {
   if (status) status.hidden = true;
   document.getElementById("live-board").hidden = false;
   if (data.city) {
-    renderHero(data.city, null);
+    renderHero(data.city, null, false);
     renderHealth(data.city, null, false);
+    renderDayDetail(data.city, undefined);
     renderPollutants(data.city);
     renderRankings(data, null);
   }
   document.getElementById("live-detail").innerHTML = stationPanelHtml(null);
-  requestAnimationFrame(() => initLiveMap(data));
+  setupMoreToggle(data);
   loadNews();
 
   // Second step: the 24-hour picture (slower; OpenAQ's rate limit)
@@ -540,16 +583,16 @@ async function loadLiveBoard() {
     const day = await fetchDayOnce();
     if (!day || !data.city) throw new Error("no 24-hour data");
     window._liveDay = day;
-    renderHero(data.city, day);
+    renderHero(data.city, day, false);
     renderHealth(data.city, day, false);
+    renderDayDetail(data.city, day);
     renderRankings(data, day);
     if (window.applyLiveDay) window.applyLiveDay(day);
   } catch (err) {
     if (!data.city) return;
-    renderHero(data.city, null);
+    renderHero(data.city, null, true);
     renderHealth(data.city, null, true);
-    const pending = document.querySelector("#live-hero .live-pending");
-    if (pending) pending.textContent = "The 24-hour average isn't available right now; showing the latest hour.";
+    renderDayDetail(data.city, null);
   }
 }
 
@@ -575,7 +618,7 @@ async function loadNews() {
 // Called once, when the Latest Readings mode is first opened (see mode-switch.js)
 window.initLiveData = function () {
   if (window._liveDataInitStarted) {
-    if (liveMap) setTimeout(() => liveMap.resize(), 50);
+    if (liveMap && !document.getElementById("live-more").hidden) setTimeout(() => liveMap.resize(), 50);
     return;
   }
   window._liveDataInitStarted = true;

@@ -374,50 +374,62 @@
     </div>
 
     <div id="mode-live" class="mode-content active" role="tabpanel" aria-labelledby="modebtn-live">
-      <p class="live-disclaimer">
-        <strong>The latest readings</strong> from the same 37 stations, via OpenAQ (CPCB's own live feed has been unreachable since October 2026). The headline is the <strong>24-hour average</strong>, the basis of CPCB's AQI and its categories, because a single hour can badly misstate the day: the morning after Diwali 2026, stations read 700&ndash;900 &micro;g/m&sup3; overnight and under 100 by 1&nbsp;pm.
-      </p>
+      <p class="live-intro">Delhi's air over the last 24 hours, from 37 government monitoring stations.</p>
       <p class="map-status" id="live-status">Loading the latest readings…</p>
 
       <div id="live-board" class="live-board" hidden>
-        <div class="grid-2 live-top">
+        <!-- What everyone sees: the answer, and what to do about it -->
+        <div class="live-top">
           <div class="card live-hero" id="live-hero"></div>
           <div class="card live-health" id="live-health"></div>
         </div>
 
-        <div class="live-pollutants" id="live-pollutants"></div>
+        <button type="button" class="live-more-btn" id="live-more-btn" aria-expanded="false" aria-controls="live-more">
+          <span class="live-more-label">See the data behind it</span>
+          <span class="live-more-sub">hour by hour, every pollutant, all 37 stations on a map</span>
+          <svg class="live-more-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+
+        <!-- For anyone who wants the numbers -->
+        <section id="live-more" class="live-more" hidden aria-label="The data behind it">
+          <div class="card" id="live-day"></div>
+
+          <div class="live-pollutants" id="live-pollutants"></div>
+
+          <div class="card">
+            <h3>Station by station</h3>
+            <p class="hint">Colour and size show each station's 24-hour average PM2.5 (its latest hour until that loads). Hover a station, or click it for all its readings.</p>
+            <div class="gl-controls">
+              <span></span>
+              <div class="gl-tools"><select id="live-search" class="gl-search" aria-label="Find a station"></select></div>
+            </div>
+            <div class="gl-wrap">
+              <div id="live-map" class="gl-map"></div>
+              <aside id="live-detail" class="gl-detail" aria-live="polite"></aside>
+            </div>
+            <p class="map-status" id="live-map-status">Loading the map…</p>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <h3>Most polluted</h3>
+              <p class="hint"><span class="rank-basis">Latest hourly PM2.5, µg/m³</span>. Click a station to find it on the map.</p>
+              <div id="live-most" class="rank-list"></div>
+            </div>
+            <div class="card">
+              <h3>Cleanest</h3>
+              <p class="hint"><span class="rank-basis">Latest hourly PM2.5, µg/m³</span>. Bars share one scale with the list beside.</p>
+              <div id="live-clean" class="rank-list"></div>
+            </div>
+          </div>
+
+          <p class="live-disclaimer"><strong>About these numbers.</strong> Readings come from the same 37 stations via OpenAQ, because CPCB's own live feed has been unreachable since October 2026. The headline is the <strong>24-hour average</strong>, the basis of CPCB's AQI and its categories, because a single hour can badly misstate the day: the morning after Diwali 2026, stations read 700&ndash;900 &micro;g/m&sup3; overnight and under 100 by 1&nbsp;pm.</p>
+        </section>
 
         <div class="card live-news" id="live-news-card" hidden>
           <h3>In the news</h3>
-          <p class="hint">Recent Delhi air-quality headlines from Google News, newest first, linked to each publisher. This project doesn't check them. Figures in headlines are usually <em>AQI</em>, an index from 0 to 500 (higher on private apps using other scales), not the PM2.5 concentration in &micro;g/m&sup3; shown above.</p>
+          <p class="hint">Recent Delhi air-quality headlines from Google News, linked to each publisher (not checked by this project). Headline figures are usually <em>AQI</em>, an index from 0 to 500, not the PM2.5 in &micro;g/m&sup3; above.</p>
           <ul class="news-list" id="live-news"></ul>
-        </div>
-
-        <div class="card">
-          <h3>Station by station</h3>
-          <p class="hint">Colour and size show each station's 24-hour average PM2.5 (its latest hour until that loads). Hover a station, or click it for all its readings.</p>
-          <div class="gl-controls">
-            <span></span>
-            <div class="gl-tools"><select id="live-search" class="gl-search" aria-label="Find a station"></select></div>
-          </div>
-          <div class="gl-wrap">
-            <div id="live-map" class="gl-map"></div>
-            <aside id="live-detail" class="gl-detail" aria-live="polite"></aside>
-          </div>
-          <p class="map-status" id="live-map-status">Loading the map…</p>
-        </div>
-
-        <div class="grid-2">
-          <div class="card">
-            <h3>Most polluted</h3>
-            <p class="hint"><span class="rank-basis">Latest hourly PM2.5, µg/m³</span>. Click a station to find it on the map.</p>
-            <div id="live-most" class="rank-list"></div>
-          </div>
-          <div class="card">
-            <h3>Cleanest</h3>
-            <p class="hint"><span class="rank-basis">Latest hourly PM2.5, µg/m³</span>. Bars share one scale with the list beside.</p>
-            <div id="live-clean" class="rank-list"></div>
-          </div>
         </div>
       </div>
     </div>
