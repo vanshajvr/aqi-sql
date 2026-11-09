@@ -26,6 +26,7 @@ Usage (from the repo root):
 Standard library only, so it adds nothing to requirements.txt.
 """
 import csv
+from datetime import date, timedelta
 import json
 import sys
 import urllib.parse
@@ -35,10 +36,16 @@ from pathlib import Path
 
 OUT_PATH = Path(__file__).parent / "data" / "seed" / "weather_daily.csv"
 
-# 2015-01-01 (first Kaggle reading) to 2026-10-01 (last OpenAQ backfill date).
-# Extending END doesn't change the published analysis: those queries only join
-# weather to 2015-2020 readings.
-START, END = "2015-01-01", "2026-10-01"
+# 2015-01-01 (first Kaggle reading) to today. INCREMENTAL: days already in
+# weather_daily.csv are kept exactly as they are, and only the last OVERLAP_DAYS
+# before the newest saved day onwards are fetched (the archive fills in recent
+# days as ERA5 catches up). Open-Meteo revises history now and then (e.g.
+# minimum temperatures), so a full re-download would silently rewrite a
+# decade of published inputs. Delete the file to rebuild from scratch.
+# Pre-registered tests that used weather are frozen at the data they were
+# scored on (see 24_alert_rules_future.sql).
+START, END = "2015-01-01", date.today().isoformat()
+OVERLAP_DAYS = 7
 LAT, LON = 28.61, 77.21  # central New Delhi
 
 DAILY = [
@@ -59,11 +66,11 @@ COLUMNS = {  # API name -> our column name
 }
 
 
-def fetch():
+def fetch(start):
     params = {
         "latitude": LAT,
         "longitude": LON,
-        "start_date": START,
+        "start_date": start,
         "end_date": END,
         "daily": ",".join(DAILY),
         "hourly": "boundary_layer_height",
@@ -89,7 +96,17 @@ def daily_mixing_height(hourly):
 
 
 def main():
-    data = fetch()
+    existing = {}
+    if OUT_PATH.exists():
+        with open(OUT_PATH) as f:
+            existing = {r["date"]: r for r in csv.DictReader(f)}
+    start = START
+    if existing:
+        newest = date.fromisoformat(max(existing))
+        start = max(date.fromisoformat(START), newest - timedelta(days=OVERLAP_DAYS)).isoformat()
+        existing = {d: r for d, r in existing.items() if d < start}
+    print(f"Keeping {len(existing)} saved days; fetching {start} to {END}")
+    data = fetch(start)
     daily = data["daily"]
     blh = daily_mixing_height(data["hourly"])
 
@@ -102,6 +119,8 @@ def main():
         row["mixing_height_mean_m"] = round(mean_h) if mean_h is not None else None
         row["mixing_height_max_m"] = round(max_h) if max_h is not None else None
         rows.append(row)
+    rows = list(existing.values()) + rows
+    rows.sort(key=lambda r: r["date"])
 
     if len(rows) < 4000:
         sys.exit(f"Only {len(rows)} days returned, expected ~4,300; not overwriting {OUT_PATH}")
@@ -114,7 +133,7 @@ def main():
         writer.writerows(rows)
     tmp.replace(OUT_PATH)
 
-    n_missing = sum(1 for r in rows if any(r[c] is None for c in fields))
+    n_missing = sum(1 for r in rows if any(r[c] in (None, "") for c in fields))
     print(f"Wrote {len(rows)} days ({rows[0]['date']} to {rows[-1]['date']}) to {OUT_PATH}")
     print(f"Days with at least one missing value: {n_missing}")
 

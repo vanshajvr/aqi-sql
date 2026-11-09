@@ -106,7 +106,7 @@ def drop_implausible_co(readings):
 # in the Kaggle era, so the analyses use concentrations (PM2.5 above all).
 READINGS_ALL_VIEW = """
 CREATE VIEW readings_all AS
-SELECT station_id, date, pm25, pm10, no2, so2, co, NULL AS o3, 'Kaggle' AS source
+SELECT station_id, date, pm25, pm10, no2, so2, co, o3, 'Kaggle' AS source
 FROM readings
 WHERE date < '2020-07-01'
 UNION ALL
@@ -124,6 +124,31 @@ WHERE o.date >= '2020-07-01'
   AND NOT EXISTS (SELECT 1 FROM readings_cpcb c
                   WHERE c.station_id = o.station_id AND c.date = o.date)
 """
+
+# Delhi's ozone rarely averages above 60-70 ug/m3 for a station-month (the
+# network's typical station-month median is ~28). Punjabi Bagh, whose PM10 is
+# already known to be a copy of its PM2.5, reports medians above 150 in most
+# months of 2015-2020, with daily means up to 963 (CPCB's Severe line for an
+# 8-hour average is 748); Aya Nagar does so in a few months. Same approach as
+# the CO rule: a station-month whose median is above this is a sensor fault,
+# and its O3 is set to NULL. About 1% of O3 readings.
+O3_MONTHLY_MEDIAN_CEILING = 150.0
+
+
+def drop_implausible_o3(readings):
+    if "o3" not in readings.columns:
+        return readings
+    month = readings["date"].str[:7]
+    medians = readings.groupby([readings["station_id"], month])["o3"].transform("median")
+    bad = (medians > O3_MONTHLY_MEDIAN_CEILING) & readings["o3"].notna()
+    if bad.any():
+        n_months = readings.loc[bad, ["station_id"]].assign(m=month[bad]).drop_duplicates().shape[0]
+        print(f"WARNING: O3 monthly median above {O3_MONTHLY_MEDIAN_CEILING:.0f} ug/m3 for "
+              f"{n_months} station-month(s); setting {int(bad.sum())} O3 readings to NULL")
+        readings = readings.copy()
+        readings.loc[bad, "o3"] = None
+    return readings
+
 
 def main():
     if not STATIONS_CSV.exists() or not READINGS_CSV.exists():
@@ -169,10 +194,11 @@ def main():
         "NO2": "no2",
         "SO2": "so2",
         "CO": "co",
+        "O3": "o3",
         "AQI": "aqi",
         "AQI_Bucket": "aqi_bucket"
     })
-    EXPECTED_READING_COLS = ["station_id", "date", "pm25", "pm10", "no2", "so2", "co", "aqi", "aqi_bucket"]
+    EXPECTED_READING_COLS = ["station_id", "date", "pm25", "pm10", "no2", "so2", "co", "o3", "aqi", "aqi_bucket"]
 
     missing_cols = [c for c in EXPECTED_READING_COLS if c not in delhi_readings.columns]
     if missing_cols:
@@ -184,6 +210,7 @@ def main():
         delhi_readings = drop_copied_pm10(delhi_readings)
     if "co" in delhi_readings.columns:
         delhi_readings = drop_implausible_co(delhi_readings)
+    delhi_readings = drop_implausible_o3(delhi_readings)
 
     # Drop stations with zero valid AQI readings (e.g. registered but never
     # reported data in this dataset) — keeping them around just produces a
@@ -227,6 +254,7 @@ def main():
                 no2 REAL,
                 so2 REAL,
                 co REAL,
+                o3 REAL,
                 aqi REAL,
                 aqi_bucket TEXT
             )
@@ -289,12 +317,12 @@ def main():
             openaq = pd.read_csv(OPENAQ_CSV)
             # same station set and the same sensor-fault rules as the Kaggle data
             openaq = openaq[openaq["station_id"].isin(delhi_stations["station_id"])]
-            openaq = drop_implausible_co(drop_copied_pm10(openaq))
+            openaq = drop_implausible_o3(drop_implausible_co(drop_copied_pm10(openaq)))
             openaq.to_sql("readings_openaq", conn, if_exists="append", index=False)
         if CPCB_CSV is not None:
             cpcb = pd.read_csv(CPCB_CSV)
             cpcb = cpcb[cpcb["station_id"].isin(delhi_stations["station_id"])]
-            cpcb = drop_implausible_co(drop_copied_pm10(cpcb))
+            cpcb = drop_implausible_o3(drop_implausible_co(drop_copied_pm10(cpcb)))
             cpcb.to_sql("readings_cpcb", conn, if_exists="append", index=False)
         if FIRES_DAYNIGHT_CSV is not None:
             pd.read_csv(FIRES_DAYNIGHT_CSV).to_sql("fires_daynight", conn, if_exists="append", index=False)

@@ -93,7 +93,7 @@
           </li>
           <li>
             <b>Crop burning adds a spike the weather can't explain.</b>
-            <span>Late October to mid-November runs up to 2.2&times; the weather-predicted level.</span>
+            <span>Late October to mid-November runs up to 2.1&times; the weather-predicted level.</span>
             <button type="button" class="goto-tab" data-goto-tab="seasons">Seasons &amp; Weather &rarr;</button>
           </li>
           <li>
@@ -137,10 +137,10 @@
         </div>
         <div class="card">
           <h3>Pollution beyond the weather</h3>
-          <p class="hint">Late October to mid-November reaches 2.2&times; what the weather predicts: the crop-burning window.</p>
+          <p class="hint">Late October to mid-November reaches 2.1&times; what the weather predicts: the crop-burning window.</p>
           $weather_excess
           <details class="method"><summary>How this is measured</summary>
-            Dry days only. Each day is compared with typical days that had the same mixing height and wind, using every month except October&ndash;November as the baseline. 1&times; means the weather fully explains the pollution. Diwali falls in the same window. 2015&ndash;2026, without the 2020 lockdown or days missing mixing height. 95% intervals: late October 1.3&ndash;1.8&times;, early November 1.9&ndash;2.6&times;.
+            Dry days only. Each day is compared with typical days that had the same mixing height and wind, using every month except October&ndash;November as the baseline. 1&times; means the weather fully explains the pollution. Diwali falls in the same window. 2015&ndash;2026, without the 2020 lockdown or days missing mixing height. 95% intervals: late October 1.2&ndash;1.8&times;, early November 1.8&ndash;2.5&times;.
           </details>
         </div>
       </div>
@@ -152,7 +152,7 @@
         <p class="hint">After a season's heaviest burning days, Delhi's PM2.5 reaches 2.3&times; the weather prediction when the wind blows from Punjab. In other winds the effect is much smaller.</p>
         $fires
         <details class="method"><summary>How this is measured</summary>
-          Daily satellite fire counts in Punjab and northern Haryana (NASA FIRMS, VIIRS), the day before, 2015&ndash;2025. Days are split into thirds <em>within each season</em>, because detections fell about 90% after 2021. Each bar compares PM2.5 with same-weather days, as in "Pollution beyond the weather". 15 October &ndash; 30 November, dry days only, and the weeks around Diwali removed: crackers are local smoke that needs no north-westerly. With the wind from Punjab, the rise from fewest to most fires is +1.02&times; (95% interval +0.61 to +1.45). The difference from other winds, +0.70 (+0.20 to +1.24), holds in 99.7% of resamples: the wind is what carries the smoke in.
+          Daily satellite fire counts in Punjab and northern Haryana (NASA FIRMS, VIIRS), the day before, 2015&ndash;2025. Days are split into thirds <em>within each season</em>, because detections fell about 90% after 2021. Each bar compares PM2.5 with same-weather days, as in "Pollution beyond the weather". 15 October &ndash; 30 November, dry days only, and the weeks around Diwali removed: crackers are local smoke that needs no north-westerly. With the wind from Punjab, the rise from fewest to most fires is +1.02&times; (95% interval +0.60 to +1.46). The difference from other winds, +0.70 (+0.21 to +1.25), holds in 99.7% of resamples: the wind is what carries the smoke in.
         </details>
       </div>
       <div class="card">
@@ -203,7 +203,7 @@
         <p class="hint">The satellite passes at about 13:30 and 01:30. In 2024 and 2025, night detections were 3&ndash;4% of the total, against under 0.5% before: daytime fires fell about 90%, night fires didn't fall. A test written down in advance calls that support for a shift, but a few hundred night fires can't account for the missing tens of thousands. Fires lit in the evening and out by 01:30 are invisible to both passes.</p>
         $then_now_daynight
         <details class="method"><summary>How this is measured</summary>
-          Top: fires detected by NASA's VIIRS satellite in Punjab and northern Haryana, 15 October &ndash; 30 November. Bottom: Delhi PM2.5 from 16 October to 15 November, divided by what the day's weather predicts, on the same 12-station panel. 2025 minus 2018&ndash;21: &minus;0.10 (95% interval &minus;0.50 to +0.26). No PM2.5 points for 2015&ndash;16 (too few panel stations yet). From 2022 the PM2.5 is CPCB's own data. Night share: VIIRS night-pass detections as a share of all, 15 October &ndash; 30 November, against <a href="https://github.com/vanshajvr/aqi-sql/blob/main/analysis_plans/fires_daynight_preregistration.md" target="_blank" rel="noopener">a rule set before downloading</a>: each of 2023&ndash;25 above the highest share of 2015&ndash;21. Day plus night detections match the published counts exactly.
+          Top: fires detected by NASA's VIIRS satellite in Punjab and northern Haryana, 15 October &ndash; 30 November. Bottom: Delhi PM2.5 from 16 October to 15 November, divided by what the day's weather predicts, on the same 12-station panel. 2025 minus 2018&ndash;21: &minus;0.10 (95% interval &minus;0.50 to +0.27). No PM2.5 points for 2015&ndash;16 (too few panel stations yet). From 2022 the PM2.5 is CPCB's own data. Night share: VIIRS night-pass detections as a share of all, 15 October &ndash; 30 November, against <a href="https://github.com/vanshajvr/aqi-sql/blob/main/analysis_plans/fires_daynight_preregistration.md" target="_blank" rel="noopener">a rule set before downloading</a>: each of 2023&ndash;25 above the highest share of 2015&ndash;21. Day plus night detections match the published counts exactly.
         </details>
       </div>
     </div>
@@ -356,7 +356,7 @@
           <li><b>Data:</b> CPCB station readings, 2015&ndash;2026 (Kaggle to June 2020, then CPCB's portal, with OpenAQ filling gaps), daily weather (ERA5 via Open-Meteo) and crop-fire counts (NASA FIRMS).</li>
           <li><b>Measure:</b> PM2.5 throughout, on CPCB's PM2.5 bands, because the official AQI stops in 2020. The early-warning rules keep their original AQI design.</li>
           <li><b>Fair comparisons:</b> city-wide figures need &ge;5 reporting stations; trends compare the same stations; station rankings use network days (2018&ndash;2026, &ge;80% of stations reporting).</li>
-          <li><b>Cleaning:</b> two sensor faults removed (Punjabi Bagh PM10, early-2015 CO).</li>
+          <li><b>Cleaning:</b> three sensor faults removed (Punjabi Bagh PM10 and ozone, early-2015 CO).</li>
           <li><b>Read more:</b> <a href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">findings memo</a> &middot; <a href="https://github.com/vanshajvr/aqi-sql/tree/main/queries" target="_blank" rel="noopener">SQL queries</a> &middot; <a href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">code</a></li>
         </ul>
       </div>

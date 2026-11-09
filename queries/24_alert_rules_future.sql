@@ -23,8 +23,10 @@ WITH all_pm AS (
     SELECT date, pm25 FROM readings
     WHERE pm25 IS NOT NULL AND date BETWEEN '2018-01-01' AND '2020-03-24'
     UNION ALL
+    -- frozen at the data the pre-registered test was scored on (to 1 Oct 2026),
+    -- so later top-ups can't quietly change a published verdict
     SELECT date, pm25 FROM readings_openaq
-    WHERE pm25 IS NOT NULL AND date >= '2020-07-01'
+    WHERE pm25 IS NOT NULL AND date BETWEEN '2020-07-01' AND '2026-10-01'
 ),
 city_daily AS (
     SELECT c.date, c.pm25, w.mixing_height_mean_m, w.rain_mm,

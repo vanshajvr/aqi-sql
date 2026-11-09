@@ -23,7 +23,7 @@ CREATE TABLE readings (
     reading_id INTEGER PRIMARY KEY AUTOINCREMENT,
     station_id TEXT NOT NULL REFERENCES stations(station_id),
     date TEXT NOT NULL,
-    pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL,
+    pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL, o3 REAL,
     aqi REAL, aqi_bucket TEXT
 );
 CREATE TABLE readings_openaq (

@@ -1,7 +1,7 @@
 """Tests for the data-cleaning steps in fetch_data.py."""
 import pandas as pd
 
-from fetch_data import drop_copied_pm10, drop_implausible_co
+from fetch_data import drop_copied_pm10, drop_implausible_co, drop_implausible_o3
 
 
 def test_copied_pm10_is_nulled_for_that_station_only():
@@ -44,3 +44,15 @@ def test_a_single_high_co_day_is_kept():
                        "date": ["2018-01-01", "2018-01-02", "2018-01-03"],
                        "co": [1.0, 11.0, 1.2]})                # one spike, median 1.2
     assert drop_implausible_co(df)["co"].notna().all()
+
+
+def test_implausible_o3_month_is_nulled_and_single_spikes_kept():
+    df = pd.DataFrame({
+        "station_id": ["BAD"] * 3 + ["OK"] * 3,
+        "date": ["2017-11-01", "2017-11-02", "2017-11-03", "2017-11-01", "2017-11-02", "2017-11-03"],
+        "o3": [700.0, 650.0, 30.0, 30.0, 400.0, 35.0],   # BAD median 650; OK has one spike, median 35
+    })
+    out = drop_implausible_o3(df)
+    assert out.loc[out["station_id"] == "BAD", "o3"].isna().all()
+    assert out.loc[out["station_id"] == "OK", "o3"].tolist() == [30.0, 400.0, 35.0]
+    assert drop_implausible_o3(df.drop(columns="o3")).equals(df.drop(columns="o3"))   # no O3 column: untouched

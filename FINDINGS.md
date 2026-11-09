@@ -61,8 +61,8 @@ something extra is burning. It's bad because nothing can escape.
 
 Run the same comparison through the year and one window stands out. In late
 October, PM2.5 runs at **1.5×** what the weather predicts; in the first half
-of November, **2.2×**. December to February stays between 0.96× and 1.17×.
-Even the bottom of each 95% interval (1.3× and 1.9×)
+of November, **2.1×**. December to February stays between 0.96× and 1.17×.
+Even the bottom of each 95% interval (1.2× and 1.8×)
 sits clearly above 1.
 
 That window lines up with the peak of crop-residue burning in Punjab and
@@ -86,8 +86,8 @@ fell about 90% after 2021.
 *(PM2.5 as a multiple of what the day's weather predicts)*
 
 When the wind blows from Punjab, the days after a season's heaviest burning
-run at **2.3× the weather prediction**, a rise of +1.02 over the fewest-fire days (95% interval +0.61 to +1.45). In
-other winds, the rise is about a third as large. The gap between the two winds (+0.70, interval +0.20 to +1.24) holds in
+run at **2.3× the weather prediction**, a rise of +1.02 over the fewest-fire days (95% interval +0.60 to +1.46). In
+other winds, the rise is about a third as large. The gap between the two winds (+0.70, interval +0.21 to +1.25) holds in
 99.7% of resamples: what you'd expect if the smoke is carried in on the wind.
 
 So: **crop fires measurably add to Delhi's air, and the wind from Punjab is
@@ -212,7 +212,7 @@ don't need weather and use all its days.
   2025. Yet Delhi's pollution from 16 October to 15 November, relative to its
   weather, was 1.54×, 1.57× and 1.68× in 2023–25, inside the 2018–21 range
   (1.40–2.33×). 2025 against 2018–21 is −0.10, with a 95% interval of −0.50
-  to +0.26, which includes no change at all. Either burning has moved out of the satellites'
+  to +0.27, which includes no change at all. Either burning has moved out of the satellites'
   view (there are reports of fires being lit after the afternoon overpass), or
   other sources fill the window.
 - **I checked the satellite's blind spot, with the test [written down
@@ -385,7 +385,10 @@ the results:
 - **A station whose PM10 was a copy of its PM2.5.** Punjabi Bagh's average
   PM2.5 exactly equalled its average PM10. That's physically impossible,
   because PM2.5 is a subset of PM10. On closer inspection, the PM10 column
-  repeated the PM2.5 values on 95% of days, so its PM10 is excluded.
+  repeated the PM2.5 values on 95% of days, so its PM10 is excluded. Its
+  ozone sensor was faulty too: monthly medians above 150 µg/m³ (the network's
+  typical month is about 28), with daily means up to 963. Station-months like
+  that are blanked, about 1% of ozone readings.
 - **Carbon monoxide readings ten times too high.** Three CPCB stations reported
   CO of 10–20 mg/m³ from January to June 2015, against a normal 1–2, and two
   more spiked in April 2018. Any station-month with a median above 5 mg/m³ is

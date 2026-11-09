@@ -5,7 +5,7 @@ inserting into a minimal `readings` table.
 """
 from fetch_data import READINGS_ALL_VIEW
 
-POLLUTANTS = ("pm25", "pm10", "no2", "so2", "co")
+POLLUTANTS = ("pm25", "pm10", "no2", "so2", "co", "o3")
 
 
 def ensure_readings_all(conn):
@@ -23,7 +23,7 @@ def ensure_readings_all(conn):
                          "pm25 REAL, pm10 REAL, no2 REAL, so2 REAL, co REAL, o3 REAL)")
         else:
             have_t = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
-            for col in (*POLLUTANTS, "o3"):
+            for col in POLLUTANTS:
                 if col not in have_t:
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} REAL")
     conn.execute(READINGS_ALL_VIEW)

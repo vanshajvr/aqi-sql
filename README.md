@@ -23,7 +23,7 @@ pressing down on the city. On **86% of December days** (2015–2026) PM2.5 was
 predicts.
 
 **Crop burning is a four-week burst.** From late October to mid-November,
-PM2.5 runs up to **2.2× what the weather predicts**. No other part of the year
+PM2.5 runs up to **2.1× what the weather predicts**. No other part of the year
 comes close. Adding NASA satellite fire counts for eleven seasons, the days after a
 season's heaviest burning run at **2.3× the weather prediction when the wind
 blows from Punjab**, against 1.7× in other winds.
@@ -112,6 +112,7 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | The network grew from 8 stations (2015) to 37 (2018), so a "city average" meant different things in different years | City-wide days need ≥5 stations; trends compare only stations present in both years; station rankings use network days (2018–2026, when at least 80% of stations report) |
 | Punjabi Bagh's PM10 column was a copy of its PM2.5 on 95% of days (caught because the two averages matched, which is physically impossible) | Detected by a rule in `fetch_data.py`; that station's PM10 is excluded |
 | Three stations reported CO 10× too high in early 2015, and two spiked in April 2018 | Station-months with a median above 5 mg/m³ are blanked (314 readings, <1%) |
+| Punjabi Bagh's ozone read 5–30× the network (daily means up to 963 µg/m³) for most of 2015–2020 | Station-months with an O3 median above 150 µg/m³ are blanked (about 1% of ozone readings) |
 | East Arjun Nagar logged 1,553 readings, all with no AQI | Dropped |
 | Counting each station's reading separately let one bad day count up to 37 times | Every "share of days" counts city-days |
 | OpenAQ labels some CO, NO2 and SO2 feeds with the wrong units (e.g. "ppb" on values that are clearly mg/m³) | Units decided from magnitudes against the Kaggle era, rules documented in `prepare_openaq.py` |
@@ -182,7 +183,7 @@ python3 build_dashboard.py    # writes dashboard.html
 python3 -m uvicorn api.main:app --reload --port 8000
 
 # Optional
-python3 fetch_weather.py      # re-download weather (already in data/seed/)
+python3 fetch_weather.py      # weather up to today, incremental (saved days are kept as they are)
 python3 fetch_fires.py        # crop fires, incremental (needs FIRMS_MAP_KEY; already in data/seed/)
 python3 fetch_openaq.py       # raw 2020-26 station data (needs OPENAQ_API_KEY; ~15 min)
 python3 fetch_openaq.py --since 2026-10-01   # top up recent days only (~4 min), then prepare_openaq.py
