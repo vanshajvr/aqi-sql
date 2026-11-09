@@ -1,0 +1,2 @@
+run_date,recorded_at_utc,readings_end,readings_lag_hours,n_stations,pm25_24h_mean,pm25_24h_median,for_date,mixing_height_m,rain_mm,wind_dir_deg,wind_speed_kmh,alert,smoke_context,note
+2026-11-10,2026-11-09T22:09:33Z,2026-11-10T00:00:00+05:30,3.7,33,231.0,238.9,2026-11-11,233,0.0,281,6.5,1,1,
