@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from api.latest import fetch_day, fetch_latest
 from api.news import fetch_news
+from api.tomorrow import tomorrow_alert
 
 ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "aqi.db"
@@ -278,6 +279,30 @@ def latest_day():
         raise HTTPException(status_code=503, detail=str(err))
     except Exception as err:
         raise HTTPException(status_code=502, detail=f"OpenAQ request failed: {type(err).__name__}")
+
+
+@app.get("/api/tomorrow")
+def bad_air_tomorrow():
+    """
+    The analysis's alert rule (rule E) on today's 24-hour PM2.5 and
+    tomorrow's weather forecast (see api/tomorrow.py). Uses the cached
+    24-hour data, so it answers instantly once /api/latest/day has loaded.
+    """
+    conn = get_conn()
+    try:
+        rows = conn.execute("SELECT station_id, station_name, latitude, longitude FROM stations").fetchall()
+    finally:
+        conn.close()
+    try:
+        day = fetch_day({r["station_id"]: dict(r) for r in rows})["day"]
+        result = tomorrow_alert(day["pm25_24h_mean"] if day else None)
+    except RuntimeError as err:
+        raise HTTPException(status_code=503, detail=str(err))
+    except Exception as err:
+        raise HTTPException(status_code=502, detail=f"Forecast or readings failed: {type(err).__name__}")
+    if result is None:
+        raise HTTPException(status_code=502, detail="No usable forecast or 24-hour data")
+    return result
 
 
 @app.get("/api/news")

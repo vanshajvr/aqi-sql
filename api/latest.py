@@ -294,6 +294,8 @@ def summarise_day(series, end):
         "start": start.isoformat(), "end": end.isoformat(), "hours": DAY_HOURS,
         "n_stations": len(averages),
         "pm25_24h_median": med,
+        # the mean is the kind of city-wide daily value the alert rule was scored on
+        "pm25_24h_mean": round(sum(averages.values()) / len(averages), 1),
         "band": band("pm25", med),
         "band_counts": counts,
         "peak_hour": peak,

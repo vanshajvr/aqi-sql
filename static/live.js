@@ -588,12 +588,52 @@ async function loadLiveBoard() {
     renderDayDetail(data.city, day);
     renderRankings(data, day);
     if (window.applyLiveDay) window.applyLiveDay(day);
+    loadTomorrow();                       // instant now: the 24-hour data is cached
   } catch (err) {
     if (!data.city) return;
     renderHero(data.city, null, true);
     renderHealth(data.city, null, true);
     renderDayDetail(data.city, null);
   }
+}
+
+// "Bad air tomorrow?": the analysis's alert rule on today's data and the forecast
+async function loadTomorrow() {
+  const el = document.getElementById("live-tomorrow");
+  if (!el) return;
+  try {
+    const resp = await fetch(`${LIVE_API_BASE}/api/tomorrow`);
+    if (!resp.ok) return;
+    const r = await resp.json();
+    const day = new Date(`${r.date}T12:00:00+05:30`).toLocaleDateString("en-IN",
+      { weekday: "long", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+    const checks = r.checks.map((c) => `<li class="${c.met ? "met" : "unmet"}">
+        <span class="tick" aria-hidden="true">${c.met ? "✓" : "✗"}</span>
+        <span>${c.label}: <b>${c.value} ${c.unit}</b> <small>(${c.test})</small></span></li>`).join("");
+    el.classList.toggle("alert-on", r.alert);
+    el.innerHTML = `
+      <div class="tomorrow-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${r.alert
+          ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+          : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'}</svg>
+        <div><div class="live-eyebrow">Tomorrow · ${day}</div><h3>${r.headline}</h3></div>
+      </div>
+      <p class="tomorrow-reason">${r.reason}</p>
+      <ul class="tomorrow-checks">${checks}</ul>
+      ${r.smoke_context ? `<p class="tomorrow-smoke">Wind from the north-west in burning season: crop smoke from Punjab is likely to add to it.</p>` : ""}
+      <details class="method"><summary>How this works</summary>
+        This is the alert rule chosen in the analysis (rule E): it fires when today is Poor or worse and tomorrow's forecast has a low mixing height and no rain. ${r.track_record}
+        Those tests used the actual next-day weather; this uses a forecast (Open-Meteo), so expect more misses. "Today's city average" is the mean of the stations, as in the tests (the headline above is their median). The smoke note is context only, not part of the rule.
+        <button type="button" class="goto-tab" data-goto-mode="historical" data-goto-tab="alerts">See the analysis &rarr;</button>
+      </details>`;
+    el.hidden = false;
+    const go = el.querySelector("[data-goto-tab]");
+    if (go) go.addEventListener("click", () => {
+      document.getElementById("modebtn-historical").click();
+      const tab = document.getElementById("tabbtn-alerts");
+      if (tab) { tab.click(); tab.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    });
+  } catch (e) { /* optional: stay hidden */ }
 }
 
 async function loadNews() {

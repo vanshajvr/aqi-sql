@@ -323,6 +323,10 @@ app would score somewhat lower. All seven rules are in
 [`17_alert_rules.sql`](queries/17_alert_rules.sql) and on the dashboard's
 Early Warning tab.
 
+**It now runs live.** The site's Latest Readings page applies the rule every
+day to the current 24-hour PM2.5 and Open-Meteo's forecast for tomorrow, and
+says why it did or didn't fire, with the track record above beside it.
+
 ---
 
 ## How sure am I?

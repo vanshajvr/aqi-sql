@@ -632,3 +632,19 @@ header > .header-actions {
 }
 @media (max-width: 600px) { .live-top .advice-grid { grid-template-columns: 1fr; } }
 .live-top > .card { margin-bottom: 0; }
+
+/* ---------------------------------------------------------------- bad air tomorrow */
+.live-tomorrow { border-left: 4px solid var(--positive); }
+.live-tomorrow.alert-on { border-left-color: var(--negative); background: linear-gradient(90deg, rgba(248,81,73,0.08), transparent 60%), var(--surface); }
+.tomorrow-head { display: flex; align-items: center; gap: 14px; }
+.tomorrow-head svg { width: 30px; height: 30px; flex-shrink: 0; color: var(--positive); }
+.live-tomorrow.alert-on .tomorrow-head svg { color: var(--negative); }
+.tomorrow-head h3 { margin: 2px 0 0; font-size: 20px; }
+.tomorrow-reason { font-size: 15px; color: var(--text); margin: 10px 0 8px; line-height: 1.5; }
+.tomorrow-checks { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--text-muted); }
+.tomorrow-checks b { color: var(--text-strong); }
+.tomorrow-checks .tick { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; margin-right: 6px; }
+.tomorrow-checks .met .tick { background: rgba(248,81,73,0.15); color: var(--negative); }
+.tomorrow-checks .unmet .tick { background: rgba(63,185,80,0.15); color: var(--positive); }
+.tomorrow-smoke { font-size: 14px; color: var(--warning); margin: 10px 0 0; }
+.live-tomorrow .goto-tab { margin-top: 8px; }
