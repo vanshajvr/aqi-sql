@@ -263,13 +263,13 @@ function renderHealth(city, day, failed) {
     </div>`;
   }).join("");
   const basis = useDay
-    ? `Based on the 24-hour average to ${hourLabel(day.end)}, as CPCB's AQI is.`
-    : `The 24-hour average isn't available right now, so this follows the latest hour (${readingTime(city.as_of).when}).`;
+    ? `Based on the last 24 hours of readings, up to ${hourLabel(day.end)}: the same basis CPCB uses for its AQI.`
+    : `Based on the latest hour (${readingTime(city.as_of).when}); the 24-hour average isn't available right now.`;
   el.innerHTML = `
     <h3>What "${band}" means for health</h3>
     <p class="health-impact"><span style="color:${BAND_TEXT[band]}">CPCB:</span> ${CPCB_IMPACT[band]}</p>
     <div class="advice-grid">${tiles}</div>
-    <p class="hint live-caveat">${basis} For decisions right now, check a real-time source such as CPCB's SAMEER app. General guidance, not medical advice.</p>`;
+    <p class="hint live-caveat"><b>Note:</b> ${basis} For live updates, use CPCB's SAMEER app. General guidance, not medical advice.</p>`;
 }
 
 function renderPollutants(city) {
