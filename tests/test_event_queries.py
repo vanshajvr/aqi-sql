@@ -253,3 +253,16 @@ def test_health_limits_use_strict_thresholds_on_city_days():
     assert r["pct_days_over_who"] == pytest.approx(66.7)
     assert r["is_complete_year"] == 0
     c.close()
+
+
+def test_only_years_that_have_ended_count_as_complete():
+    """11: 2017 has every day and the data runs into 2018, so 2017 is complete.
+    2018 has 310 days but is the last year in the data, so it isn't."""
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, pm25 REAL)")
+    days = [(date(2017, 1, 1) + timedelta(days=i)).isoformat() for i in range(365 + 310)]
+    c.executemany("INSERT INTO readings VALUES (?, ?, 80)", [(f"S{s}", d) for d in days for s in range(5)])
+    rows = {r["year"]: r for r in run_query(c, "11_health_limits.sql")}
+    assert rows["2017"]["is_complete_year"] == 1
+    assert rows["2018"]["n_days"] == 310 and rows["2018"]["is_complete_year"] == 0
+    c.close()

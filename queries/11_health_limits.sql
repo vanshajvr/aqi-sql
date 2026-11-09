@@ -6,8 +6,10 @@
 --   WHO 2021 guideline, 24-hour: 15 ug/m3
 -- Unit: one city-wide value per day (mean across reporting stations), same
 -- rule as 04: a day needs >= 5 stations. Reported per calendar year; only
--- years with at least 300 qualifying days are complete enough to compare
--- (2018-2019 and 2022-2025; see 08_coverage.sql).
+-- years that have ENDED (the data runs past 31 December) and have at least
+-- 300 qualifying days are complete enough to compare (2018-2020 and
+-- 2022-2025; see 08_coverage.sql). The current year never counts, however
+-- many days it has: it misses the months still to come.
 WITH city_daily AS (
     SELECT date, AVG(pm25) AS pm25
     FROM readings_all
@@ -22,7 +24,8 @@ SELECT
     SUM(CASE WHEN pm25 > 60 THEN 1 ELSE 0 END) AS n_days_over_naaqs,
     ROUND(100.0 * SUM(CASE WHEN pm25 > 60 THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_days_over_naaqs,
     ROUND(100.0 * SUM(CASE WHEN pm25 > 15 THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_days_over_who,
-    CASE WHEN COUNT(*) >= 300 THEN 1 ELSE 0 END AS is_complete_year
+    CASE WHEN COUNT(*) >= 300 AND strftime('%Y', date) || '-12-31' <= (SELECT MAX(date) FROM city_daily)
+         THEN 1 ELSE 0 END AS is_complete_year
 FROM city_daily
 GROUP BY year
 ORDER BY year;

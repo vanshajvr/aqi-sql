@@ -144,6 +144,11 @@ and the week after was *cleaner* than the smoky weeks before (0.8×). Diwali
 and stubble season overlap too much to pin the spike on crackers alone, but
 in most years it's unmistakable.
 
+**Diwali 2026 was the worst in five years.** Its week is still under way, so
+it isn't in the average yet, but Diwali day itself compares like for like:
+city-wide PM2.5 of **286 µg/m³**, higher than any Diwali day from 2022 to
+2025 (137–230) and behind only 2020 (392) and 2021 (337).
+
 ### 7. Two stations at the top, and a belt that never lets up
 
 **Jahangirpuri and Anand Vihar** are Delhi's worst stations, effectively tied
@@ -153,7 +158,7 @@ worst for PM10, NO2 and CO too, and fewer than 4% of its 3,400 days were
 
 Month by month, the same names keep coming up: **Jahangirpuri, Anand Vihar
 and Wazirpur** are among the city's 5 worst
-stations in more than half of all months (63%, 59% and 54%), with Bawana
+stations in more than half of all months (63%, 58% and 53%), with Bawana
 close behind (48%).
 
 ### 8. Not yet measurably better

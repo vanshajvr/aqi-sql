@@ -185,6 +185,7 @@ python3 -m uvicorn api.main:app --reload --port 8000
 python3 fetch_weather.py      # re-download weather (already in data/seed/)
 python3 fetch_fires.py        # crop fires, incremental (needs FIRMS_MAP_KEY; already in data/seed/)
 python3 fetch_openaq.py       # raw 2020-26 station data (needs OPENAQ_API_KEY; ~15 min)
+python3 fetch_openaq.py --since 2026-10-01   # top up recent days only (~4 min), then prepare_openaq.py
 python3 prepare_openaq.py     # units + stitching -> data/seed/openaq_daily.csv (already committed)
 python3 prepare_cpcb.py       # CPCB 2022-26 daily file -> data/seed/cpcb_daily.csv (already committed)
 python3 validate_backfill.py  # the pre-registered tests -> results/

@@ -24,6 +24,13 @@ Usage (from the repo root, with OPENAQ_API_KEY in .env):
     set -a; source .env; set +a
     python3 fetch_openaq.py             # the 37 stations -> data/raw/openaq_raw.csv
     python3 fetch_openaq.py --embassy   # US Embassy PM2.5 -> data/seed/embassy_pm25_daily.csv
+    python3 fetch_openaq.py --since 2026-10-01   # top up: current sensors only, merged in
+
+--since tops up the existing download without redoing it: it fetches daily
+values from that date for the sensors in data/seed/openaq_sensors.csv (each
+station's current sensors, written by prepare_openaq.py), replaces those
+sensors' rows from that date in data/raw/openaq_raw.csv, and keeps the rest.
+About 215 requests, ~4 min. Then run prepare_openaq.py as usual.
 
 The US Embassy monitor (OpenAQ location 8118, AirNow; PM2.5 sensor 23534) is
 the candidate bridge across the Nov 2022 - Feb 2025 gap. It's saved raw (no
@@ -134,12 +141,49 @@ def fetch_embassy(key):
     print(f"Wrote {len(unique):,} days ({unique[0]['date']} to {unique[-1]['date']}) to {EMBASSY_OUT}")
 
 
+def top_up(key, since):
+    sensors = list(csv.DictReader(open(SEED / "openaq_sensors.csv")))
+    with open(OUT_PATH) as f:
+        existing = list(csv.DictReader(f))
+    provider = {r["location_id"]: r["provider"] for r in existing}
+    today = date.today().isoformat()
+    new_rows = []
+    for i, sen in enumerate(sensors, 1):
+        data = get(f"{API}/sensors/{sen['sensor_id']}/days?date_from={since}&date_to={today}&limit=1000", key)
+        for r in data["results"]:
+            new_rows.append({
+                "station_id": sen["station_id"], "location_id": sen["location_id"],
+                "provider": provider.get(sen["location_id"], "CPCB"), "sensor_id": sen["sensor_id"],
+                "parameter": sen["parameter"], "units": sen["units"],
+                "date": r["period"]["datetimeFrom"]["local"][:10], "value": r["value"],
+                "observed_count": r["coverage"]["observedCount"],
+            })
+        if i % 25 == 0:
+            print(f"  {i}/{len(sensors)} sensors ({len(new_rows):,} rows)")
+    fetched = {s["sensor_id"] for s in sensors}
+    kept = [r for r in existing if not (r["sensor_id"] in fetched and r["date"] >= since)]
+    rows = kept + new_rows
+    tmp = OUT_PATH.with_suffix(".csv.tmp")
+    with open(tmp, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(existing[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    tmp.replace(OUT_PATH)
+    print(f"\nTopped up {len(sensors)} sensors from {since}: {len(new_rows):,} new rows; "
+          f"{len(rows):,} sensor-days in {OUT_PATH}")
+
+
 def main():
     key = os.environ.get("OPENAQ_API_KEY", "").strip()
     if not key:
         sys.exit("Set OPENAQ_API_KEY first (see the docstring). Nothing written.")
     if "--embassy" in sys.argv[1:]:
         fetch_embassy(key)
+        return
+    if "--since" in sys.argv[1:]:
+        since = sys.argv[sys.argv.index("--since") + 1]
+        date.fromisoformat(since)            # fail fast on a bad date
+        top_up(key, since)
         return
 
     stations = load_stations()

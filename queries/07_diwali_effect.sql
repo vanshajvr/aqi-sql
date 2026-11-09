@@ -14,6 +14,7 @@
 -- Diwali dates (New Delhi, Lakshmi Puja), checked against two calendars:
 --   2015-11-11  2016-10-30  2017-10-19  2018-11-07  2019-10-27
 --   2020-11-14  2021-11-04  2022-10-24  2023-11-12  2024-10-31  2025-10-20
+--   2026-11-08
 -- (2024 was observed on 31 Oct or 1 Nov; Delhi's Lakshmi Puja was 31 Oct.)
 --
 -- CAVEATS, kept with the query on purpose:
@@ -21,8 +22,12 @@
 --    late Oct / early Nov, so week_after vs baseline is NOT purely firecrackers.
 --    The spread of Diwali dates (early in 2017, late in 2018) is what lets you
 --    separate "Diwali" from "it's November": compare the years, not just the average.
---  * With eleven festivals, treat the 'all years' row as a pattern, not a
---    precise estimate. n_days_* shows how many of each window's days had data.
+--  * With a dozen festivals, treat the 'all years' row as a pattern, not a
+--    precise estimate.
+--  * diwali_day_pm25 (day 0 alone) compares festivals like for like, even
+--    the current one while its week is still under way. A year whose Diwali
+--    week has fewer than 6 of its 8 days (the festival just happened) is
+--    flagged week_complete = 0 and left out of the 'all years' row. n_days_* shows how many of each window's days had data.
 --  * Same coverage rule as 04: a day needs at least 5 reporting stations.
 WITH diwali(year, diwali_date) AS (
     VALUES
@@ -36,7 +41,8 @@ WITH diwali(year, diwali_date) AS (
         (2022, '2022-10-24'),
         (2023, '2023-11-12'),
         (2024, '2024-10-31'),
-        (2025, '2025-10-20')
+        (2025, '2025-10-20'),
+        (2026, '2026-11-08')
 ),
 city_daily AS (
     SELECT
@@ -62,6 +68,7 @@ per_year AS (
         AVG(CASE WHEN day_offset BETWEEN -21 AND -8 THEN city_pm25 END) AS baseline,
         AVG(CASE WHEN day_offset BETWEEN -7 AND -1 THEN city_pm25 END) AS week_before,
         AVG(CASE WHEN day_offset BETWEEN 0 AND 7 THEN city_pm25 END) AS week_after,
+        AVG(CASE WHEN day_offset = 0 THEN city_pm25 END) AS diwali_day,
         COUNT(CASE WHEN day_offset BETWEEN -21 AND -8 THEN 1 END) AS n_days_baseline,
         COUNT(CASE WHEN day_offset BETWEEN -7 AND -1 THEN 1 END) AS n_days_week_before,
         COUNT(CASE WHEN day_offset BETWEEN 0 AND 7 THEN 1 END) AS n_days_week_after
@@ -75,9 +82,11 @@ SELECT * FROM (
         ROUND(week_before, 1) AS week_before_pm25,
         ROUND(week_after, 1) AS week_after_pm25,
         ROUND(week_after / baseline, 2) AS after_vs_baseline,
+        ROUND(diwali_day, 1) AS diwali_day_pm25,
         n_days_baseline,
         n_days_week_before,
-        n_days_week_after
+        n_days_week_after,
+        CASE WHEN n_days_week_after >= 6 THEN 1 ELSE 0 END AS week_complete
     FROM per_year
     UNION ALL
     SELECT
@@ -86,9 +95,12 @@ SELECT * FROM (
         ROUND(AVG(week_before), 1),
         ROUND(AVG(week_after), 1),
         ROUND(AVG(week_after) / AVG(baseline), 2),
+        ROUND(AVG(diwali_day), 1),
         SUM(n_days_baseline),
         SUM(n_days_week_before),
-        SUM(n_days_week_after)
+        SUM(n_days_week_after),
+        1
     FROM per_year
+    WHERE n_days_week_after >= 6
 )
 ORDER BY CASE WHEN diwali_year = 'all years' THEN 1 ELSE 0 END, diwali_year;
