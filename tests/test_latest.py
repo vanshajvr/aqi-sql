@@ -1,7 +1,7 @@
 """Tests for the Live tab's OpenAQ assembly (api/latest.py): no network."""
 from datetime import datetime, timedelta, timezone
 
-from api.latest import build_latest, pm25_band, summarise_day
+from api.latest import build_latest, pm25_band, streaks, summarise_day
 
 SENSORS = {
     101: ("S1", 9, "pm25"), 102: ("S1", 9, "co"), 103: ("S1", 9, "no2"),
@@ -106,3 +106,38 @@ def test_day_summary_needs_16_hours_and_5_stations_per_hour():
     assert out["n_stations"] == 5 and out["pm25_24h_median"] == 80.0
     assert out["most_polluted"][0]["pm25_24h"] == 80.0
     assert all(h["n_stations"] >= 5 for h in out["hourly"])
+
+
+def test_streaks_count_hours_in_a_row_up_to_the_latest_hour():
+    """A stretch is the run of hours above the level that ends at the
+    station's latest hour; an earlier bad spell that ended doesn't count."""
+    start = END - timedelta(hours=24)
+    series = {
+        "NOW": hours([90] * 10 + [300] * 14),            # 14 h above 250, still going
+        "ENDED": hours([400] * 20 + [100] * 4),           # was Severe, not any more
+        "VP": hours([50] * 18 + [130, 200, 260, 140, 150, 125]),   # 6 h above 120, 1 h above 250 then down
+    }
+    out = streaks(series, start, END)
+    assert out["severe"] == [{"station_id": "NOW", "hours": 14, "since": (END - timedelta(hours=14)).isoformat(),
+                              "at_least": False}]
+    assert [(s["station_id"], s["hours"]) for s in out["very_poor"]] == [("NOW", 14), ("VP", 6)]
+
+
+def test_streaks_tolerate_one_missing_hour_and_flag_open_ended_runs():
+    start = END - timedelta(hours=24)
+    full = hours([300] * 24)                              # the whole window: may run further back
+    gappy = [p for i, p in enumerate(hours([300] * 8)) if i != 3]    # one hour missing
+    broken = [p for i, p in enumerate(hours([300] * 8)) if i not in (3, 4)]   # two missing: broken
+    stale = [(t - timedelta(hours=3), v) for t, v in hours([300] * 8)]       # silent for 3 hours
+    out = {s["station_id"]: s for s in streaks({"FULL": full, "GAP": gappy, "BROKEN": broken,
+                                                "STALE": stale}, start, END)["severe"]}
+    assert out["FULL"]["hours"] == 24 and out["FULL"]["at_least"] is True
+    assert out["GAP"]["hours"] == 8 and out["GAP"]["at_least"] is False
+    assert out["BROKEN"]["hours"] == 3
+    assert "STALE" not in out
+
+
+def test_day_summary_includes_streaks():
+    series = {f"S{i}": hours([300] * 24) for i in range(5)}
+    out = summarise_day(series, END)
+    assert len(out["streaks"]["severe"]) == 5 and out["streak_levels"]["severe"] == 250

@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml/badge.svg)](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml)
 
-**[Live dashboard](https://aqi-sql.onrender.com/)** · **[Read the findings](FINDINGS.md)** · [The SQL](queries/)
+**[Live dashboard](https://aqi-sql.onrender.com/)** · **[Read the findings](FINDINGS.md)** · [The SQL](queries/) · [Download the data](https://aqi-sql.onrender.com/download/delhi-air-quality.zip)
 
 Every winter, Delhi's air turns grey and the arguments start: is it the stubble
 fires, the traffic, the crackers, the cold? This project takes government
@@ -74,9 +74,10 @@ What this means for policy, and what I'm less sure about, is in
 ```
  Kaggle CPCB data ───┐
  OpenAQ (2020-26) ───┤
- CPCB (2022-26) ─────┤
+ CPCB (2020-26) ─────┤
  Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 28 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
- NASA FIRMS fires ───┘    (clean + load)                               └─► FastAPI ──► /api/* (map, raw query results)
+ NASA FIRMS fires ───┘    (clean + load)        │                      └─► FastAPI ──► /api/* (map, raw query results)
+                                                └─► build_download.py ──► cleaned-data zip (/download/)
 ```
 
 - **The SQL does the thinking.** Every aggregation, ranking, comparison and
@@ -163,8 +164,8 @@ up.
 - **Then vs Now:** winters before and after 2020, and fires against the smoke window
 - **Early Warning:** which alert rule to ship, as a cost vs value trade-off
 - **Stations:** a map with six views (PM2.5 2018–19 and 2025–26, change, NO2 hotspots, persistence, and **year by year**: a time slider with a play button that steps through 2015–2026, so you can watch the network grow and each winter's levels change), station detail, and side-by-side comparison
-- **Data & Methods:** the full station table (PM2.5 rank, then and now) and data coverage
-- **Latest Readings** (the page opens here): built for the public, answer first. Delhi's **24-hour average** PM2.5 (the basis of CPCB's AQI) as one number and category, how many times India's and WHO's limits that is, a **"bad air tomorrow?" alert** (the analysis's alert rule run on today's data and Open-Meteo's forecast, with its track record shown), what it means for health and what to do, and recent headlines from Google News. **"See the data behind it"** opens the rest: the latest and worst hour, an hour-by-hour line, six pollutant tiles, a station map, and the most and least polluted stations. Data via OpenAQ, since CPCB's own live feed has been unreachable since October 2026
+- **Data & Methods:** the full station table (PM2.5 rank, then and now), data coverage, and a **download of the cleaned data**: every station-day 2015–2026 with six pollutants, city-wide days with weather, the station list and coverage, as CSVs in a zip with a README of columns, sources and their terms, and known gaps
+- **Latest Readings** (the page opens here): built for the public, answer first. Delhi's **24-hour average** PM2.5 (the basis of CPCB's AQI) as one number and category, how many times India's and WHO's limits that is, how long the worst station has been above the Severe line ("14 hours in a row"), a **"bad air tomorrow?" alert** (the analysis's alert rule run on today's data and Open-Meteo's forecast, with its track record shown), what it means for health and what to do, and recent headlines from Google News. **"See the data behind it"** opens the rest: the latest and worst hour, an hour-by-hour line, every station's hours in a row above Severe and Very Poor, six pollutant tiles, a station map, and the most and least polluted stations. Data via OpenAQ, since CPCB's own live feed has been unreachable since October 2026
 - **Light and dark themes**, with a toggle in the header (follows the system setting until you choose)
 - **Install it as an app**: on Android, Windows, Mac and ChromeOS the header shows an *Install app* button (Chrome or Edge); on iPhone and iPad it explains Safari's *Add to Home Screen*. It opens full-screen with its own icon, and shows the last readings it saw when offline (`static/manifest.webmanifest`, `static/sw.js`)
 
@@ -177,6 +178,7 @@ pip install -r requirements.txt
 mkdir -p data/raw && cp data/seed/*.csv data/raw/
 python3 fetch_data.py         # clean + load into data/aqi.db
 python3 build_dashboard.py    # writes dashboard.html
+python3 build_download.py     # the cleaned-data zip served at /download/ (optional locally)
 
 # 2. Serve it with the API (needed for the station map)
 python3 -m uvicorn api.main:app --reload --port 8000
@@ -216,6 +218,7 @@ aqi-sql/
 ├── validate_backfill.py  runs the pre-registered backfill tests
 ├── aqi.py                CPCB AQI from concentrations
 ├── build_dashboard.py    renders dashboard.html from the queries
+├── build_download.py     the public cleaned-data zip (CSVs + README)
 ├── export_bi.py          CSVs for Tableau / Power BI
 ├── uncertainty.py        bootstrap / Wilson intervals → results/
 ├── results/              confidence intervals, backfill validation (pass and fail)

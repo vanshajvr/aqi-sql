@@ -1,5 +1,6 @@
 data/raw/
 data/*.db
+data/downloads/
 /dashboard.html
 __pycache__/
 *.pyc

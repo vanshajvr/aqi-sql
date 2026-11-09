@@ -625,6 +625,10 @@ header > .header-actions {
 .live-hero { display: grid; grid-template-columns: auto 1fr; gap: 12px 40px; align-items: center; }
 .live-hero .live-hero-row { margin-bottom: 0; }
 .live-hero-side .live-plain { margin-top: 0; }
+.live-streak { font-size: 14px; color: var(--text); margin: 12px 0 0; line-height: 1.5; }
+.live-streak b { color: var(--text-strong); }
+.live-streak-cols { margin-top: 12px; gap: 24px; }
+.live-streak-cols .rank-row { grid-template-columns: minmax(0, 150px) 1fr 44px; }
 .live-top .advice-grid { grid-template-columns: repeat(4, 1fr); flex: none; grid-auto-rows: auto; }
 @media (max-width: 1000px) { .live-top .advice-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 760px) {

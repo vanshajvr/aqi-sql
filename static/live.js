@@ -236,8 +236,64 @@ function renderHero(city, day, failed) {
     <div class="live-hero-side">
       <p class="live-plain">${plain} (60 µg/m³) · ${times(15).toFixed(0)}× the WHO guideline (15)</p>
       ${scaleBar("pm25", value, true)}
+      ${useDay ? streakLine(day) : ""}
       ${!useDay && !failed ? `<p class="live-pending"><span class="live-spinner"></span>Working out the 24-hour average…</p>` : ""}
     </div>`;
+}
+
+// ------------------------------------------------ exposure streaks
+// How long stations have been above a level, in hours in a row up to their
+// latest hour (api/latest.py streaks). Only stretches of 3+ hours are shown.
+const STREAK_MIN_HOURS = 3;
+const STREAK_LABELS = { severe: "Severe", very_poor: "Very Poor" };
+let liveNames = {};
+
+function streakHours(s) {
+  return s.at_least ? `${s.hours}+ hours` : `${s.hours} hour${s.hours === 1 ? "" : "s"}`;
+}
+
+function longStreaks(day, level) {
+  return ((day.streaks || {})[level] || []).filter((s) => s.hours >= STREAK_MIN_HOURS);
+}
+
+// One line on the answer card: the single longest stretch, Severe first
+function streakLine(day) {
+  if (!day || !day.streaks) return "";
+  for (const level of ["severe", "very_poor"]) {
+    const top = longStreaks(day, level)[0];
+    if (!top) continue;
+    const name = liveShort(liveNames[top.station_id] || top.station_id);
+    return `<p class="live-streak"><b>${name}</b> has been above ${day.streak_levels[level]} µg/m³
+      (${STREAK_LABELS[level]}) for <b>${streakHours(top)} in a row</b>.</p>`;
+  }
+  return "";
+}
+
+// Behind the button: every station with a long stretch, at both levels
+function renderStreaks(day) {
+  const el = document.getElementById("live-streaks");
+  if (!el) return;
+  if (!day || !day.streaks) { el.hidden = true; return; }
+  const column = (level) => {
+    const list = longStreaks(day, level);
+    const head = `<div class="live-eyebrow">Above ${day.streak_levels[level]} µg/m³ (${STREAK_LABELS[level]})</div>`;
+    if (!list.length) return `<div>${head}<p class="hint">No station for ${STREAK_MIN_HOURS} hours or more.</p></div>`;
+    const rows = list.slice(0, 8).map((s) => `<button type="button" class="rank-row" data-station="${s.station_id}">
+        <span class="rank-name">${liveShort(liveNames[s.station_id] || s.station_id)}</span>
+        <span class="rank-track"><span style="width:${Math.min(100, (100 * s.hours) / 24)}%;background:${BAND_COLORS[STREAK_LABELS[level]]}"></span></span>
+        <span class="rank-value">${s.hours}${s.at_least ? "+" : ""}h</span></button>`).join("");
+    const more = list.length > 8 ? `<p class="hint">and ${list.length - 8} more.</p>` : "";
+    return `<div>${head}<p class="hint">${list.length} station${list.length === 1 ? "" : "s"} for ${STREAK_MIN_HOURS}+ hours</p><div class="rank-list">${rows}</div>${more}</div>`;
+  };
+  el.hidden = false;
+  el.innerHTML = `
+    <h3>Hours in a row</h3>
+    <p class="hint">How long each station's hourly PM2.5 has stayed above a level, up to its latest reading: a long stretch matters more than one bad hour. CPCB defines these levels for 24-hour averages, so against single hours they're a guide. "24+h" means the whole period fetched.</p>
+    <div class="grid-2 live-streak-cols">${column("severe")}${column("very_poor")}</div>`;
+  el.querySelectorAll(".rank-row").forEach((row) => row.addEventListener("click", () => {
+    document.getElementById("live-map").scrollIntoView({ behavior: "smooth", block: "center" });
+    if (window.selectLiveStation) window.selectLiveStation(row.dataset.station);
+  }));
 }
 
 // Behind "See the data behind it": the day in detail
@@ -567,6 +623,7 @@ async function loadLiveBoard() {
   }
   if (status) status.hidden = true;
   document.getElementById("live-board").hidden = false;
+  liveNames = Object.fromEntries(data.stations.map((s) => [s.station_id, s.station_name]));
   if (data.city) {
     renderHero(data.city, null, false);
     renderHealth(data.city, null, false);
@@ -586,6 +643,7 @@ async function loadLiveBoard() {
     renderHero(data.city, day, false);
     renderHealth(data.city, day, false);
     renderDayDetail(data.city, day);
+    renderStreaks(day);
     renderRankings(data, day);
     if (window.applyLiveDay) window.applyLiveDay(day);
     loadTomorrow();                       // instant now: the 24-hour data is cached

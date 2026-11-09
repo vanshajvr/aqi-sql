@@ -28,7 +28,7 @@ COPY requirements.txt ./requirements.txt
 COPY api/requirements.txt ./api-requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt -r api-requirements.txt
 
-COPY fetch_data.py build_dashboard.py ./
+COPY fetch_data.py build_dashboard.py build_download.py export_bi.py ./
 COPY dashboard/ ./dashboard/
 COPY queries/ ./queries/
 COPY templates/ ./templates/
@@ -36,7 +36,7 @@ COPY static/ ./static/
 COPY api/*.py ./api/
 COPY data/seed/ ./data/raw/
 
-RUN python3 fetch_data.py && python3 build_dashboard.py
+RUN python3 fetch_data.py && python3 build_download.py && python3 build_dashboard.py
 
 EXPOSE 8000
 

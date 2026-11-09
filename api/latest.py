@@ -26,8 +26,17 @@ OpenAQ allows 60 requests a minute. The latest readings take one request per
 location and the 24-hour view one per PM2.5 sensor, so every request goes
 through one shared limiter (_RateLimiter) that waits rather than exceed it.
 
-build_latest(), summarise_city() and summarise_day() are pure functions and
-are what the tests cover; fetch_latest() and fetch_day() are the network part.
+Exposure streaks (streaks): how long each station has been above a level,
+in hours in a row up to its latest hour: "Anand Vihar: 14 hours in a row
+above 250". The levels are CPCB's Severe (250) and Very Poor (120) lines for
+PM2.5. Those are defined for 24-hour averages, so against hourly readings
+they're indicative, like every hourly category on the page. A single missing
+hour doesn't break a stretch (sensors drop an hour now and then); a stretch
+that starts at the beginning of the fetched 24 hours is marked at_least,
+because it may run further back.
+
+build_latest(), summarise_city(), summarise_day() and streaks() are pure
+functions and are what the tests cover; fetch_latest() and fetch_day() are the network part.
 """
 import csv
 import os
@@ -68,6 +77,8 @@ DAY_HOURS = 24
 MIN_DAY_HOURS = 16          # CPCB: a 24-hour average needs 16 of the 24 hours
 MIN_STATIONS_PER_HOUR = 5   # the city's hourly median needs this many stations
 REQUESTS_PER_MINUTE = 55    # OpenAQ allows 60; keep a margin
+STREAK_LEVELS = {"severe": 250, "very_poor": 120}   # CPCB PM2.5 lines (24-hour)
+STREAK_MAX_GAP_HOURS = 2    # consecutive readings this far apart still count as unbroken
 
 _cache = {"data": None, "fetched_at": 0.0}
 _day_cache = {"data": None, "fetched_at": 0.0}
@@ -259,6 +270,37 @@ def fetch_latest(stations, key=None, force_refresh=False):
     return data
 
 
+def streaks(series, start, end, levels=STREAK_LEVELS):
+    """
+    For each level, stations whose PM2.5 has stayed above it for one or more
+    hours in a row up to their latest hour, longest first. Only stations
+    reporting within the last STREAK_MAX_GAP_HOURS of `end` count: a stretch
+    must still be going on. series as in summarise_day; window (start, end].
+    """
+    gap = timedelta(hours=STREAK_MAX_GAP_HOURS)
+    out = {name: [] for name in levels}
+    for sid, points in series.items():
+        pts = sorted((t, v) for t, v in points if start < t <= end and v is not None and 0 <= v <= 1000)
+        if not pts or end - pts[-1][0] >= gap:
+            continue
+        for name, level in levels.items():
+            i = len(pts) - 1
+            if pts[i][1] <= level:
+                continue
+            while i > 0 and pts[i - 1][1] > level and pts[i][0] - pts[i - 1][0] <= gap:
+                i -= 1
+            first, last = pts[i][0], pts[-1][0]
+            out[name].append({
+                "station_id": sid,
+                "hours": int((last - first) / timedelta(hours=1)) + 1,
+                "since": (first - timedelta(hours=1)).isoformat(),   # start of the first hour
+                "at_least": i == 0 and first - start <= gap,
+            })
+    for name in out:
+        out[name].sort(key=lambda s: (-s["hours"], s["station_id"]))
+    return out
+
+
 def summarise_day(series, end):
     """
     series: station_id -> list of (hour_end, pm25), hour_end a timezone-aware
@@ -303,6 +345,8 @@ def summarise_day(series, end):
         "stations": stations,
         "most_polluted": [{"station_id": sid, "pm25_24h": averages[sid]} for sid in ranked[:5]],
         "cleanest": [{"station_id": sid, "pm25_24h": averages[sid]} for sid in ranked[::-1][:5]],
+        "streaks": streaks(series, start, end),
+        "streak_levels": STREAK_LEVELS,
     }
 
 

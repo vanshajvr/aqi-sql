@@ -50,6 +50,7 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
+  if (url.pathname.startsWith("/download/")) return;   // large file: straight to the network, never cached
   if (url.origin === self.location.origin) {
     event.respondWith(networkFirst(request));
   } else if (CDN.includes(url.hostname)) {

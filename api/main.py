@@ -19,6 +19,7 @@ DB_PATH = ROOT / "data" / "aqi.db"
 QUERIES_DIR = ROOT / "queries"
 DASHBOARD_HTML = ROOT / "dashboard.html"
 STATIC_DIR = ROOT / "static"
+DOWNLOAD_ZIP = ROOT / "data" / "downloads" / "delhi-air-quality.zip"   # build_download.py
 
 # Maps a friendly URL name to the .sql file that backs it, so
 # GET /api/queries/severity-breakdown runs 05_severity_breakdown.sql etc.
@@ -96,6 +97,14 @@ def manifest():
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     return FileResponse(STATIC_DIR / "icons" / "favicon.png", media_type="image/png")
+
+
+# The cleaned dataset (build_download.py, run during the Docker build)
+@app.get("/download/delhi-air-quality.zip", include_in_schema=False)
+def download_dataset():
+    if not DOWNLOAD_ZIP.exists():
+        raise HTTPException(status_code=404, detail="The dataset download hasn't been built (run build_download.py).")
+    return FileResponse(DOWNLOAD_ZIP, media_type="application/zip", filename="delhi-air-quality.zip")
 
 
 @app.get("/")

@@ -357,6 +357,7 @@
           <li><b>Measure:</b> PM2.5 throughout, on CPCB's PM2.5 bands, because the official AQI stops in 2020. The early-warning rules keep their original AQI design.</li>
           <li><b>Fair comparisons:</b> city-wide figures need &ge;5 reporting stations; trends compare the same stations; station rankings use network days (2018&ndash;2026, &ge;80% of stations reporting).</li>
           <li><b>Cleaning:</b> three sensor faults removed (Punjabi Bagh PM10 and ozone, early-2015 CO).</li>
+          <li><b>Download the data:</b> <a href="/download/delhi-air-quality.zip" download>the cleaned daily record</a> (zip of CSVs, about 2&nbsp;MB): every station-day 2015&ndash;2026 with six pollutants, city-wide days with weather, station list and coverage. A README inside lists the columns, sources and their terms, and the known gaps.</li>
           <li><b>Read more:</b> <a href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">findings memo</a> &middot; <a href="https://github.com/vanshajvr/aqi-sql/tree/main/queries" target="_blank" rel="noopener">SQL queries</a> &middot; <a href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">code</a></li>
         </ul>
       </div>
@@ -387,13 +388,15 @@
 
         <button type="button" class="live-more-btn" id="live-more-btn" aria-expanded="false" aria-controls="live-more">
           <span class="live-more-label">See the data behind it</span>
-          <span class="live-more-sub">hour by hour, every pollutant, all 37 stations on a map</span>
+          <span class="live-more-sub">hour by hour, hours in a row above Severe, every pollutant, all 37 stations on a map</span>
           <svg class="live-more-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
 
         <!-- For anyone who wants the numbers -->
         <section id="live-more" class="live-more" hidden aria-label="The data behind it">
           <div class="card" id="live-day"></div>
+
+          <div class="card" id="live-streaks" hidden></div>
 
           <div class="live-pollutants" id="live-pollutants"></div>
 
@@ -435,7 +438,7 @@
       </div>
     </div>
 
-    <footer>Data: Central Pollution Control Board (CPCB), via Kaggle, OpenAQ and CPCB's portal &middot; weather: ERA5 via Open-Meteo &middot; fires: NASA FIRMS &middot; built with SQL, Python and Plotly.</footer>
+    <footer>Data: Central Pollution Control Board (CPCB), via Kaggle, OpenAQ and CPCB's portal &middot; weather: ERA5 via Open-Meteo &middot; fires: NASA FIRMS &middot; <a href="/download/delhi-air-quality.zip" download>download the data</a> &middot; built with SQL, Python and Plotly.</footer>
   </div>
 
   <script>window.COMPARE_DATA = $compare_data_json;</script>

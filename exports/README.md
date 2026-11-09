@@ -18,7 +18,7 @@ is tracked.
 ### Base tables: for free exploration
 
 **`city_daily.csv`**: one row per day, the city-wide picture plus weather.
-Only days with at least 5 reporting stations (3,364 days, 2015–2026).
+Only days with at least 5 reporting stations (3,649 days, 2015–2026).
 
 | Column | Meaning |
 |---|---|
@@ -32,7 +32,7 @@ Only days with at least 5 reporting stations (3,364 days, 2015–2026).
 | `temp_mean_c`, `temp_min_c`, `wind_speed_kmh`, `wind_dir_deg`, `rain_mm`, `humidity_pct` | Daily weather, central Delhi (ERA5 via Open-Meteo) |
 | `mixing_height_mean_m` | Mean boundary layer height: how deep the air pollution can spread into (missing for January–June 2024 in the source) |
 
-**`station_daily.csv`**: one row per station per day (105,853 rows, 2015–2026):
+**`station_daily.csv`**: one row per station per day (119,984 rows, 2015–2026):
 `station_id`, `date`, `pm25`, `pm10`, `no2`, `so2`, `co`, `o3`, `pm25_category`,
 and `source` (Kaggle, CPCB or OpenAQ: where that day's PM2.5 came from).
 Join to `stations.csv` on `station_id`. Known sensor faults are already blanked
