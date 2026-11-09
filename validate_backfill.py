@@ -30,9 +30,11 @@ rules A and B on that. Written to results/alert_future_test.csv with Wilson
 intervals.
 
 Test C (analysis_plans/cpcb_gap_preregistration.md): the CPCB daily data
-(readings_cpcb) vs OpenAQ on every station-day both have, with Test A's
-criteria. Not blind (the agreement was seen before the plan was written); a
-documented gate. Written to results/cpcb_validation.csv.
+(readings_cpcb) from 2022 vs OpenAQ on every station-day both have, with Test
+A's criteria. Not blind (the agreement was seen before the plan was written); a
+documented gate. Test D (Amendment 2): the same criteria on the 2020-21 CPCB
+rows, against Kaggle (D1, Jan - Jun 2020) and OpenAQ (D2, Jul 2020 - Dec
+2021). Both written to results/cpcb_validation.csv.
 
 Eight-winter then vs now and the alert gap period
 (analysis_plans/cpcb_gap_preregistration.md): the trend in query 25's
@@ -100,16 +102,25 @@ def test_a(conn):
     return rows, pm25
 
 
-def test_c(conn):
-    pairs = pd.read_sql_query("""
+CPCB_CHECKS = [
+    # (test, other table, from, to): Test C, then Amendment 2's Test D
+    ("C", "readings_openaq", "2022-01-01", "2099-12-31"),
+    ("D1 (vs Kaggle, Jan-Jun 2020)", "readings", "2020-01-01", "2020-06-30"),
+    ("D2 (vs OpenAQ, Jul 2020-Dec 2021)", "readings_openaq", "2020-07-01", "2021-12-31"),
+]
+
+
+def cpcb_agreement(conn, test, other, start, end):
+    pairs = pd.read_sql_query(f"""
         SELECT c.pm25 AS c_pm25, o.pm25 AS o_pm25, c.pm10 AS c_pm10, o.pm10 AS o_pm10
         FROM readings_cpcb c
-        JOIN readings_openaq o ON o.station_id = c.station_id AND o.date = c.date
-    """, conn)
+        JOIN {other} o ON o.station_id = c.station_id AND o.date = c.date
+        WHERE c.date BETWEEN ? AND ?
+    """, conn, params=(start, end))
     rows = []
 
     def add(check, value, threshold, passed, n):
-        rows.append({"test": "C", "check": check, "value": round(value, 3), "threshold": threshold,
+        rows.append({"test": test, "check": check, "value": round(value, 3), "threshold": threshold,
                      "passed": passed, "n_station_days": n, "kind": "criterion"})
 
     pm25 = pairs.dropna(subset=["c_pm25", "o_pm25"])
@@ -120,6 +131,11 @@ def test_c(conn):
     add("PM10 Pearson r", r10, ">= 0.90", bool(r10 >= 0.90), len(pm10))
     rel = ((pm25["c_pm25"] - pm25["o_pm25"]).abs() / pm25["o_pm25"]).median() * 100
     add("PM2.5 median absolute difference (%)", rel, "<= 15", bool(rel <= 15), len(pm25))
+    return rows
+
+
+def test_c(conn):
+    rows = [r for check in CPCB_CHECKS for r in cpcb_agreement(conn, *check)]
     out = pd.DataFrame(rows)
     out.to_csv(OUT_PATH.with_name("cpcb_validation.csv"), index=False)
     return out
@@ -255,6 +271,30 @@ def then_vs_now_trend(conn):
     diff = 100 * (cp - oa) / oa
     rows.append({"analysis": "2025-26 mean PM2.5, CPCB vs OpenAQ (% difference)", "kind": "sensitivity",
                  "value": round(diff, 1), "result": "agree (within 5%)" if abs(diff) <= 5 else "differ (over 5%)"})
+
+    # Post hoc (Amendment 2): CPCB instead of OpenAQ for Jul 2020 - Dec 2021
+    q25 = (ROOT / "queries" / "25_then_vs_now_8_winters.sql").read_text()
+    oa_block = ("SELECT station_id, date, pm25 FROM readings_openaq\n"
+                "    WHERE pm25 IS NOT NULL AND date BETWEEN '2020-07-01' AND '2021-12-31'")
+    assert oa_block in q25, "query 25's OpenAQ block has changed"
+    q25c = q25.replace(oa_block, oa_block.replace("readings_openaq", "readings_cpcb"))
+    body = q25c[q25c.index("WITH "):q25c.rindex("SELECT\n")]
+    dc = pd.read_sql_query(body + "SELECT date, month, season_start, pm25, rain_mm, expected_pm25 FROM winter",
+                           conn)
+    dc["week"] = pd.to_datetime(dc["date"]).dt.strftime("%G-%V")
+    est = slope(dc)
+    lo, hi = np.percentile(winter_bootstrap(dc, slope, TREND_RESAMPLES, rng), [2.5, 97.5])
+    rows.append({"analysis": "Trend in weather-adjusted ratio: 8 winters, CPCB for Jul 2020 - Dec 2021",
+                 "kind": "post hoc", "value": round(est, 4), "ci_low": round(lo, 4), "ci_high": round(hi, 4),
+                 "unit": "ratio per winter", "result": verdict(lo, hi),
+                 "n_winters": dc["season_start"].nunique(), "n_days": len(dc)})
+    tc = pd.read_sql_query(q25c, conn).set_index("winter")
+    for w in ("2020-21", "2021-22"):
+        for col, label in (("mean_pm25", "mean PM2.5"), ("pct_days_over_250", "% of days over 250"),
+                           ("weather_adjusted_ratio", "weather-adjusted ratio")):
+            rows.append({"analysis": f"{w} {label}, CPCB for Jul 2020 - Dec 2021", "kind": "post hoc",
+                         "value": float(tc.loc[w, col]), "n_days": int(tc.loc[w, "n_days"])})
+
     out = pd.DataFrame(rows)
     out.to_csv(OUT_PATH.with_name("then_vs_now_trend.csv"), index=False)
     return out, t25
@@ -281,7 +321,8 @@ def main():
     test_c_rows = test_c(conn)
     conn.close()
     print("\n" + test_c_rows.to_string(index=False))
-    print(f"Test C (CPCB data): {'PASS' if test_c_rows['passed'].all() else 'FAIL'}")
+    for test, rows_t in test_c_rows.groupby("test", sort=False):
+        print(f"Test {test} (CPCB data): {'PASS' if rows_t['passed'].all() else 'FAIL'}")
 
     conn = sqlite3.connect(DB_PATH)
     alerts, passed = alert_future(conn)

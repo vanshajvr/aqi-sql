@@ -2,3 +2,9 @@ test,check,value,threshold,passed,n_station_days,kind
 C,PM2.5 Pearson r,0.958,>= 0.95,True,22230,criterion
 C,PM10 Pearson r,0.986,>= 0.90,True,22344,criterion
 C,PM2.5 median absolute difference (%),1.144,<= 15,True,22230,criterion
+"D1 (vs Kaggle, Jan-Jun 2020)",PM2.5 Pearson r,0.998,>= 0.95,True,6147,criterion
+"D1 (vs Kaggle, Jan-Jun 2020)",PM10 Pearson r,0.998,>= 0.90,True,5393,criterion
+"D1 (vs Kaggle, Jan-Jun 2020)",PM2.5 median absolute difference (%),1.946,<= 15,True,6147,criterion
+"D2 (vs OpenAQ, Jul 2020-Dec 2021)",PM2.5 Pearson r,0.96,>= 0.95,True,6191,criterion
+"D2 (vs OpenAQ, Jul 2020-Dec 2021)",PM10 Pearson r,0.98,>= 0.90,True,6112,criterion
+"D2 (vs OpenAQ, Jul 2020-Dec 2021)",PM2.5 median absolute difference (%),3.396,<= 15,True,6191,criterion

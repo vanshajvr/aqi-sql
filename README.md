@@ -1,6 +1,6 @@
 # aqi-sql
 
-### Delhi's air, read through 106,000 days of sensor data
+### Delhi's air, read through 120,000 days of sensor data
 
 [![CI](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml/badge.svg)](https://github.com/vanshajvr/aqi-sql/actions/workflows/ci.yaml)
 
@@ -18,8 +18,8 @@ and whether anything has improved. All of the analysis is in SQL.
 
 **Winter smog is mostly the weather.** In winter, the layer of air pollution
 can spread into shrinks to about a third of its summer depth, like a lid
-pressing down on the city. On **86% of December days** (2015–2026) PM2.5 was
-"Very Poor" or worse, yet December is only 9–17% above what its weather alone
+pressing down on the city. On **88% of December days** (2015–2026) PM2.5 was
+"Very Poor" or worse, yet December is only 8–18% above what its weather alone
 predicts.
 
 **Crop burning is a four-week burst.** From late October to mid-November,
@@ -28,12 +28,12 @@ comes close. Adding NASA satellite fire counts for eleven seasons, the days afte
 season's heaviest burning run at **2.3× the weather prediction when the wind
 blows from Punjab**, against 1.7× in other winds.
 
-**The haze never really leaves.** In the seven complete years, PM2.5 broke
-India's own 24-hour limit on **64% of days**, and met the WHO guideline on 9
-days out of 2,515.
+**The haze never really leaves.** In the eight complete years, PM2.5 broke
+India's own 24-hour limit on **63% of days**, and met the WHO guideline on 8
+days out of 2,922.
 
 **PM2.5 is regional; traffic pollution is local.** The dirtiest station has
-1.6× the PM2.5 of the cleanest, but **4.3× the NO2**. The 2020 lockdown
+1.6× the PM2.5 of the cleanest, but **4.4× the NO2**. The 2020 lockdown
 confirms it: NO2 fell 41–57%, PM2.5 only 20–47%, and about half the PM2.5
 stayed with the city switched off.
 
@@ -51,7 +51,7 @@ On data from after 2020, it failed its pre-registered two-period test
 passed a third unseen period added later (81% of 27).
 
 **And it isn't measurably better yet.** Bringing the data forward to 2026
-(OpenAQ for 2020–21, then CPCB's own records, each checked before use) gives
+(CPCB's own records, with OpenAQ filling gaps, each checked before use) gives
 eight winters, none missing. Severe winter days are rarer in most recent
 winters, but by a trend rule fixed in advance, winter pollution for the same
 weather shows **no clear trend** since 2018. And while satellite-detected
@@ -93,11 +93,10 @@ What this means for policy, and what I'm less sure about, is in
 
 **Sources:** CPCB station readings via
 [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india)
-(official government data, 2015–2020), the same stations for 2022–2026 from
+(official government data, 2015–2020), the same stations for 2020–2026 from
 CPCB's own portal (downloaded by hand: daily values per station), and
-[OpenAQ](https://openaq.org/)'s archive for the gaps, including mid-2020 to
-2021. All three are combined in one view, `readings_all`, with one value per
-station-day, and every analysis uses PM2.5, because the official AQI stops in
+[OpenAQ](https://openaq.org/)'s archive for the gaps. All three are combined
+in one view, `readings_all`, with one value per station-day, and every analysis uses PM2.5, because the official AQI stops in
 2020. Daily Delhi weather comes from the
 [Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api)
 (ERA5 reanalysis: mixing height, wind, rain, temperature), and daily crop-fire
@@ -116,7 +115,7 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | East Arjun Nagar logged 1,553 readings, all with no AQI | Dropped |
 | Counting each station's reading separately let one bad day count up to 37 times | Every "share of days" counts city-days |
 | OpenAQ labels some CO, NO2 and SO2 feeds with the wrong units (e.g. "ppb" on values that are clearly mg/m³) | Units decided from magnitudes against the Kaggle era, rules documented in `prepare_openaq.py` |
-| OpenAQ has **no Delhi data from November 2022 to February 2025**, and is missing most of February 2022 | CPCB's own daily records fill it; they match OpenAQ (PM2.5 r 0.96, median difference 1.1%) and are used for every day from 2022 ([pre-registered](analysis_plans/cpcb_gap_preregistration.md)). A stand-in monitor tried first failed its test ([plan](analysis_plans/backfill_preregistration.md)) |
+| OpenAQ has **no Delhi data from November 2022 to February 2025**, is missing most of February 2022, and has only about 30% of station-days for mid-2020 to 2021 | CPCB's own daily records fill it; they match OpenAQ (PM2.5 r 0.96, median difference 1.1%) and are used for every day they cover from July 2020 ([pre-registered](analysis_plans/cpcb_gap_preregistration.md); the 2020–21 download matches the official data at r 0.998). A stand-in monitor tried first failed its test ([plan](analysis_plans/backfill_preregistration.md)) |
 | The weather record has **no mixing height for January–June 2024** (ERA5 on Open-Meteo, and four other models checked) | 2023–24's weather adjustment covers November–December only, and alert days without a forecast are left out, both written down before the affected results were computed |
 
 ## The queries
@@ -188,7 +187,7 @@ python3 fetch_fires.py        # crop fires, incremental (needs FIRMS_MAP_KEY; al
 python3 fetch_openaq.py       # raw 2020-26 station data (needs OPENAQ_API_KEY; ~15 min)
 python3 fetch_openaq.py --since 2026-10-01   # top up recent days only (~4 min), then prepare_openaq.py
 python3 prepare_openaq.py     # units + stitching -> data/seed/openaq_daily.csv (already committed)
-python3 prepare_cpcb.py       # CPCB 2022-26 daily file -> data/seed/cpcb_daily.csv (already committed)
+python3 prepare_cpcb.py       # CPCB 2020-21 + 2022-26 daily files -> data/seed/cpcb_daily.csv (already committed)
 python3 validate_backfill.py  # the pre-registered tests -> results/
 python3 export_bi.py          # tidy CSVs for Tableau / Power BI, see exports/README.md
 python3 uncertainty.py        # 95% intervals -> results/ (~15 min, fixed seed)
@@ -213,7 +212,7 @@ aqi-sql/
 ├── fetch_fires.py        NASA FIRMS crop-fire download (incremental)
 ├── fetch_openaq.py       OpenAQ download (stations + US Embassy)
 ├── prepare_openaq.py     OpenAQ unit rules + sensor stitching
-├── prepare_cpcb.py       CPCB 2022-26 daily data: station mapping + value checks
+├── prepare_cpcb.py       CPCB 2020-26 daily data: station mapping + value checks
 ├── validate_backfill.py  runs the pre-registered backfill tests
 ├── aqi.py                CPCB AQI from concentrations
 ├── build_dashboard.py    renders dashboard.html from the queries
@@ -260,9 +259,6 @@ aqi-sql/
   from the afternoon overpass, but neither VIIRS pass sees fires lit in the
   evening and out by 01:30. Geostationary satellites (e.g. INSAT-3D) image
   every 15–30 minutes and could measure how much burning is now hidden.
-- **Download CPCB's 2020–21 data** the same way as 2022–26. Mid-2020 to 2021 is
-  the one stretch still resting on OpenAQ alone (about 30% of station-days), and
-  `readings_all` would pick it up with no code changes.
 
 ### Beyond Delhi: pollution across India
 

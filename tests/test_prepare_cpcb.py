@@ -1,7 +1,7 @@
 """Tests for the CPCB daily file's station mapping and value checks."""
 import pandas as pd
 
-from prepare_cpcb import SITE_TO_STATION, prepare
+from prepare_cpcb import SITE_TO_STATION, prepare, to_2022_layout
 
 
 def row(site, date, pm25=None, pm10=None, co=None, **extra):
@@ -37,3 +37,18 @@ def test_empty_days_dropped():
 def test_mapping_is_one_to_one_over_37_stations():
     assert len(SITE_TO_STATION) == 37
     assert len(set(SITE_TO_STATION.values())) == 37
+
+
+def test_2020_21_file_maps_onto_the_same_stations_and_columns():
+    # The 2020-21 download: numeric site ids, its own column names, extra columns
+    raw = pd.DataFrame([
+        {"date": "2021-11-05", "year": 2021, "site_id": 109, "station": "IMD Lodhi Road", "agency": "IMD",
+         "pm25_ugm3": 310.5, "pm10_ugm3": 450.0, "no2_ugm3": 60.0, "so2_ugm3": 9.0, "co_mgm3": 2.1,
+         "ozone_ugm3": 20.0, "at_c": 18.0, "rain_suspect": False},
+        {"date": "2021-11-05", "year": 2021, "site_id": 5393, "station": "Chandni Chowk", "agency": "IITM",
+         "pm25_ugm3": 280.0, "pm10_ugm3": None, "no2_ugm3": None, "so2_ugm3": None, "co_mgm3": None,
+         "ozone_ugm3": None, "at_c": None, "rain_suspect": False},
+    ])
+    out = prepare(to_2022_layout(raw))
+    assert out.to_dict("records") == [{"station_id": "DL017", "date": "2021-11-05", "pm25": 310.5,
+                                       "pm10": 450.0, "no2": 60.0, "so2": 9.0, "co": 2.1, "o3": 20.0}]

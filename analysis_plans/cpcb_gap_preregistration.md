@@ -158,3 +158,43 @@ winters).
    next-day mixing height is missing are excluded from every rule's scoring
    (query 26). This changes nothing in query 24's periods, where the weather is
    complete. No alert score had been looked at when this was decided.
+
+## Amendment 2: CPCB data for 2020–2021
+
+Made **2026-11-09, after profiling the new file (row counts, stations, value
+ranges) and before comparing it with any other source or computing anything
+from it.**
+
+**What was added:** CPCB's daily data for Delhi for **1 January 2020 –
+31 December 2021**, downloaded from the same portal and combined by hand
+(`data/raw/cpcb_combined_2020_2021.csv`). `prepare_cpcb.py` maps it onto the
+same 37 stations with the same cleaning rules, into the same `readings_cpcb`
+table. The 2022–26 rows are unchanged, byte for byte.
+
+**What it changes:** the `readings_all` view already took CPCB wherever it
+has a value from July 2020, so July 2020 – December 2021 there now comes from
+CPCB instead of OpenAQ. Kaggle stays the source to 30 June 2020.
+
+**What it doesn't change:** everything pre-registered above. Queries 19, 20,
+24 and 25 name their source for each date range, so they still read OpenAQ
+for July 2020 – December 2021 and their published results stand. Test C is
+restricted to 2022 onwards, the data it was defined on (22,230 station-days).
+
+**Test D: data quality gate for the 2020–21 rows.** Test C's three criteria
+(PM2.5 r ≥ 0.95, PM10 r ≥ 0.90, PM2.5 median absolute difference ≤ 15%), on
+two comparisons:
+
+| Comparison | Station-days |
+|---|---|
+| D1: CPCB vs Kaggle, 1 January – 30 June 2020 | both have the day |
+| D2: CPCB vs OpenAQ, 1 July 2020 – 31 December 2021 | both have the day |
+
+Kaggle is CPCB's own data, so D1 should agree almost exactly; D2 is the same
+check Test C made for 2022–26. If either fails, the 2020–21 rows are left out
+of `readings_all` and the reason is reported.
+
+**One post-hoc check, labelled as such:** the eight-winter analysis (query 25)
+re-run with CPCB instead of OpenAQ for July 2020 – December 2021, which
+changes the 2020–21 and 2021–22 winters. It's reported beside the
+pre-registered result, which stays the primary one. The eight-winter table
+had been seen; nothing from the 2020–21 CPCB rows had.

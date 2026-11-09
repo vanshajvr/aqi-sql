@@ -1,15 +1,24 @@
 """
 prepare_cpcb.py
 
-Turns the CPCB daily download (data/raw/cpcb_combined_2022_2026.csv: CPCB's
-"Raw_Data_<year>_<site>_1D" files for Delhi, combined) into
-data/seed/cpcb_daily.csv: one row per station per day, one column per
+Turns the CPCB daily downloads into data/seed/cpcb_daily.csv. There are two,
+in different layouts, both CPCB's "Raw_Data_<year>_<site>_1D" files for Delhi,
+combined:
+
+  data/raw/cpcb_combined_2022_2026.csv   1 Jan 2022 - 31 Aug 2026
+  data/raw/cpcb_combined_2020_2021.csv   1 Jan 2020 - 31 Dec 2021 (added
+                                         later; numeric site ids, its own
+                                         column names, mapped onto the first)
+
+The output is one row per station per day, one column per
 pollutant, in the same layout and units as openaq_daily.csv. fetch_data.py
 loads it into its own `readings_cpcb` table, so nothing published from the
 Kaggle or OpenAQ data changes.
 
 This is the source that covers November 2022 - February 2025, which OpenAQ
-doesn't have. How it's used is pre-registered in
+doesn't have, and it replaces OpenAQ's patchy coverage of July 2020 -
+December 2021 in the readings_all view. The pre-registered queries (19, 20,
+24, 25) pin their sources by date, so the 2020-21 rows don't change them. How it's used is pre-registered in
 analysis_plans/cpcb_gap_preregistration.md.
 
 Rules, in order:
@@ -17,8 +26,9 @@ Rules, in order:
 1. Stations: only our 37 stations, matched by CPCB site id (SITE_TO_STATION).
    Names differ in small ways (stations we label "IMD" are run by IITM now).
    Lodhi Road has two CPCB sites; site_109 is ours (daily PM2.5 r 0.994
-   against OpenAQ's Lodhi Road, against 0.52 for site_5395). The file's
-   nine newer stations are left out, so the station set stays comparable.
+   against OpenAQ's Lodhi Road, against 0.52 for site_5395). The newer
+   stations (and Chandni Chowk, 5393, in the 2020-21 file) are left out, so
+   the station set stays comparable.
 2. Values: drop values <= 0 (CO has ~450 exact zeros, which are dropouts),
    and PM values above 999 ug/m3 (the instrument ceiling of 1,000; the same
    cut-off as the OpenAQ and embassy rules).
@@ -36,10 +46,15 @@ import pandas as pd
 
 ROOT = Path(__file__).parent
 RAW_PATH = ROOT / "data" / "raw" / "cpcb_combined_2022_2026.csv"
+RAW_PATH_2020_21 = ROOT / "data" / "raw" / "cpcb_combined_2020_2021.csv"
 OUT_PATH = ROOT / "data" / "seed" / "cpcb_daily.csv"
 POLLUTANTS = ["pm25", "pm10", "no2", "so2", "co", "o3"]
 COLUMNS = {"PM2.5 (µg/m³)": "pm25", "PM10 (µg/m³)": "pm10", "NO2 (µg/m³)": "no2",
            "SO2 (µg/m³)": "so2", "CO (mg/m³)": "co", "Ozone (µg/m³)": "o3"}
+# The 2020-21 file's names for the same columns
+COLUMNS_2020_21 = {"pm25_ugm3": "PM2.5 (µg/m³)", "pm10_ugm3": "PM10 (µg/m³)",
+                   "no2_ugm3": "NO2 (µg/m³)", "so2_ugm3": "SO2 (µg/m³)",
+                   "co_mgm3": "CO (mg/m³)", "ozone_ugm3": "Ozone (µg/m³)", "date": "timestamp"}
 PM_MAX = 999
 
 SITE_TO_STATION = {
@@ -83,6 +98,13 @@ SITE_TO_STATION = {
 }
 
 
+def to_2022_layout(raw_2020_21):
+    """The 2020-21 file in the 2022-26 file's layout: site ids as "site_<n>"."""
+    df = raw_2020_21.rename(columns=COLUMNS_2020_21)
+    df["site_id"] = "site_" + df["site_id"].astype(str)
+    return df[["site_id", "timestamp"] + list(COLUMNS.keys())]
+
+
 def prepare(raw):
     df = raw[raw["site_id"].isin(SITE_TO_STATION)].rename(columns=COLUMNS)
     df = df.assign(station_id=df["site_id"].map(SITE_TO_STATION),
@@ -98,7 +120,11 @@ def prepare(raw):
 
 def main():
     raw = pd.read_csv(RAW_PATH)
+    if RAW_PATH_2020_21.exists():
+        raw = pd.concat([to_2022_layout(pd.read_csv(RAW_PATH_2020_21)), raw], ignore_index=True)
     out = prepare(raw)
+    dupes = out.duplicated(["station_id", "date"]).sum()
+    assert dupes == 0, f"{dupes} station-days appear in both downloads"
     out.to_csv(OUT_PATH, index=False, float_format="%.3f")
     print(f"{len(raw):,} rows ({raw['site_id'].nunique()} sites) -> {len(out):,} station-days "
           f"({out['station_id'].nunique()} stations, {out['date'].min()} to {out['date'].max()})")

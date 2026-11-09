@@ -99,9 +99,9 @@ def drop_implausible_co(readings):
 #   to 30 Jun 2020   Kaggle (official CPCB data)
 #   from Jul 2020    CPCB's own daily data (Test C: results/cpcb_validation.csv)
 #                    wherever it has a value, otherwise OpenAQ (Test A:
-#                    results/backfill_validation.csv). The CPCB file starts in
-#                    2022, so Jul 2020 - Dec 2021 is OpenAQ, and patchy; a CPCB
-#                    download for those years would slot in with no changes.
+#                    results/backfill_validation.csv). CPCB's downloads cover
+#                    2020-21 and 2022-26 (Tests C and D in
+#                    results/cpcb_validation.csv).
 # `source` names where the day's PM2.5 came from. The official AQI exists only
 # in the Kaggle era, so the analyses use concentrations (PM2.5 above all).
 READINGS_ALL_VIEW = """

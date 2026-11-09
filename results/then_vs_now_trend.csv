@@ -7,3 +7,10 @@ Lowest weather-adjusted ratio of the eight winters,secondary,0.94,,,,2022-23 (no
 "2023-24 % of days over 120, all days",post hoc,76.0,,,,,,121.0
 "2023-24 % of days over 250, all days",post hoc,11.6,,,,,,121.0
 "2025-26 mean PM2.5, CPCB vs OpenAQ (% difference)",sensitivity,-1.0,,,,agree (within 5%),,
+"Trend in weather-adjusted ratio: 8 winters, CPCB for Jul 2020 - Dec 2021",post hoc,-0.012,-0.0422,0.0244,ratio per winter,no clear trend,8.0,902.0
+"2020-21 mean PM2.5, CPCB for Jul 2020 - Dec 2021",post hoc,169.1,,,,,,120.0
+"2020-21 % of days over 250, CPCB for Jul 2020 - Dec 2021",post hoc,12.5,,,,,,120.0
+"2020-21 weather-adjusted ratio, CPCB for Jul 2020 - Dec 2021",post hoc,1.19,,,,,,120.0
+"2021-22 mean PM2.5, CPCB for Jul 2020 - Dec 2021",post hoc,162.5,,,,,,120.0
+"2021-22 % of days over 250, CPCB for Jul 2020 - Dec 2021",post hoc,10.0,,,,,,120.0
+"2021-22 weather-adjusted ratio, CPCB for Jul 2020 - Dec 2021",post hoc,1.05,,,,,,120.0

@@ -7,8 +7,8 @@
 -- Unit: one city-wide value per day (mean across reporting stations), same
 -- rule as 04: a day needs >= 5 stations. Reported per calendar year; only
 -- years that have ENDED (the data runs past 31 December) and have at least
--- 300 qualifying days are complete enough to compare (2018-2020 and
--- 2022-2025; see 08_coverage.sql). The current year never counts, however
+-- 300 qualifying days are complete enough to compare (2018-2025; see
+-- 08_coverage.sql). The current year never counts, however
 -- many days it has: it misses the months still to come.
 WITH city_daily AS (
     SELECT date, AVG(pm25) AS pm25

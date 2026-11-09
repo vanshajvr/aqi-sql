@@ -1,19 +1,19 @@
 metric,estimate,ci_low,ci_high,unit,method,note
-% of December days Very Poor or worse,85.862,79.668,92.164,% of days,week-block bootstrap,"city PM2.5 > 120, 2015-2026"
-% of March-September days Very Poor or worse,3.778,2.623,5.092,% of days,week-block bootstrap,"city PM2.5 > 120, 2015-2026"
-"PM2.5 vs weather-predicted, late October",1.487,1.248,1.75,ratio (1 = weather explains it),week-block bootstrap,
-"PM2.5 vs weather-predicted, early November",2.135,1.842,2.501,ratio (1 = weather explains it),week-block bootstrap,
-"PM2.5 vs weather-predicted, early December",1.086,1.007,1.171,ratio (1 = weather explains it),week-block bootstrap,
+% of December days Very Poor or worse,87.748,82.352,93.091,% of days,week-block bootstrap,"city PM2.5 > 120, 2015-2026"
+% of March-September days Very Poor or worse,3.621,2.536,4.81,% of days,week-block bootstrap,"city PM2.5 > 120, 2015-2026"
+"PM2.5 vs weather-predicted, late October",1.465,1.224,1.734,ratio (1 = weather explains it),week-block bootstrap,
+"PM2.5 vs weather-predicted, early November",2.12,1.824,2.494,ratio (1 = weather explains it),week-block bootstrap,
+"PM2.5 vs weather-predicted, early December",1.084,1.01,1.168,ratio (1 = weather explains it),week-block bootstrap,
 Lockdown effect on NO2 (lower bound),-41.3,-49.705,-28.418,percentage points,"station bootstrap, re-running 09",
 Lockdown effect on PM10 (lower bound),-36.8,-40.305,-33.5,percentage points,"station bootstrap, re-running 09",
 Lockdown effect on PM2.5 (lower bound),-19.9,-25.3,-13.695,percentage points,"station bootstrap, re-running 09",
 Lockdown: NO2 effect minus PM2.5 effect,-21.4,-28.652,-12.895,percentage points,"station bootstrap, re-running 09",negative = NO2 fell more; 100.0% of resamples
-"Dirtiest / cleanest station, NO2",4.3,2.329,4.355,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
-"Dirtiest / cleanest station, PM2.5",1.64,1.525,1.64,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
-"Spread ratio, NO2 / PM2.5",2.622,1.468,2.685,ratio,"station bootstrap, re-running 10",NO2 spread wider in 100.0% of resamples
-"Fire effect (most minus fewest fires), north-westerly wind",1.015,0.601,1.456,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
-"Fire effect (most minus fewest fires), other wind",0.317,-0.009,0.618,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
-Fire effect: north-westerly minus other wind,0.697,0.209,1.252,change in excess ratio,week-block bootstrap,positive = smoke arrives with the wind; 99.7% of resamples
+"Dirtiest / cleanest station, NO2",4.45,2.33,4.52,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
+"Dirtiest / cleanest station, PM2.5",1.65,1.525,1.66,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
+"Spread ratio, NO2 / PM2.5",2.697,1.528,2.79,ratio,"station bootstrap, re-running 10",NO2 spread wider in 100.0% of resamples
+"Fire effect (most minus fewest fires), north-westerly wind",0.986,0.565,1.461,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
+"Fire effect (most minus fewest fires), other wind",0.365,0.051,0.649,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
+Fire effect: north-westerly minus other wind,0.621,0.124,1.177,change in excess ratio,week-block bootstrap,positive = smoke arrives with the wind; 99.2% of resamples
 "Severe days (PM2.5 > 250), winter 2025-26 minus 2018-20",-11.016,-18.878,-2.754,percentage points,week-block bootstrap,negative = better now; 99.5% of resamples
 "Weather-adjusted ratio, winter 2025-26 minus 2018-20",-0.089,-0.333,0.161,ratio,week-block bootstrap,negative = better now; 78.4% of resamples
 "Smoke-window weather-adjusted ratio, 2025 minus 2018-21",-0.097,-0.495,0.271,ratio,week-block bootstrap,16 Oct - 15 Nov; negative = less excess now; 66.1% of resamples
