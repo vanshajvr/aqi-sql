@@ -8,9 +8,9 @@ Lockdown effect on NO2 (lower bound),-41.3,-50.252,-30.548,percentage points,"st
 Lockdown effect on PM10 (lower bound),-36.8,-40.252,-32.8,percentage points,"station bootstrap, re-running 09",
 Lockdown effect on PM2.5 (lower bound),-19.9,-25.2,-13.048,percentage points,"station bootstrap, re-running 09",
 Lockdown: NO2 effect minus PM2.5 effect,-21.4,-29.5,-13.4,percentage points,"station bootstrap, re-running 09",negative = NO2 fell more; 100.0% of resamples
-"Dirtiest / cleanest station, NO2",4.34,2.274,4.41,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
-"Dirtiest / cleanest station, PM2.5",1.63,1.515,1.64,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
-"Spread ratio, NO2 / PM2.5",2.663,1.458,2.711,ratio,"station bootstrap, re-running 10",NO2 spread wider in 100.0% of resamples
+"Dirtiest / cleanest station, NO2",4.3,2.269,4.36,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
+"Dirtiest / cleanest station, PM2.5",1.64,1.51,1.64,ratio,"station bootstrap, re-running 10","max/min of a resample is biased low; compare the two, not the levels"
+"Spread ratio, NO2 / PM2.5",2.622,1.451,2.691,ratio,"station bootstrap, re-running 10",NO2 spread wider in 100.0% of resamples
 "Fire effect (most minus fewest fires), north-westerly wind",1.015,0.61,1.451,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
 "Fire effect (most minus fewest fires), other wind",0.317,-0.041,0.608,change in excess ratio,week-block bootstrap,"15 Oct - 30 Nov, dry days, Diwali weeks excluded"
 Fire effect: north-westerly minus other wind,0.697,0.195,1.236,change in excess ratio,week-block bootstrap,positive = smoke arrives with the wind; 99.7% of resamples
