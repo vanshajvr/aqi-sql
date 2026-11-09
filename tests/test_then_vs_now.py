@@ -237,3 +237,28 @@ def test_alert_gap_period_and_missing_weather_excluded():
     gap, later = rows[("future 2022-25", "E")], rows[("sensitivity 2025-26", "E")]
     assert (gap["n_days"], gap["n_onsets"], gap["n_onsets_warned"]) == (3, 1, 1)
     assert gap["rule_e_pass"] == 1 and later["n_onsets"] == 1
+
+
+def test_station_years_coverage_and_incomplete_year():
+    """
+    28: a station-year needs >= 15% of the year's days to appear, and is
+    'partial' below 55%. The last year runs only to the data's last day, so
+    it's flagged incomplete and its coverage is measured against those days.
+    """
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE readings (station_id TEXT, date TEXT, pm25 REAL)")
+    c.execute("CREATE TABLE readings_cpcb (station_id TEXT, date TEXT, pm25 REAL)")
+    y2019 = [(date(2019, 1, 1) + timedelta(days=i)).isoformat() for i in range(365)]
+    c.executemany("INSERT INTO readings VALUES ('FULL', ?, 100)", [(d,) for d in y2019[:300]])   # 82%
+    c.executemany("INSERT INTO readings VALUES ('PART', ?, 200)", [(d,) for d in y2019[:100]])   # 27%
+    c.executemany("INSERT INTO readings VALUES ('THIN', ?, 300)", [(d,) for d in y2019[:40]])    # 11%: dropped
+    # 2025: data runs to 31 Jan only, so 31 days in range
+    c.executemany("INSERT INTO readings_cpcb VALUES ('FULL', ?, 80)",
+                  [((date(2025, 1, 1) + timedelta(days=i)).isoformat(),) for i in range(31)])
+    rows = {(r["station_id"], r["year"]): r for r in run_query(c, "28_station_years.sql")}
+    assert rows[("FULL", 2019)]["coverage"] == "full" and rows[("FULL", 2019)]["mean_pm25"] == 100.0
+    assert rows[("PART", 2019)]["coverage"] == "partial"
+    assert ("THIN", 2019) not in rows
+    assert rows[("FULL", 2019)]["year_complete"] == 1
+    last = rows[("FULL", 2025)]
+    assert (last["days_in_range"], last["coverage"], last["year_complete"]) == (31, "full", 0)

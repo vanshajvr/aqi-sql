@@ -75,7 +75,7 @@ What this means for policy, and what I'm less sure about, is in
  Kaggle CPCB data ───┐
  OpenAQ (2020-26) ───┤
  CPCB (2022-26) ─────┤
- Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 27 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
+ Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 28 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
  NASA FIRMS fires ───┘    (clean + load)                               └─► FastAPI ──► /api/* (map, raw query results)
 ```
 
@@ -149,6 +149,7 @@ Real sensor data is messy. Here's what the project found and how it handles it:
 | 25 | Is winter air better than before 2020, over eight winters? | Three sources, one per day; 19's panel picked from 19's own data; weather-adjusted ratio per winter |
 | 26 | Does the alert rule work in the gap years? | 24's rules on CPCB data for Nov 2022 – Jan 2025, days without a weather forecast excluded |
 | 27 | Did crop burning move out of the satellite's view? | Day vs night detections per season, pre-registered verdict computed in SQL |
+| 28 | Each station's PM2.5, year by year (the map's time slider) | Station-year means with a coverage rule; part years and the incomplete current year flagged |
 
 ## The dashboard
 
@@ -161,7 +162,7 @@ up.
 - **Pollution Sources:** crop-fire smoke and the wind, the lockdown test, local vs regional pollutants, Diwali
 - **Then vs Now:** winters before and after 2020, and fires against the smoke window
 - **Early Warning:** which alert rule to ship, as a cost vs value trade-off
-- **Stations:** a map with five views (PM2.5 2018–19 and 2025–26, change, NO2 hotspots, persistence), station detail, and side-by-side comparison
+- **Stations:** a map with six views (PM2.5 2018–19 and 2025–26, change, NO2 hotspots, persistence, and **year by year**: a time slider with a play button that steps through 2015–2026, so you can watch the network grow and each winter's levels change), station detail, and side-by-side comparison
 - **Data & Methods:** the full station table (PM2.5 rank, then and now) and data coverage
 - **Latest Readings** (the page opens here): Delhi's **24-hour average** PM2.5, the basis of CPCB's AQI, with the latest hour, the worst hour and an hour-by-hour line; what that level means for health; six pollutant tiles; a station map; the most and least polluted stations; and recent headlines from Google News, linked to each publisher. Data via OpenAQ, since CPCB's own live feed has been unreachable since October 2026
 - **Light and dark themes**, with a toggle in the header (follows the system setting until you choose)
@@ -203,7 +204,7 @@ coordinates.
 ```
 aqi-sql/
 ├── FINDINGS.md           the write-up
-├── queries/              27 SQL files, one question each
+├── queries/              28 SQL files, one question each
 ├── analysis_plans/       pre-registered tests, committed before the results
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
 ├── fetch_weather.py      one-time weather download

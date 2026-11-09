@@ -47,6 +47,7 @@ QUERY_FILES = {
     "then-vs-now-8-winters": "25_then_vs_now_8_winters.sql",
     "alert-rules-gap": "26_alert_rules_gap.sql",
     "fires-daynight": "27_fires_daynight.sql",
+    "station-years": "28_station_years.sql",
 }
 
 # Read the .sql files once at startup, not on every request.
@@ -157,6 +158,11 @@ def list_stations():
     no2_index = {r["station_id"]: r["index_vs_city_median"]
                  for r in run_query_cached("station-fingerprint") if r["pollutant"] == "NO2"}
     persistence = {r["station_id"]: r["pct_months_top5"] for r in run_query_cached("persistent-hotspots")}
+    years = {}
+    for r in run_query_cached("station-years"):     # the map's time slider (28)
+        years.setdefault(r["station_id"], {})[str(r["year"])] = {
+            "pm25": r["mean_pm25"], "days": r["n_days"], "coverage": r["coverage"],
+            "complete": bool(r["year_complete"])}
 
     conn = get_conn()
     try:
@@ -185,6 +191,7 @@ def list_stations():
             "change_pct": periods.get(station_id, {}).get("change_pct"),
             "no2_index": no2_index.get(station_id),
             "pct_months_top5": persistence.get(station_id),
+            "years": years.get(station_id, {}),
         })
 
     # Stations with no summary row (no readings) sort last; `or 0` keeps the

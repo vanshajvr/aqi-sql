@@ -6,9 +6,12 @@
 // layers on top: a soft glow, the dot itself, labels placed by the engine
 // (collision-free), and optional 3D columns.
 //
-// Data: /api/stations (queries 06, 10, 16, 21). Views are the same as before:
-// PM2.5 then / now (one shared scale), change (diverging, flagged as not
-// weather-adjusted), NO2 hotspots, persistence.
+// Data: /api/stations (queries 06, 10, 16, 21, 28). Views: PM2.5 then / now
+// (one shared scale), change (diverging, flagged as not weather-adjusted), NO2
+// hotspots, persistence, and "Year by year": a time slider with a play button
+// that steps through each station's yearly mean PM2.5, 2015-2026 (query 28).
+// Part-year means are drawn faded, and stations appear the year their record
+// becomes usable, so the network's growth shows too.
 
 const GL_API_BASE = window.AQI_API_BASE || "";
 const { BASEMAP_STYLE, DELHI, shortStationName, recolourBasemap } = window.GLBase;
@@ -38,6 +41,12 @@ const VIEWS = {
     title: "NO₂ vs the city median, 2018–26",
     fmt: (v) => `${v.toFixed(2)}× city median`, ticks: ["0.5×", "2.5×"],
     note: "Mostly traffic. A wide spread means local hotspots (finding 4).",
+  },
+  year: {
+    field: "pm25_year", stops: SEQ_STOPS, domain: [40, 200], top: "worst",
+    title: "Mean PM2.5", unit: "µg/m³",            // the year is added by setYear()
+    fmt: (v) => `${v.toFixed(0)} µg/m³`, ticks: ["40 · India's annual limit", "200"],
+    note: "Faded: data on under 55% of that year's days, so the mean leans on one season.",
   },
   persist: {
     field: "pct_months_top5", stops: SEQ_STOPS, domain: [0, 70], top: "worst",
@@ -98,6 +107,7 @@ function toFeatures(stations, view) {
   const props = (s) => {
     const p = { station_id: s.station_id, name: shortStationName(s.station_name), _label: label.has(s.station_id) ? 1 : 0 };
     for (const v of Object.values(VIEWS)) if (s[v.field] != null) p[v.field] = s[v.field];
+    if (view === VIEWS.year && s._partial) p._partial = 1;
     return p;
   };
   return {
@@ -203,6 +213,69 @@ async function initStationMap() {
   const legend = document.getElementById("gl-legend");
   const detail = document.getElementById("gl-detail");
 
+  // ---------------------------------------------------------- time slider
+  const timeline = document.getElementById("gl-timeline");
+  const slider = document.getElementById("gl-year");
+  const yearLabel = document.getElementById("gl-year-label");
+  const caption = document.getElementById("gl-year-caption");
+  const playBtn = document.getElementById("gl-play");
+  const allYears = [...new Set(stations.flatMap((s) => Object.keys(s.years || {})))].map(Number).sort((a, b) => a - b);
+  let year = allYears[0];
+  let playTimer = null;
+  if (slider && allYears.length) {
+    slider.min = allYears[0]; slider.max = allYears[allYears.length - 1]; slider.value = year;
+    document.getElementById("gl-year-min").textContent = allYears[0];
+    document.getElementById("gl-year-max").textContent = allYears[allYears.length - 1];
+  }
+
+  function setYear(y) {
+    year = y;
+    let n = 0, nPartial = 0, complete = true;
+    const values = [];
+    for (const s of stations) {
+      const rec = (s.years || {})[String(y)];
+      s.pm25_year = rec ? rec.pm25 : null;
+      s._partial = !!(rec && rec.coverage === "partial");
+      if (rec) {
+        n += 1; values.push(rec.pm25);
+        if (s._partial) nPartial += 1;
+        if (!rec.complete) complete = false;
+      }
+    }
+    values.sort((a, b) => a - b);
+    const median = values.length ? (values.length % 2 ? values[(values.length - 1) / 2]
+      : (values[values.length / 2 - 1] + values[values.length / 2]) / 2) : null;
+    VIEWS.year.title = `Mean PM2.5, ${y}${complete ? "" : " so far"}`;
+    if (slider) slider.value = y;
+    if (yearLabel) yearLabel.textContent = y;
+    if (caption) {
+      caption.innerHTML = `<b>${n}</b> stations${median != null ? ` · median <b>${Math.round(median)}</b> µg/m³` : ""}`
+        + (nPartial ? ` · ${nPartial} faded (part-year)` : "")
+        + (complete ? "" : ` · <span class="gl-year-warn">year to date: misses November–December, the worst months</span>`);
+    }
+    applyView("year");
+  }
+
+  function stopPlay() {
+    if (playTimer) clearInterval(playTimer);
+    playTimer = null;
+    if (playBtn) { playBtn.classList.remove("playing"); playBtn.setAttribute("aria-label", "Play the years"); }
+  }
+
+  function startPlay() {
+    if (year >= allYears[allYears.length - 1]) setYear(allYears[0]);   // from the end: start over
+    playBtn.classList.add("playing"); playBtn.setAttribute("aria-label", "Pause");
+    playTimer = setInterval(() => {
+      const next = allYears.find((y) => y > year);
+      if (next == null) { stopPlay(); return; }
+      setYear(next);
+      if (next === allYears[allYears.length - 1]) stopPlay();
+    }, 1200);
+  }
+
+  if (playBtn) playBtn.addEventListener("click", () => (playTimer ? stopPlay() : startPlay()));
+  if (slider) slider.addEventListener("input", () => { stopPlay(); setYear(Number(slider.value)); });
+
   function applyView(key) {
     viewKey = key;
     const view = VIEWS[key];
@@ -219,6 +292,8 @@ async function initStationMap() {
     glMap.setPaintProperty("station-columns", "fill-extrusion-height", heightExpr(view));
     const nNoData = data.points.features.filter((f) => !(view.field in f.properties)).length;
     if (legend) legend.innerHTML = legendHtml(view, nNoData);
+    if (timeline) timeline.hidden = key !== "year";
+    if (key !== "year") stopPlay();
     document.querySelectorAll(".map-view-btn[data-view]").forEach((b) => {
       const on = b.dataset.view === key;
       b.classList.toggle("active", on);
@@ -241,9 +316,11 @@ async function initStationMap() {
     const view = VIEWS[viewKey];
     const v = s[view.field];
     const rank = data.rank[id];
+    const yearNote = viewKey === "year" && v != null
+      ? ` <span class="gl-popup-tag">${year}${s._partial ? ", part-year" : ""}</span>` : "";
     hoverPopup.setLngLat([s.longitude, s.latitude]).setHTML(`
       <div class="gl-popup-name">${shortStationName(s.station_name)}</div>
-      <div class="gl-popup-value">${v == null ? "no data" : view.fmt(v)}</div>
+      <div class="gl-popup-value">${v == null ? (viewKey === "year" ? `no usable data in ${year}` : "no data") : view.fmt(v)}${yearNote}</div>
       ${rank ? `<div class="gl-popup-rank">#${rank} of ${data.nRanked} in this view · click for details</div>` : ""}`)
       .addTo(glMap);
   }
@@ -290,13 +367,13 @@ async function initStationMap() {
       paint: {
         "circle-blur": 1,
         "circle-opacity": ["case", ["boolean", ["feature-state", "dim"], false], 0.04,
-          ["boolean", ["feature-state", "hover"], false], 0.6, 0.32],
+          ["boolean", ["feature-state", "hover"], false], 0.6, ["has", "_partial"], 0.1, 0.32],
       },
     });
     glMap.addLayer({
       id: "station-dot", type: "circle", source: "stations",
       paint: {
-        "circle-opacity": ["case", ["boolean", ["feature-state", "dim"], false], 0.3, 0.95],
+        "circle-opacity": ["case", ["boolean", ["feature-state", "dim"], false], 0.3, ["has", "_partial"], 0.4, 0.95],
         "circle-stroke-color": ["case", ["boolean", ["feature-state", "hover"], false],
           window.GLBase.overlay().strokeHover, window.GLBase.overlay().stroke],
         "circle-stroke-width": ["case", ["boolean", ["feature-state", "hover"], false], 2.5, 1.2],
@@ -344,7 +421,16 @@ async function initStationMap() {
     glMap.on("click", "station-columns", (e) => select(e.features[0].properties.station_id));
 
     document.querySelectorAll(".map-view-btn[data-view]").forEach((btn) =>
-      btn.addEventListener("click", () => applyView(btn.dataset.view)));
+      btn.addEventListener("click", () => {
+        if (btn.dataset.view !== "year") { applyView(btn.dataset.view); return; }
+        setYear(year);
+        // first visit: play once through, unless the visitor prefers less motion
+        if (!btn.dataset.played && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          btn.dataset.played = "1";
+          setYear(allYears[0]);
+          startPlay();
+        }
+      }));
 
     const search = document.getElementById("gl-search");
     if (search) {

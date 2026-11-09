@@ -59,7 +59,7 @@
       <div class="badges">
         <span class="badge">37 stations</span>
         <span class="badge" data-no-animate>2015&ndash;2026</span>
-        <span class="badge">27 SQL queries</span>
+        <span class="badge">28 SQL queries</span>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql/blob/main/FINDINGS.md" target="_blank" rel="noopener">Read the findings &rarr;</a>
         <a class="badge badge-link" href="https://github.com/vanshajvr/aqi-sql" target="_blank" rel="noopener">Code</a>
       </div>
@@ -268,11 +268,24 @@
               <button type="button" class="map-view-btn" data-view="change" aria-pressed="false">Change</button>
               <button type="button" class="map-view-btn" data-view="no2" aria-pressed="false">NO&#8322; hotspots</button>
               <button type="button" class="map-view-btn" data-view="persist" aria-pressed="false">Persistence</button>
+              <button type="button" class="map-view-btn map-view-year" data-view="year" aria-pressed="false">Year by year &#9654;</button>
             </div>
             <div class="gl-tools">
               <select id="gl-search" class="gl-search" aria-label="Find a station"></select>
               <button type="button" id="gl-3d" class="map-view-btn gl-3d-btn" aria-pressed="false" title="Show stations as 3D columns">3D</button>
             </div>
+          </div>
+          <div id="gl-timeline" class="gl-timeline" hidden>
+            <button type="button" id="gl-play" class="gl-play" aria-label="Play the years">
+              <svg class="gl-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+              <svg class="gl-pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+            </button>
+            <div class="gl-year-track">
+              <input type="range" id="gl-year" class="gl-year" min="2015" max="2026" step="1" value="2015" aria-label="Year">
+              <div class="gl-year-ends"><span id="gl-year-min">2015</span><span id="gl-year-max">2026</span></div>
+            </div>
+            <div class="gl-year-label" id="gl-year-label" aria-live="polite">2015</div>
+            <p class="gl-year-caption" id="gl-year-caption"></p>
           </div>
           <div class="gl-wrap">
             <div id="station-map" class="gl-map"></div>
