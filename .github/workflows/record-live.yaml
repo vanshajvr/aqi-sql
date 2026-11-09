@@ -1,0 +1,56 @@
+name: Record live data
+
+# Once a day, saves what the Live tab sees (hourly readings, the alert's call
+# for tomorrow and the forecast behind it) with record_live.py, and commits it
+# to the `live-data` branch. That branch holds only data/live/; main, its
+# history and Render's deploys are untouched. See data/live/README.md there.
+
+on:
+  schedule:
+    - cron: "30 13 * * *"   # 19:00 IST, the evening call for tomorrow
+  workflow_dispatch:        # "Run workflow" button, for a first run or a missed day
+
+permissions:
+  contents: write
+
+concurrency: record-live
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install "requests>=2.31"
+
+      - name: Check out the live-data branch (created on the first run)
+        run: |
+          if git fetch --depth 1 origin live-data; then
+            git worktree add -B live-data store FETCH_HEAD
+          else
+            git worktree add --orphan -b live-data store
+          fi
+
+      - name: Record
+        env:
+          OPENAQ_API_KEY: ${{ secrets.OPENAQ_API_KEY }}
+        run: python3 record_live.py --out store/data/live
+
+      - name: Commit and push
+        working-directory: store
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/live
+          if git diff --cached --quiet; then
+            echo "Nothing new"
+          else
+            git commit -q -m "Live data for $(TZ=Asia/Kolkata date +%F)"
+            git push origin live-data
+          fi

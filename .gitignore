@@ -10,3 +10,4 @@ venv/
 .env
 exports/*.csv
 exports/*.xlsx
+data/live/
