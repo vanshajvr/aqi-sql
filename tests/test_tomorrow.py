@@ -33,3 +33,11 @@ def test_smoke_context_is_burning_season_and_north_west_only():
     assert evaluate(280.0, dict(w, wind_dir_deg=90))["smoke_context"] is False
     assert evaluate(280.0, dict(w, date="2026-12-10"))["smoke_context"] is False
     assert evaluate(None, w) is None and evaluate(280.0, None) is None
+
+
+def test_a_forecast_from_the_browser_is_used_and_bad_input_is_harmless():
+    from datetime import date
+    from api.tomorrow import tomorrow_alert
+    r = tomorrow_alert(280.0, today=date(2026, 11, 9), forecast_json=FORECAST)
+    assert r["alert"] is True and r["date"] == "2026-11-10"
+    assert tomorrow_alert(280.0, today=date(2026, 11, 9), forecast_json={"nonsense": 1}) is None

@@ -25,6 +25,12 @@ has never been tested.
 
 evaluate() and daily_weather() are pure and are what the tests cover;
 fetch_forecast() is the network part (Open-Meteo, no key), cached 3 hours.
+
+Render's free tier shares outgoing IP addresses between many apps, and
+Open-Meteo limits free use per IP, so the server's own request can be refused.
+The page then fetches the same forecast in the visitor's browser (Open-Meteo
+allows that) and posts it to /api/tomorrow, where this module still applies
+the rule: one implementation, two ways to get the forecast.
 """
 import time
 from collections import defaultdict
@@ -43,6 +49,12 @@ MIN_HOURS = 18                           # a daily mean needs most of the day, a
 CACHE_TTL_SECONDS = 3 * 60 * 60
 TRACK_RECORD = ("Warned before 69% of first bad days in its 2018–20 test, with about 4 false "
                 "alarms a month, and passed 2 of 3 later periods it had never seen.")
+
+FORECAST_PARAMS = {
+    "latitude": LAT, "longitude": LON, "timezone": "Asia/Kolkata", "forecast_days": 3,
+    "hourly": "boundary_layer_height,precipitation",
+    "daily": "precipitation_sum,wind_direction_10m_dominant,wind_speed_10m_max",
+}
 
 _cache = {"data": None, "fetched_at": 0.0}
 
@@ -106,17 +118,19 @@ def fetch_forecast(force_refresh=False):
     now = time.time()
     if not force_refresh and _cache["data"] is not None and now - _cache["fetched_at"] < CACHE_TTL_SECONDS:
         return _cache["data"]
-    resp = requests.get(FORECAST_API, timeout=20, params={
-        "latitude": LAT, "longitude": LON, "timezone": "Asia/Kolkata", "forecast_days": 3,
-        "hourly": "boundary_layer_height,precipitation",
-        "daily": "precipitation_sum,wind_direction_10m_dominant,wind_speed_10m_max"})
+    resp = requests.get(FORECAST_API, timeout=20, params=FORECAST_PARAMS)
     resp.raise_for_status()
     _cache["data"] = resp.json()
     _cache["fetched_at"] = now
     return _cache["data"]
 
 
-def tomorrow_alert(pm25_today, today=None):
+def tomorrow_alert(pm25_today, today=None, forecast_json=None):
+    """forecast_json: a forecast the browser fetched, when the server can't."""
     today = today or datetime.now(ZoneInfo("Asia/Kolkata")).date()   # servers run on UTC
-    weather = daily_weather(fetch_forecast(), (today + timedelta(days=1)).isoformat())
+    forecast = forecast_json if forecast_json is not None else fetch_forecast()
+    try:
+        weather = daily_weather(forecast, (today + timedelta(days=1)).isoformat())
+    except (KeyError, TypeError, ValueError):                        # malformed forecast
+        weather = None
     return evaluate(pm25_today, weather)

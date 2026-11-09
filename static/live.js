@@ -602,8 +602,19 @@ async function loadTomorrow() {
   const el = document.getElementById("live-tomorrow");
   if (!el) return;
   try {
-    const resp = await fetch(`${LIVE_API_BASE}/api/tomorrow`);
-    if (!resp.ok) return;
+    let resp = await fetch(`${LIVE_API_BASE}/api/tomorrow`);
+    if (!resp.ok) {
+      // The server's forecast request can be refused (shared hosting IPs), so
+      // fetch the forecast here and let the server apply the rule to it
+      const q = new URLSearchParams({ latitude: 28.61, longitude: 77.21, timezone: "Asia/Kolkata", forecast_days: 3,
+        hourly: "boundary_layer_height,precipitation",
+        daily: "precipitation_sum,wind_direction_10m_dominant,wind_speed_10m_max" });
+      const fc = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`);
+      if (!fc.ok) return;
+      resp = await fetch(`${LIVE_API_BASE}/api/tomorrow`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(await fc.json()) });
+      if (!resp.ok) return;
+    }
     const r = await resp.json();
     const day = new Date(`${r.date}T12:00:00+05:30`).toLocaleDateString("en-IN",
       { weekday: "long", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });

@@ -3,6 +3,8 @@ from functools import lru_cache
 from pathlib import Path
 import os
 
+import requests
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -281,6 +283,16 @@ def latest_day():
         raise HTTPException(status_code=502, detail=f"OpenAQ request failed: {type(err).__name__}")
 
 
+def _todays_pm25():
+    conn = get_conn()
+    try:
+        rows = conn.execute("SELECT station_id, station_name, latitude, longitude FROM stations").fetchall()
+    finally:
+        conn.close()
+    day = fetch_day({r["station_id"]: dict(r) for r in rows})["day"]
+    return day["pm25_24h_mean"] if day else None
+
+
 @app.get("/api/tomorrow")
 def bad_air_tomorrow():
     """
@@ -288,20 +300,32 @@ def bad_air_tomorrow():
     tomorrow's weather forecast (see api/tomorrow.py). Uses the cached
     24-hour data, so it answers instantly once /api/latest/day has loaded.
     """
-    conn = get_conn()
     try:
-        rows = conn.execute("SELECT station_id, station_name, latitude, longitude FROM stations").fetchall()
-    finally:
-        conn.close()
-    try:
-        day = fetch_day({r["station_id"]: dict(r) for r in rows})["day"]
-        result = tomorrow_alert(day["pm25_24h_mean"] if day else None)
+        result = tomorrow_alert(_todays_pm25())
     except RuntimeError as err:
         raise HTTPException(status_code=503, detail=str(err))
+    except requests.HTTPError as err:   # e.g. Open-Meteo refusing Render's shared IP
+        code = err.response.status_code if err.response is not None else "?"
+        raise HTTPException(status_code=502, detail=f"Forecast request refused (HTTP {code})")
     except Exception as err:
         raise HTTPException(status_code=502, detail=f"Forecast or readings failed: {type(err).__name__}")
     if result is None:
         raise HTTPException(status_code=502, detail="No usable forecast or 24-hour data")
+    return result
+
+
+@app.post("/api/tomorrow")
+def bad_air_tomorrow_with_forecast(forecast: dict):
+    """The same rule with a forecast the browser fetched from Open-Meteo, for
+    when the server's own request is refused (see api/tomorrow.py)."""
+    try:
+        result = tomorrow_alert(_todays_pm25(), forecast_json=forecast)
+    except RuntimeError as err:
+        raise HTTPException(status_code=503, detail=str(err))
+    except Exception as err:
+        raise HTTPException(status_code=502, detail=f"Readings failed: {type(err).__name__}")
+    if result is None:
+        raise HTTPException(status_code=422, detail="That forecast has no usable data for tomorrow")
     return result
 
 
