@@ -48,14 +48,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const idB = selectB.value;
     const traces = [buildTrace(idA, "#58a6ff"), buildTrace(idB, "#f0883e")].filter(Boolean);
 
+    const theme = window.AQITheme ? window.AQITheme.colors()
+      : { surface: "#161b22", text: "#c9d1d9", border: "#21262d" };
     const layout = {
-      template: "plotly_dark",
-      paper_bgcolor: "#161b22",
-      plot_bgcolor: "#161b22",
-      font: { family: "Inter, Helvetica, Arial, sans-serif", color: "#c9d1d9", size: 13 },
+      paper_bgcolor: theme.surface,
+      plot_bgcolor: theme.surface,
+      font: { family: "Inter, Helvetica, Arial, sans-serif", color: theme.text, size: 13 },
       margin: { l: 56, r: 36, t: 20, b: 56 },
-      xaxis: { gridcolor: "#21262d", griddash: "dot", gridwidth: 1, zeroline: false },
-      yaxis: { title: "30-day PM2.5 (µg/m³)", gridcolor: "#21262d", griddash: "dot", gridwidth: 1, zeroline: false, rangemode: "tozero" },
+      xaxis: { gridcolor: theme.border, griddash: "dot", gridwidth: 1, zeroline: false },
+      yaxis: { title: "30-day PM2.5 (µg/m³)", gridcolor: theme.border, griddash: "dot", gridwidth: 1, zeroline: false, rangemode: "tozero" },
       shapes: [{ type: "rect", xref: "x", yref: "paper", x0: "2022-11-01", x1: "2025-02-01", y0: 0, y1: 1,
                  fillcolor: "rgba(110,118,129,0.12)", line: { width: 0 } }],
       legend: { orientation: "h", y: 1.1 },

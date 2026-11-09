@@ -15,13 +15,27 @@ Units: the current OpenAQ feeds label CO, NO2 and SO2 "ppb", but the values
 are mg/m3 (CO) and ug/m3 (NO2, SO2), as established in prepare_openaq.py, so
 they're passed through unchanged.
 
-build_latest() and pm25_band() are pure functions and are what the tests
-cover; fetch_latest() is the network part.
+The 24-hour picture (fetch_day): CPCB's AQI and its PM2.5 categories are
+defined on 24-hour averages, so a single hour can badly misstate the day. The
+morning after Diwali 2026, stations read 700-900 ug/m3 overnight and under 100
+by 1 pm. fetch_day pulls each station's last 24 hours of hourly PM2.5 and
+summarises them: each station's 24-hour average (with >= 16 of 24 hours, CPCB's
+rule), the city median of those, and the city's hour-by-hour median and peak.
+
+OpenAQ allows 60 requests a minute. The latest readings take one request per
+location and the 24-hour view one per PM2.5 sensor, so every request goes
+through one shared limiter (_RateLimiter) that waits rather than exceed it.
+
+build_latest(), summarise_city() and summarise_day() are pure functions and
+are what the tests cover; fetch_latest() and fetch_day() are the network part.
 """
 import csv
 import os
+import threading
 import time
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -50,8 +64,49 @@ PM25_BANDS = list(zip(BAND_EDGES["pm25"], BAND_NAMES))
 # The city summary only uses readings taken within this many hours of the
 # newest one, so a station that's been silent for days can't skew it.
 CURRENT_WINDOW_HOURS = 3
+DAY_HOURS = 24
+MIN_DAY_HOURS = 16          # CPCB: a 24-hour average needs 16 of the 24 hours
+MIN_STATIONS_PER_HOUR = 5   # the city's hourly median needs this many stations
+REQUESTS_PER_MINUTE = 55    # OpenAQ allows 60; keep a margin
 
 _cache = {"data": None, "fetched_at": 0.0}
+_day_cache = {"data": None, "fetched_at": 0.0}
+_day_lock = threading.Lock()
+
+
+class _RateLimiter:
+    """Sliding one-minute window shared by every OpenAQ request."""
+
+    def __init__(self, per_minute):
+        self.per_minute = per_minute
+        self.sent = deque()
+        self.lock = threading.Lock()
+
+    def wait(self):
+        while True:
+            with self.lock:
+                now = time.monotonic()
+                while self.sent and now - self.sent[0] >= 60:
+                    self.sent.popleft()
+                if len(self.sent) < self.per_minute:
+                    self.sent.append(now)
+                    return
+                sleep_for = 60 - (now - self.sent[0]) + 0.05
+            time.sleep(sleep_for)
+
+
+_limiter = _RateLimiter(REQUESTS_PER_MINUTE)
+
+
+def _get(path, key, params=None):
+    _limiter.wait()
+    resp = requests.get(f"{API}{path}", headers={"X-API-Key": key}, params=params, timeout=20)
+    if resp.status_code == 429:          # over the limit anyway: wait out the window once
+        time.sleep(float(resp.headers.get("X-Ratelimit-Reset", 60)))
+        _limiter.wait()
+        resp = requests.get(f"{API}{path}", headers={"X-API-Key": key}, params=params, timeout=20)
+    resp.raise_for_status()
+    return resp.json().get("results", [])
 
 
 def pm25_band(value):
@@ -155,7 +210,7 @@ def build_latest(sensor_map, responses, stations):
             if prev is None or when > prev["datetime"]:
                 v = round(float(value), 2)
                 latest[station_id][param] = {"value": v, "unit": UNITS[param], "datetime": when,
-                                             "band": band(param, v)}
+                                             "band": band(param, v), "sensor_id": r.get("sensorsId")}
 
     out = []
     for station_id, meta in stations.items():
@@ -189,12 +244,9 @@ def fetch_latest(stations, key=None, force_refresh=False):
     locations = sorted({loc for _, loc, _ in sensor_map.values()})
 
     def one(location_id):
-        resp = requests.get(f"{API}/locations/{location_id}/latest",
-                            headers={"X-API-Key": key}, timeout=20)
-        resp.raise_for_status()
-        return resp.json().get("results", [])
+        return _get(f"/locations/{location_id}/latest", key)
 
-    # ~38 locations; a few in parallel stays well under OpenAQ's 60/minute limit
+    # ~38 locations, a few in parallel; the shared limiter keeps the rate legal
     with ThreadPoolExecutor(max_workers=6) as pool:
         responses = list(pool.map(one, locations))
 
@@ -205,3 +257,79 @@ def fetch_latest(stations, key=None, force_refresh=False):
     _cache["data"] = data
     _cache["fetched_at"] = now
     return data
+
+
+def summarise_day(series, end):
+    """
+    series: station_id -> list of (hour_end, pm25), hour_end a timezone-aware
+            datetime marking the end of each hourly average
+    end:    the newest hour_end in the city; the day is (end - 24 h, end]
+    Returns the city's 24-hour picture (see the module docstring).
+    """
+    start = end - timedelta(hours=DAY_HOURS)
+    stations, by_hour = {}, {}
+    for sid, points in series.items():
+        pts = sorted((t, v) for t, v in points if start < t <= end and v is not None and 0 <= v <= 1000)
+        for t, v in pts:
+            by_hour.setdefault(t, []).append(v)
+        if not pts:
+            continue
+        peak_t, peak_v = max(pts, key=lambda p: p[1])
+        avg = sum(v for _, v in pts) / len(pts) if len(pts) >= MIN_DAY_HOURS else None
+        stations[sid] = {"pm25_24h": round(avg, 1) if avg is not None else None,
+                         "band_24h": band("pm25", avg) if avg is not None else None,
+                         "n_hours": len(pts), "peak": round(peak_v, 1), "peak_time": peak_t.isoformat()}
+    hourly = [{"time": t.isoformat(), "median": round(_median(v), 1), "n_stations": len(v)}
+              for t, v in sorted(by_hour.items()) if len(v) >= MIN_STATIONS_PER_HOUR]
+    averages = {sid: s["pm25_24h"] for sid, s in stations.items() if s["pm25_24h"] is not None}
+    if not averages:
+        return None
+    med = round(_median(list(averages.values())), 1)
+    counts = {name: 0 for name in BAND_NAMES}
+    for v in averages.values():
+        counts[band("pm25", v)] += 1
+    peak = max(hourly, key=lambda h: h["median"]) if hourly else None
+    ranked = sorted(averages, key=averages.get, reverse=True)
+    return {
+        "start": start.isoformat(), "end": end.isoformat(), "hours": DAY_HOURS,
+        "n_stations": len(averages),
+        "pm25_24h_median": med,
+        "band": band("pm25", med),
+        "band_counts": counts,
+        "peak_hour": peak,
+        "hourly": hourly,
+        "stations": stations,
+        "most_polluted": [{"station_id": sid, "pm25_24h": averages[sid]} for sid in ranked[:5]],
+        "cleanest": [{"station_id": sid, "pm25_24h": averages[sid]} for sid in ranked[::-1][:5]],
+    }
+
+
+def fetch_day(stations, key=None, force_refresh=False):
+    """Cached like fetch_latest: one hourly-history request per PM2.5 sensor."""
+    with _day_lock:                      # concurrent visitors share one fetch
+        now = time.time()
+        if not force_refresh and _day_cache["data"] is not None and now - _day_cache["fetched_at"] < CACHE_TTL_SECONDS:
+            return _day_cache["data"]
+        key = key or os.environ.get("OPENAQ_API_KEY")
+        latest = fetch_latest(stations, key=key)
+        sensors = {s["station_id"]: s["readings"]["pm25"]["sensor_id"] for s in latest["stations"]
+                   if s["readings"].get("pm25", {}).get("sensor_id")}
+        newest = max(datetime.fromisoformat(s["readings"]["pm25"]["datetime"]) for s in latest["stations"]
+                     if "pm25" in s["readings"])
+        params = {"datetime_from": (newest - timedelta(hours=DAY_HOURS + 1)).astimezone(timezone.utc).isoformat(),
+                  "datetime_to": (newest + timedelta(hours=1)).astimezone(timezone.utc).isoformat(),
+                  "limit": 100}
+
+        def one(item):
+            sid, sensor = item
+            rows = _get(f"/sensors/{sensor}/hours", key, params)
+            return sid, [(datetime.fromisoformat(r["period"]["datetimeTo"]["local"]), r.get("value")) for r in rows]
+
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            series = dict(pool.map(one, sensors.items()))
+        ends = [t for pts in series.values() for t, _ in pts]
+        day = summarise_day(series, max(ends)) if ends else None
+        data = {"fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)), "day": day}
+        _day_cache["data"] = data
+        _day_cache["fetched_at"] = now
+        return data

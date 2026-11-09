@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.latest import fetch_latest
+from api.latest import fetch_day, fetch_latest
+from api.news import fetch_news
 
 ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "aqi.db"
@@ -231,6 +232,36 @@ def latest_readings():
         raise HTTPException(status_code=503, detail=str(err))
     except Exception as err:             # OpenAQ unreachable or erroring
         raise HTTPException(status_code=502, detail=f"OpenAQ request failed: {type(err).__name__}")
+
+
+@app.get("/api/latest/day")
+def latest_day():
+    """
+    The last 24 hours of PM2.5 (see api/latest.py, fetch_day): each station's
+    24-hour average, the city median of those (the basis of CPCB's AQI), and
+    the city's hour-by-hour median and peak. Cached for 30 minutes.
+    """
+    conn = get_conn()
+    try:
+        rows = conn.execute("SELECT station_id, station_name, latitude, longitude FROM stations").fetchall()
+    finally:
+        conn.close()
+    stations = {r["station_id"]: dict(r) for r in rows}
+    try:
+        return fetch_day(stations)
+    except RuntimeError as err:
+        raise HTTPException(status_code=503, detail=str(err))
+    except Exception as err:
+        raise HTTPException(status_code=502, detail=f"OpenAQ request failed: {type(err).__name__}")
+
+
+@app.get("/api/news")
+def news():
+    """Recent Delhi air-quality headlines (Google News RSS), cached for an hour."""
+    try:
+        return fetch_news()
+    except Exception as err:
+        raise HTTPException(status_code=502, detail=f"News feed failed: {type(err).__name__}")
 
 
 @app.get("/api/config")

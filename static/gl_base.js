@@ -5,14 +5,30 @@
   const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
   const DELHI = { center: [77.15, 28.63], zoom: 9.6 };
 
-  // Site palette (static/style.css)
-  const PALETTE = {
+  // Site palettes (static/style.css), dark and light
+  const PALETTE_DARK = {
     land: "#10161e", residential: "#131a23", park: "#122019", water: "#0d2238",
     waterway: "#123050", building: "#18202a",
     roadMotorway: "#4a5563", roadMajor: "#36404c", roadMinor: "#252d37", casing: "#0d1117",
     rail: "#2b333d", boundary: "#4a5563",
     labelMajor: "#c9d1d9", labelMinor: "#8b949e", labelRoad: "#6e7681", halo: "#0d1117",
   };
+  const PALETTE_LIGHT = {
+    land: "#f3f4f1", residential: "#eceeea", park: "#e1ecd6", water: "#cadcee",
+    waterway: "#b3cde6", building: "#e2e2de",
+    roadMotorway: "#d3cec6", roadMajor: "#dedbd5", roadMinor: "#e8e6e2", casing: "#f3f4f1",
+    rail: "#cfcfcf", boundary: "#9aa0a6",
+    labelMajor: "#3d4248", labelMinor: "#626a72", labelRoad: "#80878e", halo: "#ffffff",
+  };
+  const theme = () => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
+  const palette = () => (theme() === "light" ? PALETTE_LIGHT : PALETTE_DARK);
+
+  // Colours for the stations drawn over the basemap, per theme
+  function overlay() {
+    return theme() === "light"
+      ? { label: "#1f2328", halo: "#ffffff", stroke: "#ffffff", strokeHover: "#1f2328", dim: "#d0d7de" }
+      : { label: "#f0f6fc", halo: "#0d1117", stroke: "#0d1117", strokeHover: "#ffffff", dim: "#2d333b" };
+  }
 
   const AMBIGUOUS = new Set(["Pusa"]);
   function shortStationName(name) {
@@ -28,6 +44,7 @@
   }
 
   function recolourBasemap(map) {
+    const PALETTE = palette();
     for (const layer of map.getStyle().layers) {
       const id = layer.id;
       if (layer.type === "background") setPaint(map, id, "background-color", PALETTE.land);
@@ -73,5 +90,16 @@
   }
 
 
-  window.GLBase = { BASEMAP_STYLE, DELHI, PALETTE, shortStationName, recolourBasemap };
+  // Re-theme a map when the visitor switches theme: the basemap, then the
+  // map's own station layers through restyleOverlay(map, overlay()).
+  function followTheme(map, restyleOverlay) {
+    // Not gated on "idle": the live map's pulse animation keeps it from ever
+    // going idle. Paint changes work once the style itself has loaded.
+    const go = () => { recolourBasemap(map); restyleOverlay(overlay()); };
+    window.addEventListener("themechange", () => {
+      if (map.getStyle()) go(); else map.once("load", go);
+    });
+  }
+
+  window.GLBase = { BASEMAP_STYLE, DELHI, PALETTE: PALETTE_DARK, shortStationName, recolourBasemap, overlay, followTheme };
 })();

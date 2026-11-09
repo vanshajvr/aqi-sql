@@ -1,4 +1,5 @@
-from .theme import ACCENT, POSITIVE, NEGATIVE, WARNING
+# CSS variables (static/style.css), so the cards follow the light/dark theme
+ACCENT, POSITIVE, NEGATIVE, WARNING = "var(--accent)", "var(--positive)", "var(--negative)", "var(--warning)"
 
 PERIOD_LABELS = {
     "early_winter(Dec)": "Early Winter (Dec)",

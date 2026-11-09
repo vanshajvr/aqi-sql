@@ -19,6 +19,11 @@ const BAND_COLORS = {     // same category colours as the rest of the dashboard
   "Poor": "#db6d28", "Very Poor": "#f85149", "Severe": "#a40e26",
 };
 // CPCB band edges (upper bound of each band; the last is a display cap for Severe)
+// Text in a band's colour uses a CSS variable, so it stays readable in the
+// light theme (where e.g. the pale "Satisfactory" green would vanish on white)
+const BAND_TEXT = { "Good": "var(--band-good)", "Satisfactory": "var(--band-satisfactory)",
+  "Moderate": "var(--band-moderate)", "Poor": "var(--band-poor)", "Very Poor": "var(--band-very-poor)",
+  "Severe": "var(--band-severe)" };
 const EDGES = {
   pm25: [30, 60, 90, 120, 250, 380], pm10: [50, 100, 250, 350, 430, 510],
   no2: [40, 80, 180, 280, 400, 520], o3: [50, 100, 168, 208, 748, 1000],
@@ -90,6 +95,26 @@ async function liveFetchJson(url, what) {
 }
 
 // One shared request; a failed promise is cleared so "Try again" re-requests.
+let liveDayPromise = null;
+const LIVE_DAY_TIMEOUT_MS = 150000;    // up to ~1 min of OpenAQ rate limiting on a cold cache
+
+function fetchDayOnce() {
+  if (!liveDayPromise) {
+    liveDayPromise = (async () => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), LIVE_DAY_TIMEOUT_MS);
+      try {
+        const resp = await fetch(`${LIVE_API_BASE}/api/latest/day`, { signal: ctrl.signal });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return (await resp.json()).day;
+      } finally {
+        clearTimeout(timer);
+      }
+    })().catch((err) => { liveDayPromise = null; throw err; });
+  }
+  return liveDayPromise;
+}
+
 function fetchLiveOnce() {
   if (!liveDataPromise) {
     const p = liveFetchJson(`${LIVE_API_BASE}/api/latest`, "Latest-readings endpoint");
@@ -135,6 +160,34 @@ function readingTime(iso) {
   return { when, age };
 }
 
+function hourLabel(iso) {
+  return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false,
+    timeZone: "Asia/Kolkata" });
+}
+
+// The city's hour-by-hour median over the last 24 hours, with dashed lines
+// at the Poor (90), Very Poor (120) and Severe (250) boundaries
+function daySparkline(hourly) {
+  if (!hourly || hourly.length < 2) return "";
+  const W = 320, H = 74, PAD = 4;
+  const max = Math.max(260, ...hourly.map((h) => h.median)) * 1.08;
+  const x = (i) => PAD + (i * (W - 2 * PAD)) / (hourly.length - 1);
+  const y = (v) => H - PAD - (v / max) * (H - 2 * PAD);
+  const pts = hourly.map((h, i) => `${x(i).toFixed(1)},${y(h.median).toFixed(1)}`).join(" ");
+  const lines = [[90, "Poor"], [120, "Very Poor"], [250, "Severe"]].map(([v, b]) =>
+    `<line x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="${BAND_COLORS[b]}" stroke-dasharray="3 4" stroke-width="1" opacity="0.55"/>`).join("");
+  const dots = hourly.map((h, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(h.median).toFixed(1)}" r="2.6"
+    fill="${BAND_COLORS[BANDS.find((b, j) => h.median <= EDGES.pm25[j]) || "Severe"]}"><title>${hourLabel(h.time)}: ${Math.round(h.median)} µg/m³</title></circle>`).join("");
+  return `<svg class="day-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img"
+      aria-label="City median PM2.5, hour by hour, last 24 hours">${lines}
+    <polyline points="${pts}" fill="none" style="stroke:var(--text-muted)" stroke-width="1.6"/>${dots}</svg>
+    <div class="day-spark-axis"><span>${hourLabel(hourly[0].time)}</span><span>hour by hour, city median</span><span>${hourLabel(hourly[hourly.length - 1].time)}</span></div>`;
+}
+
+function bandOf(v) {
+  return BANDS.find((b, j) => v <= EDGES.pm25[j]) || "Severe";
+}
+
 // Position (0-1) of a value on a six-band scale where every band has equal width
 function scalePos(pollutant, value) {
   const edges = EDGES[pollutant];
@@ -157,37 +210,51 @@ function scaleBar(pollutant, value, withLabels) {
 
 // ---------------------------------------------------------------- board
 
-function renderHero(city) {
+function renderHero(city, day) {
   const el = document.getElementById("live-hero");
   const t = readingTime(city.as_of);
-  const color = BAND_COLORS[city.pm25_band];
-  const total = Object.values(city.band_counts).reduce((a, b) => a + b, 0);
-  const dist = BANDS.filter((b) => city.band_counts[b])
-    .map((b) => `<span style="flex:${city.band_counts[b]};background:${BAND_COLORS[b]}" title="${b}: ${city.band_counts[b]} stations"></span>`)
+  const useDay = day && day.pm25_24h_median != null;
+  const value = useDay ? day.pm25_24h_median : city.pm25_median;
+  const band = useDay ? day.band : city.pm25_band;
+  const counts = useDay ? day.band_counts : city.band_counts;
+  const color = BAND_TEXT[band];
+  const dist = BANDS.filter((b) => counts[b])
+    .map((b) => `<span style="flex:${counts[b]};background:${BAND_COLORS[b]}" title="${b}: ${counts[b]} stations"></span>`)
     .join("");
-  const distLegend = BANDS.filter((b) => city.band_counts[b])
-    .map((b) => `<span><i style="background:${BAND_COLORS[b]}"></i>${b} ${city.band_counts[b]}</span>`).join("");
+  const distLegend = BANDS.filter((b) => counts[b])
+    .map((b) => `<span><i style="background:${BAND_COLORS[b]}"></i>${b} ${counts[b]}</span>`).join("");
+  const peak = useDay && day.peak_hour;
+  const facts = `
+    <div class="live-facts">
+      <div><span>Latest hour</span><b style="color:${BAND_TEXT[city.pm25_band]}">${Math.round(city.pm25_median)}</b><small>${city.pm25_band} · ${t.when}</small></div>
+      ${peak ? `<div><span>Worst hour</span><b style="color:${BAND_TEXT[bandOf(peak.median)]}">${Math.round(peak.median)}</b><small>${bandOf(peak.median)} · ${hourLabel(peak.time)}</small></div>` : ""}
+    </div>`;
   el.innerHTML = `
-    <div class="live-eyebrow">Delhi · median of ${city.n_stations} stations</div>
+    <div class="live-eyebrow">Delhi · ${useDay ? "24-hour average" : "latest hour"} · median of ${useDay ? day.n_stations : city.n_stations} stations</div>
     <div class="live-hero-row">
-      <div class="live-hero-number" style="color:${color}">${Math.round(city.pm25_median)}</div>
+      <div class="live-hero-number" style="color:${color}">${Math.round(value)}</div>
       <div>
-        <div class="live-hero-band" style="color:${color}">${city.pm25_band}</div>
-        <div class="live-unit">PM2.5, µg/m³</div>
+        <div class="live-hero-band" style="color:${color}">${band}</div>
+        <div class="live-unit">PM2.5, µg/m³${useDay ? " · the basis of CPCB's AQI" : ""}</div>
       </div>
     </div>
-    ${scaleBar("pm25", city.pm25_median, true)}
-    <div class="live-eyebrow" style="margin-top:16px">Stations by category</div>
+    ${scaleBar("pm25", value, true)}
+    ${useDay ? facts + daySparkline(day.hourly) : `<p class="live-pending"><span class="live-spinner"></span>Working out the 24-hour average…</p>`}
+    <div class="live-eyebrow" style="margin-top:16px">Stations by category${useDay ? ", 24-hour average" : ", latest hour"}</div>
     <div class="live-dist">${dist}</div>
-    <div class="live-dist-legend">${distLegend}</div>
-    <div class="live-dot-row live-asof"><span class="live-dot live-dot-stale"></span>
-      Readings from <b>${t.when}</b> · ${t.age} · ${total} stations</div>`;
+    <div class="live-dist-legend">${distLegend}</div>`;
 }
 
-function renderHealth(city) {
+function renderHealth(city, day, failed) {
   const el = document.getElementById("live-health");
-  const t = readingTime(city.as_of);
-  const advice = ADVICE[city.pm25_band];
+  const useDay = day && day.band;
+  if (!useDay && !failed) {
+    el.innerHTML = `<h3>What it means for health</h3>
+      <p class="live-pending"><span class="live-spinner"></span>Health guidance follows the 24-hour average, like CPCB's AQI. Working it out…</p>`;
+    return;
+  }
+  const band = useDay ? day.band : city.pm25_band;
+  const advice = ADVICE[band];
   const tiles = Object.keys(ADVICE_LABELS).map((k) => {
     const [status, text] = advice[k];
     return `<div class="advice-tile advice-${status}">
@@ -195,12 +262,14 @@ function renderHealth(city) {
       <div><div class="advice-label">${ADVICE_LABELS[k]}</div><div class="advice-text">${text}</div></div>
     </div>`;
   }).join("");
+  const basis = useDay
+    ? `Based on the 24-hour average to ${hourLabel(day.end)}, as CPCB's AQI is.`
+    : `The 24-hour average isn't available right now, so this follows the latest hour (${readingTime(city.as_of).when}).`;
   el.innerHTML = `
-    <h3>What "${city.pm25_band}" means for health</h3>
-    <p class="health-impact"><span style="color:${BAND_COLORS[city.pm25_band]}">CPCB:</span> ${CPCB_IMPACT[city.pm25_band]}</p>
+    <h3>What "${band}" means for health</h3>
+    <p class="health-impact"><span style="color:${BAND_TEXT[band]}">CPCB:</span> ${CPCB_IMPACT[band]}</p>
     <div class="advice-grid">${tiles}</div>
-    <p class="hint live-caveat">These readings are from ${t.when} (${t.age}), so they describe that moment, not today.
-      For decisions about today, check a real-time source such as CPCB's SAMEER app. General guidance, not medical advice.</p>`;
+    <p class="hint live-caveat">${basis} For decisions right now, check a real-time source such as CPCB's SAMEER app. General guidance, not medical advice.</p>`;
 }
 
 function renderPollutants(city) {
@@ -210,29 +279,46 @@ function renderPollutants(city) {
     const value = p === "co" ? v.median.toFixed(2) : Math.round(v.median);
     return `<div class="pollutant-tile">
       <div class="pollutant-tile-head"><span>${LABELS[p]}</span>
-        <span class="band-pill" style="color:${BAND_COLORS[v.band]};border-color:${BAND_COLORS[v.band]}">${v.band}</span></div>
+        <span class="band-pill" style="color:${BAND_TEXT[v.band]};border-color:${BAND_TEXT[v.band]}">${v.band}</span></div>
       <div class="pollutant-tile-value">${value}<span> ${v.unit}</span></div>
       ${scaleBar(p, v.median, false)}
-      <div class="pollutant-tile-foot">median of ${v.n_stations} stations</div>
+      <div class="pollutant-tile-foot">latest hour · median of ${v.n_stations} stations</div>
     </div>`;
   }).join("");
 }
 
 function renderRanking(elId, list, max) {
   const el = document.getElementById(elId);
-  el.innerHTML = list.map((s, i) => {
-    const band = BANDS.find((b, j) => s.pm25 <= EDGES.pm25[j]) || "Severe";
-    return `<button type="button" class="rank-row" data-station="${s.station_id}">
+  el.innerHTML = list.map((s, i) => `<button type="button" class="rank-row" data-station="${s.station_id}">
       <span class="rank-n">${i + 1}</span><span class="rank-name">${liveShort(s.station_name)}</span>
-      <span class="rank-track"><span style="width:${Math.max(4, (100 * s.pm25) / max)}%;background:${BAND_COLORS[band]}"></span></span>
-      <span class="rank-value">${Math.round(s.pm25)}</span></button>`;
-  }).join("");
+      <span class="rank-track"><span style="width:${Math.max(4, (100 * s.value) / max)}%;background:${BAND_COLORS[bandOf(s.value)]}"></span></span>
+      <span class="rank-value">${Math.round(s.value)}</span></button>`).join("");
+  el.querySelectorAll(".rank-row").forEach((row) => row.addEventListener("click", () => {
+    document.getElementById("live-map").scrollIntoView({ behavior: "smooth", block: "center" });
+    if (window.selectLiveStation) window.selectLiveStation(row.dataset.station);
+  }));
+}
+
+function renderRankings(data, day) {
+  const names = Object.fromEntries(data.stations.map((s) => [s.station_id, s.station_name]));
+  const useDay = day && day.most_polluted && day.most_polluted.length;
+  const pick = (list, field) => list.map((s) => ({ station_id: s.station_id, station_name: names[s.station_id] || s.station_id, value: s[field] }));
+  const most = useDay ? pick(day.most_polluted, "pm25_24h") : pick(data.city.most_polluted, "pm25");
+  const clean = useDay ? pick(day.cleanest, "pm25_24h") : pick(data.city.cleanest, "pm25");
+  const max = most[0] ? most[0].value : 100;
+  renderRanking("live-most", most, max);
+  renderRanking("live-clean", clean, max);
+  const basis = useDay ? "24-hour average PM2.5, µg/m³" : "Latest hourly PM2.5, µg/m³";
+  document.querySelectorAll(".rank-basis").forEach((el) => { el.textContent = basis; });
 }
 
 function stationPanelHtml(s) {
   if (!s) return `<div class="gl-detail-empty">Hover a station for its PM2.5.<br>Click one, or pick it from the list, for all its readings.</div>`;
   if (s.pm25 == null) return `<div class="gl-detail-name">${liveShort(s.station_name)}</div><p class="hint">No recent PM2.5 reading.</p>`;
-  const color = BAND_COLORS[s.pm25_band];
+  const day = s.day && s.day.pm25_24h != null ? s.day : null;
+  const big = day ? day.pm25_24h : s.pm25;
+  const bigBand = day ? day.band_24h : s.pm25_band;
+  const color = BAND_TEXT[bigBand];
   const t = readingTime(s.readings.pm25.datetime);
   const rows = ORDER.filter((p) => s.readings[p]).map((p) => {
     const r = s.readings[p];
@@ -244,9 +330,11 @@ function stationPanelHtml(s) {
     <div class="gl-detail-name">${liveShort(s.station_name)}</div>
     <div class="gl-detail-sub">as of ${t.when} · ${t.age}</div>
     <div class="live-hero-row compact">
-      <div class="live-hero-number" style="color:${color}">${Math.round(s.pm25)}</div>
-      <div><div class="live-hero-band" style="color:${color}">${s.pm25_band}</div><div class="live-unit">PM2.5, µg/m³</div></div>
+      <div class="live-hero-number" style="color:${color}">${Math.round(big)}</div>
+      <div><div class="live-hero-band" style="color:${color}">${bigBand}</div><div class="live-unit">PM2.5, µg/m³, ${day ? "24-hour average" : "latest hour"}</div></div>
     </div>
+    ${day ? `<div class="live-subfacts">Worst hour <b>${Math.round(day.peak)}</b> at ${hourLabel(day.peak_time)} · latest hour <b>${Math.round(s.pm25)}</b></div>` : ""}
+    <div class="gl-detail-section">Latest hour, every pollutant</div>
     <div class="live-rows">${rows}</div>`;
 }
 
@@ -258,13 +346,32 @@ function initLiveMap(data) {
   if (!container || liveMap || !window.maplibregl) return;
   const stations = data.stations.filter((s) => s.latitude != null && s.longitude != null);
   const byId = Object.fromEntries(stations.map((s) => [s.station_id, s]));
-  const top = new Set(data.city ? data.city.most_polluted.map((s) => s.station_id) : []);
-  const geojson = { type: "FeatureCollection", features: stations.map((s) => ({
-    type: "Feature",
-    properties: { station_id: s.station_id, name: liveShort(s.station_name), _label: top.has(s.station_id) ? 1 : 0,
-                  color: BAND_COLORS[s.pm25_band] || "#484f58", pm25: s.pm25 ?? -1, band: s.pm25_band || "" },
-    geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
-  })) };
+  let dayData = null;
+  const shown = (s) => (dayData && s.day && s.day.pm25_24h != null
+    ? { v: s.day.pm25_24h, band: s.day.band_24h } : { v: s.pm25, band: s.pm25_band });
+  function buildGeojson() {
+    const hot = dayData ? dayData.most_polluted : (data.city ? data.city.most_polluted : []);
+    const top = new Set(hot.map((s) => s.station_id));
+    return { type: "FeatureCollection", features: stations.map((s) => {
+      const x = shown(s);
+      return { type: "Feature",
+        properties: { station_id: s.station_id, name: liveShort(s.station_name), _label: top.has(s.station_id) ? 1 : 0,
+                      color: BAND_COLORS[x.band] || "#484f58", pm25: x.v ?? -1, band: x.band || "" },
+        geometry: { type: "Point", coordinates: [s.longitude, s.latitude] } };
+    }) };
+  }
+  function updateMapStatus() {
+    if (!status) return;
+    status.className = "map-status";
+    status.innerHTML = `<span class="live-dot live-dot-stale"></span> ${stations.length} stations · colour and size show ${dayData ? "the 24-hour average" : "the latest hour of"} PM2.5; the five most polluted pulse, faster where the air is worse`;
+  }
+  // Called when /api/latest/day arrives (possibly before the map has loaded)
+  window.applyLiveDay = (day) => {
+    dayData = day;
+    stations.forEach((s) => { s.day = day.stations[s.station_id] || null; });
+    if (liveMap && liveMap.getSource("live")) { liveMap.getSource("live").setData(buildGeojson()); updateMapStatus(); }
+  };
+  if (window._liveDay) window.applyLiveDay(window._liveDay);
 
   try {
     liveMap = new maplibregl.Map({ container, style: LIVE_STYLE, center: LIVE_DELHI.center, zoom: LIVE_DELHI.zoom,
@@ -349,7 +456,7 @@ function initLiveMap(data) {
 
   liveMap.on("load", () => {
     liveRecolour(liveMap);
-    liveMap.addSource("live", { type: "geojson", data: geojson, promoteId: "station_id" });
+    liveMap.addSource("live", { type: "geojson", data: buildGeojson(), promoteId: "station_id" });
     liveMap.addLayer({ id: "live-glow", type: "circle", source: "live", paint: {
       "circle-color": ["get", "color"], "circle-blur": 1,
       "circle-radius": ["*", radius, 2.3],
@@ -361,12 +468,18 @@ function initLiveMap(data) {
     liveMap.addLayer({ id: "live-dot", type: "circle", source: "live", paint: {
       "circle-color": ["get", "color"], "circle-radius": radius,
       "circle-opacity": ["case", ["boolean", ["feature-state", "dim"], false], 0.3, 0.95],
-      "circle-stroke-color": ["case", ["boolean", ["feature-state", "hover"], false], "#ffffff", "#0d1117"],
+      "circle-stroke-color": ["case", ["boolean", ["feature-state", "hover"], false], window.GLBase.overlay().strokeHover, window.GLBase.overlay().stroke],
       "circle-stroke-width": ["case", ["boolean", ["feature-state", "hover"], false], 2.5, 1.2] } });
     liveMap.addLayer({ id: "live-label", type: "symbol", source: "live", filter: ["==", ["get", "_label"], 1],
       layout: { "text-field": ["get", "name"], "text-size": 12, "text-offset": [0, 1.3], "text-anchor": "top",
                 "text-font": ["Noto Sans Bold"], "text-optional": true },
-      paint: { "text-color": "#f0f6fc", "text-halo-color": "#0d1117", "text-halo-width": 1.6 } });
+      paint: { "text-color": window.GLBase.overlay().label, "text-halo-color": window.GLBase.overlay().halo, "text-halo-width": 1.6 } });
+    window.GLBase.followTheme(liveMap, (o) => {
+      liveMap.setPaintProperty("live-dot", "circle-stroke-color",
+        ["case", ["boolean", ["feature-state", "hover"], false], o.strokeHover, o.stroke]);
+      liveMap.setPaintProperty("live-label", "text-color", o.label);
+      liveMap.setPaintProperty("live-label", "text-halo-color", o.halo);
+    });
 
     liveMap.on("mousemove", "live-dot", (e) => {
       liveMap.getCanvas().style.cursor = "pointer";
@@ -375,11 +488,12 @@ function initLiveMap(data) {
       hovered = id;
       if (!selected) setDim(id);
       const s = byId[id];
+      const x = shown(s);
       const t = readingTime(s.last_update);
       popup.setLngLat([s.longitude, s.latitude]).setHTML(`
         <div class="gl-popup-name">${liveShort(s.station_name)}</div>
-        <div class="gl-popup-value">${s.pm25 == null ? "no reading" : `${Math.round(s.pm25)} µg/m³ · ${s.pm25_band}`}</div>
-        <div class="gl-popup-rank">PM2.5 · ${t.when} · click for all readings</div>`).addTo(liveMap);
+        <div class="gl-popup-value">${x.v == null ? "no reading" : `${Math.round(x.v)} µg/m³ · ${x.band}`}</div>
+        <div class="gl-popup-rank">PM2.5, ${dayData && s.day && s.day.pm25_24h != null ? `24-hour average · latest hour ${Math.round(s.pm25)}` : `latest hour · ${t.when}`} · click for more</div>`).addTo(liveMap);
     });
     liveMap.on("mouseleave", "live-dot", () => {
       liveMap.getCanvas().style.cursor = "";
@@ -392,10 +506,7 @@ function initLiveMap(data) {
       .map((s) => `<option value="${s.station_id}">${liveShort(s.station_name)}${s.pm25 != null ? ` · ${Math.round(s.pm25)}` : ""}</option>`)
       .join("");
     search.addEventListener("change", () => search.value && select(search.value));
-    if (status) {
-      status.className = "map-status";
-      status.innerHTML = `<span class="live-dot live-dot-stale"></span> ${stations.length} stations · colour and size show the latest hourly PM2.5; the five most polluted pulse, faster where the air is worse`;
-    }
+    updateMapStatus();
     startHeartbeat();
   });
 }
@@ -405,27 +516,60 @@ function initLiveMap(data) {
 async function loadLiveBoard() {
   const status = document.getElementById("live-status");
   if (status) { status.hidden = false; status.className = "map-status"; status.textContent = "Loading the latest readings…"; }
+  let data;
   try {
-    const data = await fetchLiveOnce();
-    if (status) status.hidden = true;
-    document.getElementById("live-board").hidden = false;
-    if (data.city) {
-      renderHero(data.city);
-      renderHealth(data.city);
-      renderPollutants(data.city);
-      const max = data.city.most_polluted[0] ? data.city.most_polluted[0].pm25 : 100;
-      renderRanking("live-most", data.city.most_polluted, max);
-      renderRanking("live-clean", data.city.cleanest, max);
-      document.querySelectorAll(".rank-row").forEach((row) => row.addEventListener("click", () => {
-        document.getElementById("live-map").scrollIntoView({ behavior: "smooth", block: "center" });
-        if (window.selectLiveStation) window.selectLiveStation(row.dataset.station);
-      }));
-    }
-    document.getElementById("live-detail").innerHTML = stationPanelHtml(null);
-    requestAnimationFrame(() => initLiveMap(data));
+    data = await fetchLiveOnce();
   } catch (err) {
     if (status) renderLiveError(status, err, loadLiveBoard);
+    return;
   }
+  if (status) status.hidden = true;
+  document.getElementById("live-board").hidden = false;
+  if (data.city) {
+    renderHero(data.city, null);
+    renderHealth(data.city, null, false);
+    renderPollutants(data.city);
+    renderRankings(data, null);
+  }
+  document.getElementById("live-detail").innerHTML = stationPanelHtml(null);
+  requestAnimationFrame(() => initLiveMap(data));
+  loadNews();
+
+  // Second step: the 24-hour picture (slower; OpenAQ's rate limit)
+  try {
+    const day = await fetchDayOnce();
+    if (!day || !data.city) throw new Error("no 24-hour data");
+    window._liveDay = day;
+    renderHero(data.city, day);
+    renderHealth(data.city, day, false);
+    renderRankings(data, day);
+    if (window.applyLiveDay) window.applyLiveDay(day);
+  } catch (err) {
+    if (!data.city) return;
+    renderHero(data.city, null);
+    renderHealth(data.city, null, true);
+    const pending = document.querySelector("#live-hero .live-pending");
+    if (pending) pending.textContent = "The 24-hour average isn't available right now; showing the latest hour.";
+  }
+}
+
+async function loadNews() {
+  const card = document.getElementById("live-news-card");
+  const list = document.getElementById("live-news");
+  if (!card || !list) return;
+  try {
+    const resp = await fetch(`${LIVE_API_BASE}/api/news`);
+    if (!resp.ok) return;
+    const items = (await resp.json()).items || [];
+    if (!items.length) return;
+    const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    list.innerHTML = items.map((x) => {
+      const t = readingTime(x.published);
+      return `<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>
+        <span class="news-meta">${esc(x.source)} · ${t.age}</span></li>`;
+    }).join("");
+    card.hidden = false;
+  } catch (e) { /* the strip is optional: stay hidden */ }
 }
 
 // Called once, when the Latest Readings mode is first opened (see mode-switch.js)

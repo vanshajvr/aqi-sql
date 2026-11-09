@@ -1,5 +1,7 @@
 """Tests for the Live tab's OpenAQ assembly (api/latest.py): no network."""
-from api.latest import build_latest, pm25_band
+from datetime import datetime, timedelta, timezone
+
+from api.latest import build_latest, pm25_band, summarise_day
 
 SENSORS = {
     101: ("S1", 9, "pm25"), 102: ("S1", 9, "co"), 103: ("S1", 9, "no2"),
@@ -27,7 +29,8 @@ def test_assembles_latest_per_station_and_pollutant():
     out = {s["station_id"]: s for s in build_latest(SENSORS, responses, STATIONS)}
     assert out["S1"]["pm25"] == 135.0 and out["S1"]["pm25_band"] == "Very Poor"
     assert out["S1"]["readings"]["co"] == {"value": 1.1, "unit": "mg/m³", "datetime": "2026-10-02T14:00:00+05:30",
-                                           "band": "Satisfactory"}
+                                           "band": "Satisfactory", "sensor_id": 102}
+    assert out["S2"]["readings"]["pm25"]["sensor_id"] == 202     # the sensor behind the newest reading
     assert "no2" not in out["S1"]["readings"]
     assert out["S2"]["pm25"] == 95.0 and out["S2"]["last_update"] == "2026-10-02T09:00:00+05:30"
     assert out["S3"]["readings"] == {} and out["S3"]["pm25"] is None and out["S3"]["last_update"] is None
@@ -62,3 +65,44 @@ def test_city_summary_uses_only_current_readings():
     assert city["pollutants"]["no2"] == {"median": 60.0, "band": "Satisfactory", "n_stations": 2, "unit": "µg/m³"}
     assert [s["station_id"] for s in city["most_polluted"]] == ["C", "B", "A"]
     assert city["cleanest"][0]["station_id"] == "A"
+
+
+IST = timezone(timedelta(hours=5, minutes=30))
+END = datetime(2026, 11, 9, 13, 0, tzinfo=IST)
+
+
+def hours(values, end=END):
+    """values oldest first, the last one ending at `end`."""
+    return [(end - timedelta(hours=len(values) - 1 - i), v) for i, v in enumerate(values)]
+
+
+def test_day_summary_uses_24_hour_averages_and_finds_the_peak():
+    """
+    Five stations with a quiet day and one bad night (the morning-after-Diwali
+    shape): 20 hours at 100 and 4 hours at 700. The 24-hour average is 200
+    (Very Poor) even though the latest hour is 100 (Moderate's neighbour), and
+    the city's worst hour is the night.
+    """
+    day = [100] * 16 + [700] * 4 + [100] * 4
+    series = {f"S{i}": hours(day) for i in range(5)}
+    series["OLD"] = [(END - timedelta(hours=30), 999.0)] * 20      # outside the 24 hours: ignored
+    out = summarise_day(series, END)
+    assert out["pm25_24h_median"] == 200.0 and out["band"] == "Very Poor"
+    assert out["n_stations"] == 5 and "OLD" not in out["stations"]
+    assert out["peak_hour"]["median"] == 700.0
+    assert out["peak_hour"]["time"] == (END - timedelta(hours=7)).isoformat()
+    assert len(out["hourly"]) == 24
+    assert out["stations"]["S0"]["peak"] == 700.0
+
+
+def test_day_summary_needs_16_hours_and_5_stations_per_hour():
+    """CPCB's 16-of-24 rule for a station's average; the city's hourly median
+    needs 5 stations, so a 2-station hour isn't plotted."""
+    series = {f"S{i}": hours([80] * 24) for i in range(5)}
+    series["THIN"] = hours([400] * 15)                               # 15 hours: no 24-hour average
+    series["X1"] = [(END - timedelta(hours=30), 50.0)]
+    out = summarise_day(series, END)
+    assert out["stations"]["THIN"]["pm25_24h"] is None and out["stations"]["THIN"]["n_hours"] == 15
+    assert out["n_stations"] == 5 and out["pm25_24h_median"] == 80.0
+    assert out["most_polluted"][0]["pm25_24h"] == 80.0
+    assert all(h["n_stations"] >= 5 for h in out["hourly"])

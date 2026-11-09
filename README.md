@@ -163,7 +163,8 @@ up.
 - **Early Warning:** which alert rule to ship, as a cost vs value trade-off
 - **Stations:** a map with five views (PM2.5 2018–19 and 2025–26, change, NO2 hotspots, persistence), station detail, and side-by-side comparison
 - **Data & Methods:** the full station table (PM2.5 rank, then and now) and data coverage
-- **Latest Readings:** a board built from each station's newest readings (via OpenAQ, since CPCB's own live feed has been unreachable since October 2026): the city's median PM2.5 on CPCB's scale, what that level means for health, six pollutant tiles, a station map, and the most and least polluted stations, all dated, because the readings lag by a few days
+- **Latest Readings** (the page opens here): Delhi's **24-hour average** PM2.5, the basis of CPCB's AQI, with the latest hour, the worst hour and an hour-by-hour line; what that level means for health; six pollutant tiles; a station map; the most and least polluted stations; and recent headlines from Google News, linked to each publisher. Data via OpenAQ, since CPCB's own live feed has been unreachable since October 2026
+- **Light and dark themes**, with a toggle in the header (follows the system setting until you choose)
 
 ## Run it yourself
 
@@ -235,10 +236,12 @@ aqi-sql/
   gap its "7-day" window can stretch further (tested and documented). It's
   kept for the API; the dashboard uses query 23, which uses true calendar
   windows and never bridges a gap.
-- **"Latest readings" are a few days old.** CPCB's live API (data.gov.in)
-  stopped accepting connections, so the tab uses OpenAQ, which lags real
-  time. The server fetches it (`api/latest.py`, key in `OPENAQ_API_KEY`),
-  caches it for 30 minutes, and every reading shows when it was taken.
+- **Latest readings come from OpenAQ**, because CPCB's live API (data.gov.in)
+  stopped accepting connections. The server fetches them (`api/latest.py`,
+  key in `OPENAQ_API_KEY`) and caches them for 30 minutes. The 24-hour view
+  needs one request per station, so on a cold start it can take up to a
+  minute to appear (OpenAQ allows 60 requests a minute); the latest hour
+  shows straight away.
 
 ## Future scope
 

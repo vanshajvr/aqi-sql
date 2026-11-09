@@ -215,7 +215,7 @@ async function initStationMap() {
     glMap.setPaintProperty("station-dot", "circle-radius", radiusExpr(view, 1));
     // extrusion opacity can't vary per feature, so dim non-hovered columns by colour
     glMap.setPaintProperty("station-columns", "fill-extrusion-color",
-      ["case", ["boolean", ["feature-state", "dim"], false], "#2d333b", colourExpr(view)]);
+      ["case", ["boolean", ["feature-state", "dim"], false], window.GLBase.overlay().dim, colourExpr(view)]);
     glMap.setPaintProperty("station-columns", "fill-extrusion-height", heightExpr(view));
     const nNoData = data.points.features.filter((f) => !(view.field in f.properties)).length;
     if (legend) legend.innerHTML = legendHtml(view, nNoData);
@@ -297,7 +297,8 @@ async function initStationMap() {
       id: "station-dot", type: "circle", source: "stations",
       paint: {
         "circle-opacity": ["case", ["boolean", ["feature-state", "dim"], false], 0.3, 0.95],
-        "circle-stroke-color": ["case", ["boolean", ["feature-state", "hover"], false], "#ffffff", "#0d1117"],
+        "circle-stroke-color": ["case", ["boolean", ["feature-state", "hover"], false],
+          window.GLBase.overlay().strokeHover, window.GLBase.overlay().stroke],
         "circle-stroke-width": ["case", ["boolean", ["feature-state", "hover"], false], 2.5, 1.2],
         "circle-stroke-opacity": ["case", ["boolean", ["feature-state", "dim"], false], 0.3, 1],
       },
@@ -309,10 +310,18 @@ async function initStationMap() {
         "text-field": ["get", "name"], "text-size": 12, "text-offset": [0, 1.3], "text-anchor": "top",
         "text-font": ["Noto Sans Bold"], "text-optional": true,
       },
-      paint: { "text-color": "#f0f6fc", "text-halo-color": "#0d1117", "text-halo-width": 1.6 },
+      paint: { "text-color": window.GLBase.overlay().label, "text-halo-color": window.GLBase.overlay().halo,
+               "text-halo-width": 1.6 },
     });
 
     applyView(viewKey);
+    window.GLBase.followTheme(glMap, (o) => {
+      glMap.setPaintProperty("station-dot", "circle-stroke-color",
+        ["case", ["boolean", ["feature-state", "hover"], false], o.strokeHover, o.stroke]);
+      glMap.setPaintProperty("station-label", "text-color", o.label);
+      glMap.setPaintProperty("station-label", "text-halo-color", o.halo);
+      applyView(viewKey);                  // re-applies the dim colour of the 3D columns
+    });
 
     // hover works on the dots (2D) and on the columns (3D)
     for (const layer of ["station-dot", "station-columns"]) {
