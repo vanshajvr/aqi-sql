@@ -73,8 +73,15 @@
     btn.dataset.mode = root.dataset.theme;
   }
 
+  // Browser bar / installed-app title bar colour follows the theme
+  function updateThemeColor() {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", root.dataset.theme === "light" ? "#f6f8fa" : "#0d1117");
+  }
+
   function set(theme, persist) {
     root.dataset.theme = theme;
+    updateThemeColor();
     if (persist) { try { localStorage.setItem(KEY, theme); } catch (e) { /* private mode */ } }
     updateButton();
     themeAllCharts();
@@ -97,6 +104,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     updateButton();
+    updateThemeColor();
     const btn = document.getElementById("theme-toggle");
     if (btn) btn.addEventListener("click", () => window.AQITheme.toggle());
   });

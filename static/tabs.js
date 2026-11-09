@@ -13,7 +13,9 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.classList.add("active");
     btn.setAttribute("aria-selected", "true");
     btn.tabIndex = 0;
-    btn.focus();
+    btn.focus({ preventScroll: true });
+    // on phones the tabs are a swipeable row: keep the chosen one in view
+    btn.scrollIntoView({ block: "nearest", inline: "nearest" });
 
     const shown = document.getElementById("tab-" + btn.dataset.tab);
     shown.classList.add("active");

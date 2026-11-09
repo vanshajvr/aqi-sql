@@ -76,6 +76,24 @@ if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+# Installable app (PWA). The service worker must be served from the site root
+# to control every page; the manifest and favicon sit at their usual paths.
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    return FileResponse(STATIC_DIR / "sw.js", media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest():
+    return FileResponse(STATIC_DIR / "manifest.webmanifest", media_type="application/manifest+json")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(STATIC_DIR / "icons" / "favicon.png", media_type="image/png")
+
+
 @app.get("/")
 def serve_dashboard():
     if not DASHBOARD_HTML.exists():

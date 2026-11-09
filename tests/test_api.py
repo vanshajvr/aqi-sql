@@ -91,3 +91,15 @@ def test_health_check_reports_unhealthy_when_db_missing(client, tmp_path):
     main_module.DB_PATH = tmp_path / "does_not_exist.db"
     r = client.get("/api/health")
     assert r.status_code == 503
+
+def test_app_install_files_are_served_from_the_root(client):
+    """The service worker must come from /sw.js to control the whole site."""
+    sw = client.get("/sw.js")
+    assert sw.status_code == 200 and "javascript" in sw.headers["content-type"]
+    assert sw.headers["cache-control"] == "no-cache"
+    m = client.get("/manifest.webmanifest")
+    assert m.status_code == 200 and "manifest+json" in m.headers["content-type"]
+    body = m.json()
+    assert body["start_url"] == "/" and body["display"] == "standalone"
+    assert {i["purpose"] for i in body["icons"]} == {"any", "maskable"}
+    assert client.get("/favicon.ico").status_code == 200

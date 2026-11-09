@@ -165,6 +165,7 @@ up.
 - **Data & Methods:** the full station table (PM2.5 rank, then and now) and data coverage
 - **Latest Readings** (the page opens here): Delhi's **24-hour average** PM2.5, the basis of CPCB's AQI, with the latest hour, the worst hour and an hour-by-hour line; what that level means for health; six pollutant tiles; a station map; the most and least polluted stations; and recent headlines from Google News, linked to each publisher. Data via OpenAQ, since CPCB's own live feed has been unreachable since October 2026
 - **Light and dark themes**, with a toggle in the header (follows the system setting until you choose)
+- **Install it as an app**: on Android, Windows, Mac and ChromeOS the header shows an *Install app* button (Chrome or Edge); on iPhone and iPad it explains Safari's *Add to Home Screen*. It opens full-screen with its own icon, and shows the last readings it saw when offline (`static/manifest.webmanifest`, `static/sw.js`)
 
 ## Run it yourself
 
