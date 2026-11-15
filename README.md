@@ -78,6 +78,9 @@ What this means for policy, and what I'm less sure about, is in
  Open-Meteo weather ─┼─► fetch_data.py ──► SQLite ──► 28 SQL queries ──┬─► build_dashboard.py ──► dashboard.html
  NASA FIRMS fires ───┘    (clean + load)        │                      └─► FastAPI ──► /api/* (map, raw query results)
                                                 └─► build_download.py ──► cleaned-data zip (/download/)
+
+ Live: OpenAQ (hourly) + Open-Meteo forecast ──► FastAPI (in memory) ──► Latest Readings + "bad air tomorrow?" alert
+                                            └──► record_live.py (daily GitHub Action) ──► live-data branch
 ```
 
 - **The SQL does the thinking.** Every aggregation, ranking, comparison and
@@ -86,9 +89,12 @@ What this means for policy, and what I'm less sure about, is in
 - **Each query answers one question**, explains its choices in a header
   comment, and has tests built on small hand-made databases where the right
   answer is known in advance.
-- **The dashboard is static.** The history never changes, so the database and
-  charts are built once, at Docker build time. A small FastAPI service serves
-  the page, the station map, and every query as JSON.
+- **The history is static; the live board isn't.** The history never changes,
+  so the database and charts are built once, at Docker build time. A small
+  FastAPI service serves the page, the station map and every query as JSON,
+  and fetches the live readings and forecast on demand, holding them only in
+  memory. A daily GitHub Action keeps a permanent copy (see the dashboard's
+  Latest Readings below).
 
 ## The data, and what was wrong with it
 
@@ -172,7 +178,7 @@ up.
 ## Run it yourself
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -r api/requirements.txt   # add -r tests/requirements.txt for the tests
 
 # 1. Build the database from the committed Delhi data (same as the Docker build)
 mkdir -p data/raw && cp data/seed/*.csv data/raw/
@@ -197,11 +203,11 @@ python3 uncertainty.py        # 95% intervals -> results/ (~15 min, fixed seed)
 pytest tests/                 # the test suite
 ```
 
-`data/seed/` holds the Delhi subset of the Kaggle data, station coordinates
-and weather. To start from the full Kaggle download instead, put its
-`stations.csv` and `station_day.csv` in `data/raw/`, and run
-`geocode_stations.py` (needs `pip install requests`) to rebuild the
-coordinates.
+`data/seed/` holds everything the build needs: the Delhi subset of the Kaggle
+data, the CPCB and OpenAQ daily records from 2020, station coordinates,
+weather, crop fires and the US Embassy series. To start from the full Kaggle
+download instead, put its `stations.csv` and `station_day.csv` in `data/raw/`,
+and run `geocode_stations.py` to rebuild the coordinates.
 
 ## Project layout
 
@@ -211,13 +217,15 @@ aqi-sql/
 ├── queries/              28 SQL files, one question each
 ├── analysis_plans/       pre-registered tests, committed before the results
 ├── fetch_data.py         load + clean (sensor-fault rules live here)
-├── fetch_weather.py      one-time weather download
+├── fetch_weather.py      Open-Meteo weather download (incremental)
 ├── fetch_fires.py        NASA FIRMS crop-fire download (incremental)
 ├── fetch_openaq.py       OpenAQ download (stations + US Embassy)
 ├── prepare_openaq.py     OpenAQ unit rules + sensor stitching
 ├── prepare_cpcb.py       CPCB 2020-26 daily data: station mapping + value checks
 ├── validate_backfill.py  runs the pre-registered backfill tests
 ├── record_live.py        daily log of live readings and alert calls (run by .github/workflows/record-live.yaml)
+├── geocode_stations.py   station coordinates (only needed when starting from the full Kaggle download)
+├── capture_live_fixture.py  test fixture from CPCB's old live API (optional)
 ├── aqi.py                CPCB AQI from concentrations
 ├── build_dashboard.py    renders dashboard.html from the queries
 ├── build_download.py     the public cleaned-data zip (CSVs + README)
@@ -226,10 +234,11 @@ aqi-sql/
 ├── results/              confidence intervals, backfill validation (pass and fail)
 ├── dashboard/            chart builders (Plotly), KPIs, table
 ├── templates/, static/   page skeleton, CSS, JS (tabs, MapLibre maps, the Latest Readings board)
-├── api/                  FastAPI service + Dockerfile (latest.py: the Latest Readings feed)
+├── api/                  FastAPI service + Dockerfile (latest.py: live readings; tomorrow.py: the alert; news.py: headlines)
 ├── data/seed/            committed Delhi data, OpenAQ and CPCB backfills, weather, fires (Docker build input)
 ├── tests/                query, API, cleaning and live-parsing tests
-└── exports/README.md     BI data dictionary
+├── exports/README.md     BI data dictionary
+└── .github/workflows/    CI (tests + Docker build) and the daily live-data recorder
 ```
 
 ## Known limitations
@@ -250,6 +259,11 @@ aqi-sql/
   needs one request per station, so on a cold start it can take up to a
   minute to appear (OpenAQ allows 60 requests a minute); the latest hour
   shows straight away.
+- **The live log is only as punctual as GitHub.** Scheduled Actions start
+  late (5–7 hours in the first week) and can skip a day: there's no call for
+  12 November 2026. Each row records how old its readings were and how far
+  ahead its forecast was. The first week's calls used same-day forecasts, so
+  they don't count towards the real-forecast score.
 
 ## Future scope
 
@@ -290,8 +304,10 @@ a coverage check, with the analysis written down before it runs.
 
 ### Smaller ideas
 
-- **Re-score the alert rules with archived weather forecasts** instead of
-  actual next-day weather, to measure the real-world drop in performance.
+- **Re-score past winters with archived forecasts.** Open-Meteo keeps old
+  forecast runs (from about 2022), so the recent winters' alert tests could
+  be repeated with the forecast that was actually available, without waiting
+  for the live log.
 - **Rebuild the key findings in Power BI or Tableau Public** from the
   [BI exports](exports/README.md).
 
@@ -300,6 +316,6 @@ a coverage check, with the analysis written down before it runs.
 Air-quality data: Central Pollution Control Board (CPCB), via
 [Kaggle](https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india),
 [OpenAQ](https://openaq.org/) and CPCB's data portal.
-Weather: ERA5 reanalysis via [Open-Meteo](https://open-meteo.com/). Fires:
+Weather: ERA5 reanalysis and forecasts via [Open-Meteo](https://open-meteo.com/). Headlines: Google News. Fires:
 NASA FIRMS VIIRS active-fire data. Map tiles:
 © OpenStreetMap contributors.

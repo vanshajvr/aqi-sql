@@ -47,7 +47,7 @@ LOOKBACK_DAYS = 7
 POLLUTANTS = ["pm25", "pm10", "no2", "so2", "co", "o3"]
 HOURLY_FIELDS = ["station_id", "hour_start"] + POLLUTANTS
 ALERT_FIELDS = ["run_date", "recorded_at_utc", "readings_end", "readings_lag_hours", "n_stations",
-                "pm25_24h_mean", "pm25_24h_median", "for_date", "mixing_height_m", "rain_mm",
+                "pm25_24h_mean", "pm25_24h_median", "for_date", "forecast_lead_hours", "mixing_height_m", "rain_mm",
                 "wind_dir_deg", "wind_speed_kmh", "alert", "smoke_context", "note"]
 
 README = """# Live data log
@@ -73,12 +73,13 @@ site makes it.
 
 | Column | Meaning |
 |---|---|
-| run_date | IST date of the run (the rule's "today") |
+| run_date | IST date the recorder ran (GitHub can start it hours late, even after midnight) |
 | recorded_at_utc | When it ran |
 | readings_end | End of the newest hour of PM2.5 the call used |
-| readings_lag_hours | How old that hour was at run time. OpenAQ lags, so "today" can be a day or more old |
+| readings_lag_hours | How old that hour was at run time (OpenAQ lags) |
 | n_stations, pm25_24h_mean, pm25_24h_median | The 24 hours of PM2.5 to readings_end; the rule uses the mean (> 90) |
-| for_date | The day being predicted |
+| for_date | The day being predicted: the day after the day the readings cover. One row per for_date |
+| forecast_lead_hours | Hours from fetching the forecast to the start of for_date. Negative means the forecast was fetched after for_date began, so it's easier than a real evening-before call; leave those out when scoring |
 | mixing_height_m, rain_mm, wind_dir_deg, wind_speed_kmh | Open-Meteo's forecast for for_date (rule: mixing height < 550, rain < 1) |
 | alert | 1 = bad air (PM2.5 > 120) predicted for for_date, 0 = not, empty = inputs missing |
 | smoke_context | 1 = burning season with a north-westerly forecast |
@@ -140,14 +141,30 @@ def pm25_series(rows):
     return dict(series)
 
 
+def target_date(run_date, readings_end):
+    """
+    The day a call predicts: the day after the day its 24 hours of readings
+    belong to (the rule is "polluted today + tomorrow's weather"). Not
+    run_date + 1: GitHub starts scheduled jobs hours late, sometimes after
+    midnight, when "today" by the clock is already the day being predicted.
+    """
+    if readings_end is None:
+        return run_date + timedelta(days=1)
+    return (readings_end - timedelta(hours=1)).astimezone(IST).date() + timedelta(days=1)
+
+
 def alert_row(run_date, recorded_at, day, forecast):
     """The day's alert call as a flat log row; blanks and a note when inputs are missing."""
+    end = datetime.fromisoformat(day["end"]) if day else None
+    for_date = target_date(run_date, end)
+    for_start = datetime.combine(for_date, datetime.min.time(), IST)
     row = dict.fromkeys(ALERT_FIELDS, "")
     row.update(run_date=run_date.isoformat(), recorded_at_utc=recorded_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
-               for_date=(run_date + timedelta(days=1)).isoformat())
+               for_date=for_date.isoformat(),
+               # negative: the forecast was fetched after the predicted day had begun
+               forecast_lead_hours=round((for_start - recorded_at) / timedelta(hours=1), 1))
     notes = []
     if day:
-        end = datetime.fromisoformat(day["end"])
         row.update(readings_end=day["end"], n_stations=day["n_stations"],
                    readings_lag_hours=round((recorded_at - end) / timedelta(hours=1), 1),
                    pm25_24h_mean=day["pm25_24h_mean"], pm25_24h_median=day["pm25_24h_median"])
@@ -168,6 +185,20 @@ def alert_row(run_date, recorded_at, day, forecast):
         row.update(alert=int(result["alert"]), smoke_context=int(result["smoke_context"]))
     row["note"] = "; ".join(notes)
     return row
+
+
+def rescore(row, forecast):
+    """
+    Rebuilds a logged call from its own inputs and that run's saved forecast.
+    Used once on rows logged before target_date() existed, which predicted
+    run_date + 1 (often two days after their readings).
+    """
+    recorded_at = datetime.strptime(row["recorded_at_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    day = None
+    if row["readings_end"]:
+        day = {"end": row["readings_end"], "n_stations": int(row["n_stations"]),
+               "pm25_24h_mean": float(row["pm25_24h_mean"]), "pm25_24h_median": float(row["pm25_24h_median"])}
+    return alert_row(datetime.strptime(row["run_date"], "%Y-%m-%d").date(), recorded_at, day, forecast)
 
 
 # ---------- files ----------
@@ -201,16 +232,25 @@ def save_hourly(out_dir, rows):
 
 
 def save_alert(out_dir, row):
+    """Adds today's call. A later call for the same predicted day replaces it.
+    Rows from before forecast_lead_hours existed are re-scored from their saved forecast."""
     path = out_dir / "alert_log.csv"
     rows = []
     if path.exists():
         with open(path, newline="") as f:
-            rows = [r for r in csv.DictReader(f) if r["run_date"] != row["run_date"]]   # rerun replaces
-    rows.append(row)
+            rows = list(csv.DictReader(f))
+    fixed = []
+    for r in rows:
+        fpath = out_dir / "forecasts" / f"{r['run_date']}.json"
+        if not r.get("forecast_lead_hours") and fpath.exists():
+            r = rescore(r, json.loads(fpath.read_text()))
+        fixed.append(r)
+    by_target = {r["for_date"]: r for r in sorted(fixed, key=lambda r: r["recorded_at_utc"])}
+    by_target[row["for_date"]] = row
     with open(path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=ALERT_FIELDS)
+        w = csv.DictWriter(f, fieldnames=ALERT_FIELDS, extrasaction="ignore")
         w.writeheader()
-        w.writerows(sorted(rows, key=lambda r: r["run_date"]))
+        w.writerows(sorted(by_target.values(), key=lambda r: r["for_date"]))
 
 
 # ---------- network ----------

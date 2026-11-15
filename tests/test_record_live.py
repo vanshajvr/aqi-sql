@@ -1,8 +1,10 @@
 """Tests for the live-data recorder (record_live.py): no network."""
+import csv
+import json
 from datetime import date, datetime, timezone
 
-from record_live import (ALERT_FIELDS, alert_row, merge_month, pm25_series, read_month, save_alert,
-                         to_rows, write_month)
+from record_live import (ALERT_FIELDS, alert_row, merge_month, pm25_series, read_month, rescore, save_alert,
+                         target_date, to_rows, write_month)
 
 SENSORS = {11: ("S1", 1, "pm25"), 12: ("S1", 1, "co"), 21: ("S2", 2, "pm25"), 22: ("S2", 3, "pm25")}
 
@@ -53,26 +55,58 @@ def forecast(day, height, rain):
                       "wind_direction_10m_dominant": [300], "wind_speed_10m_max": [6.0]}}
 
 
-DAY = {"end": "2026-11-10T00:00:00+05:30", "n_stations": 33, "pm25_24h_mean": 231.0, "pm25_24h_median": 238.9}
+DAY = {"end": "2026-11-10T18:00:00+05:30", "n_stations": 33, "pm25_24h_mean": 231.0, "pm25_24h_median": 238.9}
+EVENING = datetime(2026, 11, 10, 15, 0, tzinfo=timezone.utc)      # 20:30 IST
 
 
 def test_alert_row_records_the_call_and_its_inputs():
-    row = alert_row(date(2026, 11, 10), datetime(2026, 11, 9, 21, 30, tzinfo=timezone.utc), DAY,
-                    forecast("2026-11-11", 300, 0.0))
+    row = alert_row(date(2026, 11, 10), EVENING, DAY, forecast("2026-11-11", 300, 0.0))
     assert set(row) == set(ALERT_FIELDS)
     assert row["for_date"] == "2026-11-11" and row["alert"] == 1 and row["smoke_context"] == 1
-    assert row["mixing_height_m"] == 300 and row["readings_lag_hours"] == 3.0 and row["note"] == ""
+    assert row["mixing_height_m"] == 300 and row["readings_lag_hours"] == 2.5 and row["note"] == ""
+    assert row["forecast_lead_hours"] == 3.5
+
+
+def test_a_late_run_after_midnight_still_predicts_the_day_after_the_readings():
+    late = datetime(2026, 11, 10, 20, 30, tzinfo=timezone.utc)     # 02:00 IST on the 11th
+    day = dict(DAY, end="2026-11-11T00:00:00+05:30")              # readings cover the 10th
+    row = alert_row(date(2026, 11, 11), late, day, forecast("2026-11-11", 300, 0.0))
+    assert row["for_date"] == "2026-11-11" and row["forecast_lead_hours"] == -2.0
+    assert target_date(date(2026, 11, 11), None) == date(2026, 11, 12)
 
 
 def test_alert_row_with_missing_inputs_still_logs():
-    row = alert_row(date(2026, 11, 10), datetime(2026, 11, 9, 21, 30, tzinfo=timezone.utc), None, None)
+    row = alert_row(date(2026, 11, 10), EVENING, None, None)
     assert row["alert"] == "" and row["note"] == "no 24-hour PM2.5; no forecast"
 
 
-def test_rerun_on_the_same_day_replaces_that_days_row(tmp_path):
-    when = datetime(2026, 11, 9, 21, 30, tzinfo=timezone.utc)
-    save_alert(tmp_path, alert_row(date(2026, 11, 9), when, DAY, forecast("2026-11-10", 900, 0.0)))
-    save_alert(tmp_path, alert_row(date(2026, 11, 10), when, DAY, forecast("2026-11-11", 900, 0.0)))
-    save_alert(tmp_path, alert_row(date(2026, 11, 10), when, DAY, forecast("2026-11-11", 300, 0.0)))
-    lines = (tmp_path / "alert_log.csv").read_text().splitlines()
-    assert len(lines) == 3 and lines[1].startswith("2026-11-09") and lines[2].endswith(",1,1,")
+def test_a_second_call_for_the_same_day_replaces_the_first(tmp_path):
+    save_alert(tmp_path, alert_row(date(2026, 11, 9), EVENING, dict(DAY, end="2026-11-09T18:00:00+05:30"),
+                                   forecast("2026-11-10", 900, 0.0)))
+    save_alert(tmp_path, alert_row(date(2026, 11, 10), EVENING, DAY, forecast("2026-11-11", 900, 0.0)))
+    save_alert(tmp_path, alert_row(date(2026, 11, 10), EVENING, DAY, forecast("2026-11-11", 300, 0.0)))
+    with open(tmp_path / "alert_log.csv") as f:
+        rows = list(csv.DictReader(f))
+    assert [r["for_date"] for r in rows] == ["2026-11-10", "2026-11-11"] and rows[1]["alert"] == "1"
+
+
+def test_old_rows_are_rescored_from_their_saved_forecast(tmp_path):
+    # logged before the fix: ran at 02:00 IST on the 11th, readings for the 10th, but predicted the 12th
+    old = alert_row(date(2026, 11, 11), datetime(2026, 11, 10, 20, 30, tzinfo=timezone.utc),
+                    dict(DAY, end="2026-11-11T00:00:00+05:30"), None)
+    old.update(for_date="2026-11-12", forecast_lead_hours="")
+    with open(tmp_path / "alert_log.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=[k for k in ALERT_FIELDS if k != "forecast_lead_hours"],
+                           extrasaction="ignore")
+        w.writeheader()
+        w.writerow(old)
+    fc = forecast("2026-11-11", 300, 0.0)
+    (tmp_path / "forecasts").mkdir()
+    (tmp_path / "forecasts" / "2026-11-11.json").write_text(json.dumps(fc))
+    assert rescore(old, fc)["for_date"] == "2026-11-11"
+    save_alert(tmp_path, alert_row(date(2026, 11, 11), EVENING.replace(day=11),
+                                   dict(DAY, end="2026-11-11T18:00:00+05:30"), forecast("2026-11-12", 900, 0.0)))
+    with open(tmp_path / "alert_log.csv") as f:
+        rows = list(csv.DictReader(f))
+    assert [(r["for_date"], r["alert"], r["forecast_lead_hours"]) for r in rows] == \
+        [("2026-11-11", "1", "-2.0"), ("2026-11-12", "0", "3.5")]

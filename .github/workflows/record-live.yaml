@@ -7,7 +7,9 @@ name: Record live data
 
 on:
   schedule:
-    - cron: "30 13 * * *"   # 19:00 IST, the evening call for tomorrow
+    # 15:00 IST. GitHub starts scheduled jobs late (5-7 hours in the first
+    # week), so this lands in the evening, as the call for tomorrow should.
+    - cron: "30 9 * * *"
   workflow_dispatch:        # "Run workflow" button, for a first run or a missed day
 
 permissions:
