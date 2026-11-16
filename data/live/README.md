@@ -21,12 +21,13 @@ site makes it.
 
 | Column | Meaning |
 |---|---|
-| run_date | IST date of the run (the rule's "today") |
+| run_date | IST date the recorder ran (GitHub can start it hours late, even after midnight) |
 | recorded_at_utc | When it ran |
 | readings_end | End of the newest hour of PM2.5 the call used |
-| readings_lag_hours | How old that hour was at run time. OpenAQ lags, so "today" can be a day or more old |
+| readings_lag_hours | How old that hour was at run time (OpenAQ lags) |
 | n_stations, pm25_24h_mean, pm25_24h_median | The 24 hours of PM2.5 to readings_end; the rule uses the mean (> 90) |
-| for_date | The day being predicted |
+| for_date | The day being predicted: the day after the day the readings cover. One row per for_date |
+| forecast_lead_hours | Hours from fetching the forecast to the start of for_date. Negative means the forecast was fetched after for_date began, so it's easier than a real evening-before call; leave those out when scoring |
 | mixing_height_m, rain_mm, wind_dir_deg, wind_speed_kmh | Open-Meteo's forecast for for_date (rule: mixing height < 550, rain < 1) |
 | alert | 1 = bad air (PM2.5 > 120) predicted for for_date, 0 = not, empty = inputs missing |
 | smoke_context | 1 = burning season with a north-westerly forecast |
